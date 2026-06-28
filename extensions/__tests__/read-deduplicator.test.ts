@@ -8,32 +8,78 @@ describe("read-deduplicator / createReadTracker", () => {
     expect(t.get("/tmp/never.md")).toBeUndefined();
   });
 
-  test("tracks and retrieves fingerprint and turn", () => {
+  test("tracks and retrieves fingerprint, turn, and injectedText", () => {
     const t = createReadTracker();
-    t.track("/tmp/a.md", "fp-a", 5);
-    expect(t.get("/tmp/a.md")).toEqual({ fingerprint: "fp-a", turn: 5 });
+    t.track("/tmp/a.md", "fp-a", 5, "content of a");
+    const entry = t.get("/tmp/a.md");
+    expect(entry!.fingerprint).toBe("fp-a");
+    expect(entry!.turn).toBe(5);
+    expect(entry!.injectedText).toBe("content of a");
+    expect(entry!.stillInContext).toBe(true);
   });
 
   test("overwrites on second track of same path", () => {
     const t = createReadTracker();
-    t.track("/tmp/b.md", "fp-v1", 2);
-    t.track("/tmp/b.md", "fp-v2", 10);
-    expect(t.get("/tmp/b.md")).toEqual({ fingerprint: "fp-v2", turn: 10 });
+    t.track("/tmp/b.md", "fp-v1", 2, "old content");
+    t.track("/tmp/b.md", "fp-v2", 10, "new content");
+    const entry = t.get("/tmp/b.md");
+    expect(entry!.fingerprint).toBe("fp-v2");
+    expect(entry!.turn).toBe(10);
+    expect(entry!.injectedText).toBe("new content");
+  });
+
+  // ── stillInContext ─────────────────────────────────────────────────────
+  test("stillInContext defaults to true after track", () => {
+    const t = createReadTracker();
+    t.track("/tmp/c.md", "fp-c", 3, "content");
+    expect(t.get("/tmp/c.md")!.stillInContext).toBe(true);
+  });
+
+  test("setStillInContext updates the flag", () => {
+    const t = createReadTracker();
+    t.track("/tmp/d.md", "fp-d", 4, "content");
+    t.setStillInContext("/tmp/d.md", false);
+    expect(t.get("/tmp/d.md")!.stillInContext).toBe(false);
+    t.setStillInContext("/tmp/d.md", true);
+    expect(t.get("/tmp/d.md")!.stillInContext).toBe(true);
+  });
+
+  test("setStillInContext is a no-op for untracked paths", () => {
+    const t = createReadTracker();
+    t.setStillInContext("/tmp/ghost.md", false);
+    expect(t.get("/tmp/ghost.md")).toBeUndefined();
+  });
+
+  // ── entries ────────────────────────────────────────────────────────────
+  test("entries iterates all tracked paths", () => {
+    const t = createReadTracker();
+    t.track("/tmp/x.md", "fp-x", 1, "x");
+    t.track("/tmp/y.md", "fp-y", 2, "y");
+
+    const paths: string[] = [];
+    for (const [path] of t.entries()) {
+      paths.push(path);
+    }
+    expect(paths).toContain("/tmp/x.md");
+    expect(paths).toContain("/tmp/y.md");
+  });
+
+  test("entries reflects stillInContext changes", () => {
+    const t = createReadTracker();
+    t.track("/tmp/z.md", "fp-z", 1, "z");
+    t.setStillInContext("/tmp/z.md", false);
+
+    for (const [, entry] of t.entries()) {
+      expect(entry.stillInContext).toBe(false);
+    }
   });
 
   // ── independent paths ──────────────────────────────────────────────────
   test("tracks different paths independently", () => {
     const t = createReadTracker();
-    t.track("/tmp/x.md", "fp-x", 1);
-    t.track("/tmp/y.md", "fp-y", 2);
-    expect(t.get("/tmp/x.md")!.fingerprint).toBe("fp-x");
-    expect(t.get("/tmp/y.md")!.fingerprint).toBe("fp-y");
-  });
-
-  test("get for untracked path among tracked ones returns undefined", () => {
-    const t = createReadTracker();
-    t.track("/tmp/x.md", "fp-x", 1);
-    t.track("/tmp/y.md", "fp-y", 2);
-    expect(t.get("/tmp/z.md")).toBeUndefined();
+    t.track("/tmp/x.md", "fp-x", 1, "x");
+    t.track("/tmp/y.md", "fp-y", 2, "y");
+    expect(t.get("/tmp/x.md")!.injectedText).toBe("x");
+    expect(t.get("/tmp/y.md")!.injectedText).toBe("y");
   });
 });
