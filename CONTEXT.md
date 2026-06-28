@@ -43,7 +43,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── enhanced-model-selector/
 │   │   └── CONTEXT.md         ← Custom model picker with costs
 │   ├── extended-global-context/
-│   │   └── CONTEXT.md         ← AGENTS.md injection into prompts
+│   │   └── CONTEXT.md         ← How global context has been extended
 │   ├── git-commits-push-enforcer/
 │   │   └── CONTEXT.md         ← How to commit & push
 │   └── managing-api-keys/
@@ -65,7 +65,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (Conventional Commits) |
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
 | Understand the command validator | `docs/command-validator/CONTEXT.md` (bash security rules) |
-| Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (AGENTS.md injection) |
+| Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Document a new harness modification | `docs/documenting-self-modifications/CONTEXT.md` (step-by-step template) |
