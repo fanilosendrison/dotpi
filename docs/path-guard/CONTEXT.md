@@ -6,7 +6,7 @@
 
 ## What
 
-Blocks `Write` and `Edit` tool calls that target files directly under
+Blocks `Write`, `Edit`, and `Bash` tool calls that target files directly under
 `~/Developper/Projects/dotpi/` instead of through `~/.pi/agent/`.
 
 When blocked, the error message shows the equivalent `~/.pi/agent/` path to use.
@@ -19,8 +19,11 @@ closes that gap.
 
 ## How It Works
 
-1. Intercepts `tool_call` for `write` and `edit`
-2. Resolves the target path to its real path (following symlinks)
-3. If the real path is inside `dotpi/` but the given path does not start with
+1. Intercepts `tool_call` for `write`, `edit`, and `bash`
+2. For `write`/`edit`: resolves the target path to its real path (following symlinks)
+3. For `bash`: extracts candidate file paths from the command (redirects,
+   `tee`, absolute paths, `~/` paths) and checks each one
+4. If the real path is inside `dotpi/` but the given path does not start with
    `~/.pi/agent/`, the operation is blocked
-4. The block message includes the correct `~/.pi/agent/` path to use instead
+5. The block message includes the correct `~/.pi/agent/` path to use for writes
+   and the `dot*` repo path for git commits (`cd ~/Developper/Projects/dotpi/ && git commit`)
