@@ -25,6 +25,8 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── enhanced-model-selector.ts
 │   └── extended-global-context.ts
 ├── sessions/               ← Pi's session history
+├── creating-extensions/
+│   └── CONTEXT.md          ← TypeScript/VSCode setup for extension projects
 ├── documenting-self-modifications/
 │   └── CONTEXT.md          ← How to document a harness modification
 └── pi-itself/              ← Harness modifications
@@ -45,6 +47,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Understand the command validator | `pi-itself/command-validator/CONTEXT.md` |
 | Understand the global context extension | `pi-itself/extended-global-context/CONTEXT.md` |
 | Document a new harness modification | `documenting-self-modifications/CONTEXT.md` |
+| Set up TypeScript/VSCode for a new extension project | `creating-extensions/CONTEXT.md` |
 | See all harness modifications | `pi-itself/CONTEXT.md` |
 
 ## Writing Rules
