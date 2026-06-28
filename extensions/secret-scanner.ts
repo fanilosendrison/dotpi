@@ -6,7 +6,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { $ } from "bun";
+import { execSync } from "node:child_process";
 
 const PASSWORD_PLACEHOLDERS = [
   "changeme", "password", "placeholder", "example",
@@ -64,9 +64,9 @@ export default function (pi: ExtensionAPI) {
     // Get the staged diff
     let diff: string;
     try {
-      diff = await $`git diff --cached`.text();
+      diff = execSync("git diff --cached", { encoding: "utf-8" });
     } catch {
-      return; // no staged changes, nothing to scan
+      return; // not a git repo or no staged changes
     }
 
     if (!diff.trim()) return;
