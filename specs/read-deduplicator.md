@@ -2,7 +2,7 @@
 
 - **Date**: 2026-06-28
 - **Type**: Extension
-- **Status**: Spec
+- **Status**: Implemented (untested in live Pi)
 - **File**: `~/.pi/agent/extensions/read-deduplicator.ts`
 
 ---
@@ -55,7 +55,20 @@ Pas besoin de `sha256` — `mtime + size` suffit à détecter une modification e
 
 ### Vérification de présence
 
-`prompt.includes(injectedText)` — Pi construit le prompt de chaque tour, il a accès au texte complet avant envoi. La string `injectedText` est l'output formaté du tool `read` (inclut numéros de ligne, troncature éventuelle), pas le fichier brut sur disque. Pi sait exactement ce qu'il a mis et sous quelle forme il l'a mis.
+Le `before_provider_request` reçoit le payload complet (messages array). L'extension extrait tout le contenu textuel :
+
+```ts
+const messages = event.payload.messages ?? [];
+const payloadText = messages
+  .flatMap((m) =>
+    Array.isArray(m.content)
+      ? m.content.filter((c) => c.type === "text").map((c) => c.text)
+      : [typeof m.content === "string" ? m.content : ""],
+  )
+  .join("\n");
+```
+
+Puis `payloadText.includes(entry.injectedText)` détermine `stillInContext`. Pas de `JSON.stringify` (qui échapperait les newlines).
 
 ---
 
