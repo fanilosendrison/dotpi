@@ -1,31 +1,18 @@
 /**
- * Pi extension — blocks writes directly to dotpi/dotagents/dotclaude
- * instead of through their respective symlink entry points.
+ * Pi extension — blocks writes directly to any dot* repo under Projects/
+ * instead of through its ~/. prefix symlink.
  *
- * Enforces the rule: always write through the ~/.agent or ~/.claude
- * symlink, never directly into the Projects/ repo directory.
+ * Rule: any path under ~/Developper/Projects/dot<name>/ must be written
+ * through ~/.<name>/, never directly. The pattern is derived automatically
+ * so new dot* repos are covered without code changes.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { realpathSync } from "node:fs";
+import { realpathSync, existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
-const GUARDED: Array<{ real: string; gateway: string; label: string }> = [
-  {
-    real: "/Users/famillesendrison/Developper/Projects/dotpi",
-    gateway: "/Users/famillesendrison/.pi/agent",
-    label: "dotpi",
-  },
-  {
-    real: "/Users/famillesendrison/Developper/Projects/dotagents",
-    gateway: "/Users/famillesendrison/.agents",
-    label: "dotagents",
-  },
-  {
-    real: "/Users/famillesendrison/Developper/Projects/dotclaude",
-    gateway: "/Users/famillesendrison/.claude",
-    label: "dotclaude",
-  },
-];
+const HOME = "/Users/famillesendrison";
+const PROJECTS = join(HOME, "Developper", "Projects");
 
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {
@@ -41,7 +28,6 @@ export default function (pi: ExtensionAPI) {
     try {
       real = realpathSync(givenPath);
     } catch {
-      // File doesn't exist yet — walk up to first existing ancestor
       let ancestor = givenPath.replace(/\/[^/]+$/, "") || "/";
       while (ancestor && !existsSync(ancestor)) {
         ancestor = ancestor.replace(/\/[^/]+$/, "") || "/";
@@ -51,18 +37,27 @@ export default function (pi: ExtensionAPI) {
       real = realpathSync(ancestor) + "/" + rel;
     }
 
-    for (const g of GUARDED) {
-      if (real.startsWith(g.real + "/") || real === g.real) {
-        if (!givenPath.startsWith(g.gateway)) {
-          return {
-            block: true,
-            reason:
-              `Write through ${g.gateway}, not directly to ${g.label}/.\n` +
-              `  Given:  ${givenPath}\n` +
-              `  Use:    ${givenPath.replace(g.real, g.gateway)}`,
-          };
-        }
-      }
+    // Check if real path is inside any Projects/dot* repo
+    if (!real.startsWith(PROJECTS + "/")) return;
+
+    const relative = real.slice(PROJECTS.length + 1);
+    const slashIdx = relative.indexOf("/");
+    const repoDir = slashIdx === -1 ? relative : relative.slice(0, slashIdx);
+
+    if (!repoDir.startsWith("dot")) return;
+
+    const name = repoDir.slice(3); // strip "dot" prefix
+    const gateway = join(HOME, "." + name);
+
+    // Block unless given path already uses the gateway
+    if (!givenPath.startsWith(gateway)) {
+      return {
+        block: true,
+        reason:
+          `Write through ~/.${name}/, not directly to ${repoDir}/.\n` +
+          `  Given:  ${givenPath}\n` +
+          `  Use:    ~/.${name}/${relative.slice(repoDir.length + 1)}`,
+      };
     }
   });
 }
