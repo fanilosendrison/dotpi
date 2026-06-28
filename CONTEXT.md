@@ -34,7 +34,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   └── CONTEXT.md          ← Things to know when creating new extensions
 ├── documenting-self-modifications/
 │   └── CONTEXT.md          ← How to document a harness modification
-├── pi-itself/              ← Harness modification docs (no scripts)
+├── docs/                   ← Harness modification docs
 │   ├── CONTEXT.md          ← Index of all modifications
 │   ├── command-validator/
 │   ├── commit-validation/
@@ -42,7 +42,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── extended-global-context/
 │   ├── git-commits-push-enforcer/
 │   └── managing-api-keys/
-├── patches/                ← Pi dist patches + apply/revert scripts
+├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
 │       ├── interactive-mode.patch
 │       ├── apply.sh
@@ -54,16 +54,16 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 
 | Want to... | Go here |
 |----------------------------------------------------------|-------------------------------------------------|
-| Add / modify an API key | `pi-itself/managing-api-keys/CONTEXT.md` |
-| Understand the enhanced model selector | `pi-itself/enhanced-model-selector/CONTEXT.md` |
-| Understand the commit validation extensions | `pi-itself/commit-validation/CONTEXT.md` |
-| Understand the git push enforcer | `pi-itself/git-commits-push-enforcer/CONTEXT.md` |
-| Understand the command validator | `pi-itself/command-validator/CONTEXT.md` |
-| Understand the global context extension | `pi-itself/extended-global-context/CONTEXT.md` |
+| Add / modify an API key | `docs/managing-api-keys/CONTEXT.md` |
+| Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` |
+| Understand the commit validation extensions | `docs/commit-validation/CONTEXT.md` |
+| Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` |
+| Understand the command validator | `docs/command-validator/CONTEXT.md` |
+| Understand the global context extension | `docs/extended-global-context/CONTEXT.md` |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
 | Document a new harness modification | `documenting-self-modifications/CONTEXT.md` |
 | Things to know when creating new extensions | `creating-extensions/CONTEXT.md` |
-| See all harness modifications | `pi-itself/CONTEXT.md` |
+| See all harness modifications | `docs/CONTEXT.md` |
 
 ## Writing Rules
 

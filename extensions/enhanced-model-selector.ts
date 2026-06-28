@@ -6,7 +6,7 @@
  *   - /model         (intercepted via input event — needs pi dist patch)
  *   - Ctrl+Shift+L   (custom shortcut)
  *
- * Requires a small patch to pi's dist file (see pi-itself/enhanced-model-selector/CONTEXT.md).
+ * Requires a small patch to pi's dist file (see docs/enhanced-model-selector/CONTEXT.md).
  */
 
 import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";

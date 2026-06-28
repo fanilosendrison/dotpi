@@ -1,4 +1,4 @@
-# Pi Itself — Harness Modification Docs
+# Docs — Harness Modification Docs
 
 This folder documents all modifications made to pi itself. Executable patches and
 scripts live in `../patches/`.
@@ -7,7 +7,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 
 ## How to Add a New Modification
 
-1. Create a folder with a descriptive name: `pi-itself/<topic>/`
+1. Create a folder with a descriptive name: `docs/<topic>/`
 2. Add a `CONTEXT.md` inside explaining: what was changed, why, how it works, relevant files
 3. Add an entry below with date and link
 4. Update `../AGENTS.md` with a row in the Quick Navigation table

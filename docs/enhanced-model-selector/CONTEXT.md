@@ -89,7 +89,7 @@ Both entry points call the same `showSelector()` function which:
 **Apply** (after every `pi update` or `npm update -g`):
 
 ```bash
-./pi-itself/enhanced-model-selector/apply-patches.sh
+./patches/enhanced-model-selector/apply.sh
 ```
 
 The script auto-detects the pi package root (works with nvm, fnm, global npm), skips if already patched, and uses `patch -p1` to apply [`../../patches/enhanced-model-selector/interactive-mode.patch`](../../patches/enhanced-model-selector/interactive-mode.patch).
@@ -114,6 +114,6 @@ Both the `.patch` file and the scripts are **git-tracked** in this repo.
 
 ## Caveats
 
-- **Reapply after updates**: the patch must be reapplied after every `pi update` or `npm update -g @earendil-works/pi-coding-agent`. If `/model` stops showing the enhanced selector, re-run `apply-patches.sh`.
-- **Fragile patch**: the patch targets a specific code pattern in `interactive-mode.js`. Future pi versions may change this code. If `apply-patches.sh` fails with a hunk error, the `.patch` file needs updating to match the new dist source.
+- **Reapply after updates**: the patch must be reapplied after every `pi update` or `npm update -g @earendil-works/pi-coding-agent`. If `/model` stops showing the enhanced selector, re-run `apply.sh`.
+- **Fragile patch**: the patch targets a specific code pattern in `interactive-mode.js`. Future pi versions may change this code. If `apply.sh` fails with a hunk error, the `.patch` file needs updating to match the new dist source.
 - **Shortcut conflict**: `Ctrl+L` is reserved by pi (clear screen / built-in model shortcut). The extension uses `Ctrl+Shift+L` instead. Check for conflicts with other extensions that may bind the same chord.

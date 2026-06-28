@@ -4,7 +4,7 @@ Follow these steps to document a harness modification.
 
 Start with a good title: `# <Action or Domain>`. Keep it short and `kebab-case` ready (e.g. `Managing API Keys` → `managing-api-keys`).
 
-You are writing for your future self — when you read this again, you need to understand what was done and how to act on it immediately. Reference `pi-itself/managing-api-keys/CONTEXT.md` as the canonical example for tone, table formatting, and section depth.
+You are writing for your future self — when you read this again, you need to understand what was done and how to act on it immediately. Reference `docs/managing-api-keys/CONTEXT.md` as the canonical example for tone, table formatting, and section depth.
 
 Sections, in this order:
 
@@ -34,14 +34,14 @@ The steps below are mechanical. Execute them exactly.
 Derive `<topic>` from the title you chose in STEP 1: `# Managing API Keys` → `managing-api-keys`. Write to:
 
 ```
-pi-itself/<topic>/CONTEXT.md
+docs/<topic>/CONTEXT.md
 ```
 
 ---
 
 ## STEP 3. Update the index
 
-Add an entry in `pi-itself/CONTEXT.md` under "Existing Modifications":
+Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 ```
 ### N. <Title>
 - **Date** : YYYY-MM-DD
