@@ -2,7 +2,7 @@
 
 - **Date**: 2026-06-28
 - **Type**: Extension
-- **Status**: Implemented (untested in live Pi)
+- **Status**: Implemented & tested live
 - **File**: `~/.pi/agent/extensions/read-deduplicator.ts`
 
 ---
