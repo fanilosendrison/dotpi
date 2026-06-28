@@ -1,8 +1,8 @@
-# Dotagents Context Extension
+# Extended Global Context
 
 - **Date**: 2026-06-28
 - **Type**: Extension (no patch needed)
-- **File**: `~/.pi/agent/extensions/dotagents-context.ts`
+- **File**: `~/.pi/agent/extensions/extended-global-context.ts`
 
 ## What
 
@@ -24,5 +24,5 @@ The cache is flushed on `session_start` so `/reload` picks up changes.
 
 | File | Purpose | Versioned |
 |------|---------|-----------|
-| `dotpi/extensions/dotagents-context.ts` | Extension source | ✅ |
+| `dotpi/extensions/extended-global-context.ts` | Extension source | ✅ |
 | `dotagents/AGENTS.md` | Content injected into context | ✅ |

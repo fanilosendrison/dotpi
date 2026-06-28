@@ -21,6 +21,6 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 - **Date** : 2026-06-27
 - **Doc** : [`managing-api-keys/CONTEXT.md`](managing-api-keys/CONTEXT.md)
 
-### 3. Dotagents Context Extension
+### 3. Extended Global Context
 - **Date** : 2026-06-28
-- **Doc** : [`dotagents-context/CONTEXT.md`](dotagents-context/CONTEXT.md)
+- **Doc** : [`extended-global-context/CONTEXT.md`](extended-global-context/CONTEXT.md)
