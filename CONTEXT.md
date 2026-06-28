@@ -31,6 +31,7 @@ go to the dotpi repo.
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
 │   ├── secret-scanner.ts
+│   ├── path-guard.ts
 │   └── __tests__/          ← unit tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
@@ -49,6 +50,8 @@ go to the dotpi repo.
 │   │   └── CONTEXT.md         ← How global context has been extended
 │   ├── git-commits-push-enforcer/
 │   │   └── CONTEXT.md         ← How to commit & push
+│   ├── path-guard/
+│   │   └── CONTEXT.md         ← Blocks writes to dotpi/
 │   └── managing-api-keys/
 │       └── CONTEXT.md         ← Doppler-based auth
 ├── patches/                ← Pi dist patches
@@ -68,6 +71,7 @@ go to the dotpi repo.
 | Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (How commits are validated) |
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
 | Understand the command validator | `docs/command-validator/CONTEXT.md` (Bash security rules) |
+| Understand the path guard | `docs/path-guard/CONTEXT.md` (blocks writes to dotpi/) |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
