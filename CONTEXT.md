@@ -45,7 +45,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── extended-global-context/
 │   │   └── CONTEXT.md         ← AGENTS.md injection into prompts
 │   ├── git-commits-push-enforcer/
-│   │   └── CONTEXT.md         ← CC + push enforcement
+│   │   └── CONTEXT.md         ← How to commit & push
 │   └── managing-api-keys/
 │       └── CONTEXT.md         ← Doppler-based auth
 ├── patches/                ← Pi dist patches
@@ -63,7 +63,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Add / modify an API key | `docs/managing-api-keys/CONTEXT.md` (Doppler-based auth) |
 | Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` (costs, thinking levels) |
 | Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (Conventional Commits) |
-| Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (CC + push) |
+| Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
 | Understand the command validator | `docs/command-validator/CONTEXT.md` (bash security rules) |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (AGENTS.md injection) |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
