@@ -6,7 +6,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { checkPath } from "../../../dotagents/agent-hooks/shared/core/path-guard";
+import { checkPath } from "../../dotagents/agent-hooks/shared/core/path-guard";
 
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {
