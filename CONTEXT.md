@@ -24,6 +24,7 @@ go to the dotpi repo.
 ├── auth.json.example       ← Template for auth.json (committed)
 ├── settings.json           ← Global settings
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
+├── specs/                  ← Specs en cours, pas encore implémentées
 ├── extensions/             ← Auto-discovered extensions
 │   ├── command-validator.ts
 │   ├── commit-validator.ts
