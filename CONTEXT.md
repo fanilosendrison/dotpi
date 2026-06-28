@@ -28,7 +28,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
 │   ├── secret-scanner.ts
-│   └── __tests__/          ← 66 unit tests (bun test __tests__/)
+│   └── __tests__/          ← unit tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
 ├── creating-extensions/
 │   └── CONTEXT.md          ← Things to know when creating new extensions
