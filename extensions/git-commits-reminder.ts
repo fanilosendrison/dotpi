@@ -41,5 +41,15 @@ export default function (pi: ExtensionAPI) {
           `Got: "${msg.slice(0, 60)}" — expected: <type>(<scope>): <description>`,
       };
     }
+
+    // Block if commit is not followed by push (skill mandates auto-push)
+    if (!/git\s+push/.test(event.input.command)) {
+      return {
+        block: true,
+        reason:
+          "Always push after commit. Use: git commit ... && git push\n" +
+          "Or invoke /git-commits-push which handles this automatically.",
+      };
+    }
   });
 }
