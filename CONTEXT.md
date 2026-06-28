@@ -40,6 +40,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 |------------|---------|
 | Add / modify an API key | `pi-itself/managing-api-keys/CONTEXT.md` |
 | Understand the enhanced model selector | `pi-itself/enhanced-model-selector/CONTEXT.md` |
+| Understand the commit validation extensions | `pi-itself/commit-validation/CONTEXT.md` |
 | Understand the global context extension | `pi-itself/extended-global-context/CONTEXT.md` |
 | Document a new harness modification | `documenting-self-modifications/CONTEXT.md` |
 | See all harness modifications | `pi-itself/CONTEXT.md` |

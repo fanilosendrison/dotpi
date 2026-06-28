@@ -24,3 +24,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 3. Extended Global Context
 - **Date** : 2026-06-28
 - **Doc** : [`extended-global-context/CONTEXT.md`](extended-global-context/CONTEXT.md)
+
+### 4. Commit Validation Extensions
+- **Date** : 2026-06-28
+- **Doc** : [`commit-validation/CONTEXT.md`](commit-validation/CONTEXT.md)
