@@ -8,7 +8,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 
-const GIT_COMMIT = /git\s+commit\b/;
+const GIT_COMMIT = /git\s+commit/;
 const CC_REGEX = /^[a-z]+(\([^)]+\))?!?:\s\S/;
 
 function extractMessage(command: string): string | null {
@@ -44,7 +44,7 @@ export default function (pi: ExtensionAPI) {
     }
 
     // Block if commit is not followed by push
-    if (!/git\s+push\b/.test(event.input.command)) {
+    if (!/git\s+push/.test(event.input.command)) {
       return {
         block: true,
         reason:
