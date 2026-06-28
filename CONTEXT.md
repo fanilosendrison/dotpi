@@ -1,7 +1,6 @@
 # Harness Config
 
-This file is the map to your Pi harness customizations. Read it whenever the user
-asks you to modify yourself or your harness.
+This file is the map to `~/.pi/agent/` — every customization made to your Pi harness and the workflows for making them. You loaded it because the user asked about modifying you or your own harness.
 
 Every customization has its own topic folder under `docs/`, each with a `CONTEXT.md`
 that explains what was done and how it works. Use the Quick Navigation table below to
