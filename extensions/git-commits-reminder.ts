@@ -3,7 +3,7 @@
  * AND the commit is followed by a push.
  *
  * Forces the agent to use /git-commits-push.
- * Mirrors ~/.agents/agent-hooks/git-commits-skill-reminder/
+ * Mirrors ~/.agents/agent-hooks/git-commits-push-enforcer/
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
