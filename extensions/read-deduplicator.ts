@@ -21,7 +21,15 @@ export default function (pi: ExtensionAPI) {
 
   // Before each provider request, update stillInContext for all tracked files
   pi.on("before_provider_request", async (event) => {
-    const payloadText = JSON.stringify(event.payload);
+    // Extract all text from the payload messages (avoid JSON.stringify which escapes newlines)
+    const messages = (event.payload as any)?.messages ?? [];
+    const payloadText = messages
+      .flatMap((m: any) =>
+        Array.isArray(m.content)
+          ? m.content.filter((c: any) => c.type === "text").map((c: any) => c.text)
+          : [typeof m.content === "string" ? m.content : ""],
+      )
+      .join("\n");
     for (const [path, entry] of tracker.entries()) {
       tracker.setStillInContext(path, payloadText.includes(entry.injectedText));
     }
