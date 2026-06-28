@@ -39,7 +39,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {
     if (!isToolCallEventType("read", event)) return;
 
-    const path = event.input.file_path;
+    const path = event.input.path;
     if (!path || typeof path !== "string") return;
 
     let fingerprint: string;
@@ -73,7 +73,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_result", async (event) => {
     if (!isReadToolResult(event)) return;
 
-    const path = event.input.file_path as string;
+    const path = event.input.path as string;
     if (!path || typeof path !== "string") return;
 
     const textContent = event.content
