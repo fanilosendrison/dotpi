@@ -32,16 +32,22 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
-│   ├── command-validator/     ← Bash security rules
-│   ├── commit-validator/      ← Conventional Commits validation
+│   ├── command-validator/
+│   │   └── CONTEXT.md         ← Bash security rules
+│   ├── commit-validator/
+│   │   └── CONTEXT.md         ← Conventional Commits validation
 │   ├── creating-extensions/
 │   │   └── CONTEXT.md         ← Conventions for new extensions
 │   ├── documenting-self-modifications/
 │   │   └── CONTEXT.md         ← How to document harness changes
-│   ├── enhanced-model-selector/ ← Custom model picker with costs
-│   ├── extended-global-context/ ← AGENTS.md injection into prompts
-│   ├── git-commits-push-enforcer/ ← CC + push enforcement
-│   └── managing-api-keys/     ← Doppler-based auth
+│   ├── enhanced-model-selector/
+│   │   └── CONTEXT.md         ← Custom model picker with costs
+│   ├── extended-global-context/
+│   │   └── CONTEXT.md         ← AGENTS.md injection into prompts
+│   ├── git-commits-push-enforcer/
+│   │   └── CONTEXT.md         ← CC + push enforcement
+│   └── managing-api-keys/
+│       └── CONTEXT.md         ← Doppler-based auth
 ├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
 │       ├── interactive-mode.patch
