@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkPath } from "../../../dotagents/agent-hooks/shared/core/path-guard";
+import { checkPath } from "../../../dotagents/agent-hooks/path-guard/src/core/path-guard";
 import { join } from "node:path";
 
 const HOME = "/Users/famillesendrison";
