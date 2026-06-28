@@ -1,15 +1,19 @@
 # Harness Config
 
-This file is the map to `~/.pi/agent/` — every customization made to your Pi harness,
-and the workflows for making them. You loaded it because the user asked about modifying
-you or your own harness.
+This file is the map to your Pi harness customizations. Read it whenever the user
+asks you to modify yourself or your harness.
+
+Every customization has its own topic folder under `docs/`, each with a `CONTEXT.md`
+that explains what was done and how it works. Use the Quick Navigation table below to
+find the right one, drop into its `CONTEXT.md`, and follow the instructions.
 
 Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`
 
 ## Symlink Structure
 
-`~/.pi/agent/` is a directory with individual symlinks to `~/Developper/Projects/dotpi/`.
-Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotpi repo.
+`~/.pi/agent/` is a directory of symlinks pointing into `~/Developper/Projects/dotpi/`.
+Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits and pushes
+go to the dotpi repo.
 
 ## Folder Structure
 
