@@ -56,8 +56,3 @@ Key points:
   cannot reach the global npm root
 - No `package.json` or `node_modules/` needed — the paths handle everything
 
-## Common Pitfall
-
-If imports are red despite a correct tsconfig, check that the VSCode workspace root
-is the project folder, not a parent directory — a tsconfig in a subdirectory is
-invisible when the workspace is `~` or `Projects/`.
