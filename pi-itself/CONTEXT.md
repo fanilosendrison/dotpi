@@ -28,3 +28,11 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 4. Commit Validation Extensions
 - **Date** : 2026-06-28
 - **Doc** : [`commit-validation/CONTEXT.md`](commit-validation/CONTEXT.md)
+
+### 5. Git Commits Push Enforcer
+- **Date** : 2026-06-28
+- **Doc** : [`git-commits-push-enforcer/CONTEXT.md`](git-commits-push-enforcer/CONTEXT.md)
+
+### 6. Command Validator
+- **Date** : 2026-06-28
+- **Doc** : [`command-validator/CONTEXT.md`](command-validator/CONTEXT.md)
