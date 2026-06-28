@@ -61,6 +61,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Understand the command validator | `docs/command-validator/CONTEXT.md` |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
+| Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Document a new harness modification | `documenting-self-modifications/CONTEXT.md` |
 | Things to know when creating new extensions | `creating-extensions/CONTEXT.md` |
 | See all harness modifications | `docs/CONTEXT.md` |
