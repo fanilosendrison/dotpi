@@ -52,4 +52,4 @@ Add an entry in `docs/CONTEXT.md` under "Existing Modifications":
 
 ## STEP 4. Update the router
 
-Add a row in `AGENTS.md` Quick Navigation table.
+Add a row in the `CONTEXT.md` Quick Navigation table.

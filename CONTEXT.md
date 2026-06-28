@@ -30,14 +30,14 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── secret-scanner.ts
 │   └── __tests__/          ← unit tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
-├── creating-extensions/
-│   └── CONTEXT.md          ← Things to know when creating new extensions
-├── documenting-self-modifications/
-│   └── CONTEXT.md          ← How to document a harness modification
-├── docs/                   ← Harness modification docs
+├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
 │   ├── command-validator/
 │   ├── commit-validator/
+│   ├── creating-extensions/
+│   │   └── CONTEXT.md      ← Things to know when creating new extensions
+│   ├── documenting-self-modifications/
+│   │   └── CONTEXT.md      ← How to document a harness modification
 │   ├── enhanced-model-selector/
 │   ├── extended-global-context/
 │   ├── git-commits-push-enforcer/
@@ -62,8 +62,8 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
-| Document a new harness modification | `documenting-self-modifications/CONTEXT.md` |
-| Things to know when creating new extensions | `creating-extensions/CONTEXT.md` |
+| Document a new harness modification | `docs/documenting-self-modifications/CONTEXT.md` |
+| Things to know when creating new extensions | `docs/creating-extensions/CONTEXT.md` |
 | See all harness modifications | `docs/CONTEXT.md` |
 
 ## Writing Rules
