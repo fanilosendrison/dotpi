@@ -6,7 +6,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { CommandValidator } from "../../dotagents/agent-hooks/command-validator/src/core/validator";
+import { CommandValidator } from "../../../dotagents/agent-hooks/command-validator/src/core/validator";
 
 const DESTRUCTIVE_PATTERNS = [
   />\s*\/dev\/(sda|hda|nvme)/i,

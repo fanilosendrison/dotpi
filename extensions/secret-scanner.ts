@@ -6,7 +6,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { scanDiff } from "../../dotagents/agent-hooks/secret-scanner/src/core/scanner";
+import { scanDiff } from "../../../dotagents/agent-hooks/secret-scanner/src/core/scanner";
 import { execSync } from "node:child_process";
 
 export default function (pi: ExtensionAPI) {

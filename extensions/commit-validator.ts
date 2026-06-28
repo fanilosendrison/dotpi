@@ -10,7 +10,7 @@ import {
   isGitCommit,
   extractCommitMessage,
   validateCommitMessage,
-} from "../../dotagents/agent-hooks/commit-msg-validator/src/core/validator";
+} from "../../../dotagents/agent-hooks/commit-msg-validator/src/core/validator";
 
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {
