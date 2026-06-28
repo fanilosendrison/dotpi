@@ -39,7 +39,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 ## Quick Navigation
 
 | Want to... | Go here |
-|------------|---------|
+|----------------------------------------------------------|-------------------------------------------------|
 | Add / modify an API key | `pi-itself/managing-api-keys/CONTEXT.md` |
 | Understand the enhanced model selector | `pi-itself/enhanced-model-selector/CONTEXT.md` |
 | Understand the commit validation extensions | `pi-itself/commit-validation/CONTEXT.md` |
