@@ -22,18 +22,26 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 ├── settings.json           ← Global settings
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── extensions/             ← Auto-discovered extensions
+│   ├── command-validator.ts
+│   ├── commit-validator.ts
 │   ├── enhanced-model-selector.ts
-│   └── extended-global-context.ts
+│   ├── extended-global-context.ts
+│   ├── git-commits-push-enforcer.ts
+│   └── secret-scanner.ts
 ├── sessions/               ← Pi's session history
 ├── creating-extensions/
 │   └── CONTEXT.md          ← TypeScript/VSCode setup for extension projects
 ├── documenting-self-modifications/
 │   └── CONTEXT.md          ← How to document a harness modification
-└── pi-itself/              ← Harness modifications
-    ├── CONTEXT.md          ← Index of all modifications
-    ├── enhanced-model-selector/
-    ├── extended-global-context/
-    └── managing-api-keys/
+├── pi-itself/              ← Harness modifications
+│   ├── CONTEXT.md          ← Index of all modifications
+│   ├── command-validator/
+│   ├── commit-validation/
+│   ├── enhanced-model-selector/
+│   ├── extended-global-context/
+│   ├── git-commits-push-enforcer/
+│   └── managing-api-keys/
+└── tsconfig.json           ← TypeScript config for VSCode
 ```
 
 ## Quick Navigation
