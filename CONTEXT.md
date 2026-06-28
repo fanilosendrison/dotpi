@@ -37,7 +37,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 ├── docs/                   ← Harness modification docs
 │   ├── CONTEXT.md          ← Index of all modifications
 │   ├── command-validator/
-│   ├── commit-validation/
+│   ├── commit-validator/
 │   ├── enhanced-model-selector/
 │   ├── extended-global-context/
 │   ├── git-commits-push-enforcer/
@@ -56,7 +56,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 |----------------------------------------------------------|-------------------------------------------------|
 | Add / modify an API key | `docs/managing-api-keys/CONTEXT.md` |
 | Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` |
-| Understand the commit validation extensions | `docs/commit-validation/CONTEXT.md` |
+| Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` |
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` |
 | Understand the command validator | `docs/command-validator/CONTEXT.md` |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` |
