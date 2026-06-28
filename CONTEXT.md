@@ -34,7 +34,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   └── CONTEXT.md          ← Things to know when creating new extensions
 ├── documenting-self-modifications/
 │   └── CONTEXT.md          ← How to document a harness modification
-├── pi-itself/              ← Harness modifications
+├── pi-itself/              ← Harness modification docs (no scripts)
 │   ├── CONTEXT.md          ← Index of all modifications
 │   ├── command-validator/
 │   ├── commit-validation/
@@ -42,6 +42,11 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── extended-global-context/
 │   ├── git-commits-push-enforcer/
 │   └── managing-api-keys/
+├── patches/                ← Pi dist patches + apply/revert scripts
+│   └── enhanced-model-selector/
+│       ├── interactive-mode.patch
+│       ├── apply.sh
+│       └── revert.sh
 └── tsconfig.json           ← TypeScript config for VSCode
 ```
 

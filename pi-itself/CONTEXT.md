@@ -1,6 +1,7 @@
-# Pi Itself — Harness Modifications
+# Pi Itself — Harness Modification Docs
 
-This folder contains all modifications made to pi itself.
+This folder documents all modifications made to pi itself. Executable patches and
+scripts live in `../patches/`.
 
 When the user asks to modify pi (the harness, the agent), look here first to understand what's already been done, then document any new changes.
 

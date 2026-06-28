@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# apply-patches.sh — Apply all pi dist patches from pi-itself/
+# apply.sh — Apply all pi dist patches from patches/
 #
-# Usage: ./pi-itself/enhanced-model-selector/apply-patches.sh
+# Usage: ./patches/enhanced-model-selector/apply.sh
 #
 # This script finds the globally installed pi-coding-agent package and applies
 # the git-tracked patches. Re-run after `pi update` or `npm update -g`.
@@ -9,6 +9,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Find the pi-coding-agent package root (works with nvm, fnm, global npm)
 PACKAGE_ROOT=""
@@ -54,8 +55,8 @@ apply_one() {
     fi
 }
 
-# Apply all .patch files in pi-itself/ subdirectories
-find "$SCRIPT_DIR/../.." -name "*.patch" -not -path "*/enhanced-model-selector/*" -prune -o -name "*.patch" -print | while read -r patch; do
+# Apply all .patch files from patches/
+find "$REPO_ROOT/patches" -name "*.patch" -print | while read -r patch; do
     apply_one "$patch"
 done
 

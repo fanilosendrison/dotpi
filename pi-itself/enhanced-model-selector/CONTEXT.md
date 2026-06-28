@@ -5,15 +5,15 @@
 - **Files**:
   - Extension: `~/.pi/agent/extensions/enhanced-model-selector.ts`
   - Git-tracked patch: [`interactive-mode.patch`](interactive-mode.patch)
-  - Apply script: [`apply-patches.sh`](apply-patches.sh)
-  - Revert script: [`revert-patch.sh`](revert-patch.sh)
+  - Apply script: [`../../patches/enhanced-model-selector/apply.sh`](../../patches/enhanced-model-selector/apply.sh)
+  - Revert script: [`../../patches/enhanced-model-selector/revert.sh`](../../patches/enhanced-model-selector/revert.sh)
 
 ## Quick Reference
 
 - **Trigger**: `/model` or `Ctrl+Shift+L`
-- **After `pi update`**: run `./pi-itself/enhanced-model-selector/apply-patches.sh`
+- **After `pi update`**: run `./patches/enhanced-model-selector/apply.sh`
 - **Main file**: `~/.pi/agent/extensions/enhanced-model-selector.ts`
-- **Revert patch**: `./pi-itself/enhanced-model-selector/revert-patch.sh`
+- **Revert patch**: `./patches/enhanced-model-selector/revert.sh`
 
 ---
 
@@ -92,12 +92,12 @@ Both entry points call the same `showSelector()` function which:
 ./pi-itself/enhanced-model-selector/apply-patches.sh
 ```
 
-The script auto-detects the pi package root (works with nvm, fnm, global npm), skips if already patched, and uses `patch -p1` to apply [`interactive-mode.patch`](interactive-mode.patch).
+The script auto-detects the pi package root (works with nvm, fnm, global npm), skips if already patched, and uses `patch -p1` to apply [`../../patches/enhanced-model-selector/interactive-mode.patch`](../../patches/enhanced-model-selector/interactive-mode.patch).
 
 **Revert**:
 
 ```bash
-./pi-itself/enhanced-model-selector/revert-patch.sh
+./patches/enhanced-model-selector/revert.sh
 ```
 
 Both the `.patch` file and the scripts are **git-tracked** in this repo.

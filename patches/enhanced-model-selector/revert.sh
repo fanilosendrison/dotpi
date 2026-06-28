@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# revert-patch.sh — Revert the enhanced-model-selector patch
+# revert.sh — Revert the enhanced-model-selector patch
 #
-# Usage: ./pi-itself/enhanced-model-selector/revert-patch.sh
+# Usage: ./patches/enhanced-model-selector/revert.sh
 
 set -euo pipefail
 
