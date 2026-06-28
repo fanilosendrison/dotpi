@@ -64,12 +64,12 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` (How model picker has been extended with costs) |
 | Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (How commits are validated) |
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
-| Understand the command validator | `docs/command-validator/CONTEXT.md` (bash security rules) |
+| Understand the command validator | `docs/command-validator/CONTEXT.md` (Bash security rules) |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
 | Run extension unit tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
-| Document a new harness modification | `docs/documenting-self-modifications/CONTEXT.md` (step-by-step template) |
-| Conventions for new extensions | `docs/creating-extensions/CONTEXT.md` (naming, structure) |
+| Document a new harness modification | `docs/documenting-self-modifications/CONTEXT.md` (How to document harness changes) |
+| Conventions for new extensions | `docs/creating-extensions/CONTEXT.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
 
 ## Writing Rules
