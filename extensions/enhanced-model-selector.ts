@@ -3,9 +3,10 @@
  * supported thinking levels, and auth status for every model — all on one line.
  *
  * Accessible via:
- *   - /switch-model  (extension command)
- *   - /model         (intercepted via input event)
- *   - Ctrl+Shift+L    (custom shortcut)
+ *   - /model         (intercepted via input event — needs pi dist patch)
+ *   - Ctrl+Shift+L   (custom shortcut)
+ *
+ * Requires a small patch to pi's dist file (see pi-itself/enhanced-model-selector/CONTEXT.md).
  */
 
 import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
@@ -240,25 +241,19 @@ async function showSelector(pi: ExtensionAPI, ctx: ExtensionContext) {
 // ── extension ────────────────────────────────────────────────────────────────
 
 export default function (pi: ExtensionAPI) {
-  // 1. Register under a non-conflicting name
-  pi.registerCommand("switch-model", {
-    description: "Switch models with cost, context, thinking levels",
-    handler: async (_args, ctx) => {
-      await showSelector(pi, ctx);
-    },
-  });
-
-  // 2. Intercept /model typed by the user → redirect to our selector
+  // 1. Intercept /model via input event.
+  //    Requires a patch to pi's dist file that comments out the built-in
+  //    handler in setupEditorSubmitHandler (see CONTEXT.md for instructions).
   pi.on("input", async (event, ctx) => {
     const trimmed = event.text.trim();
-    if (trimmed === "/model" || trimmed === "/m") {
+    if (trimmed === "/model") {
       await showSelector(pi, ctx);
       return { action: "handled" };
     }
     return { action: "continue" };
   });
 
-  // 3. Ctrl+Shift+L shortcut (Ctrl+L is a protected built-in)
+  // 2. Ctrl+Shift+L shortcut (Ctrl+L is a protected built-in)
   pi.registerShortcut(Key.ctrlShift("l"), {
     description: "Enhanced model selector",
     handler: async (ctx) => {

@@ -1,0 +1,23 @@
+--- a/dist/modes/interactive/interactive-mode.js
++++ b/dist/modes/interactive/interactive-mode.js
+@@ -2026,12 +2026,14 @@
+                 await this.showModelsSelector();
+                 return;
+             }
+-            if (text === "/model" || text.startsWith("/model ")) {
+-                const searchTerm = text.startsWith("/model ") ? text.slice(7).trim() : undefined;
+-                this.editor.setText("");
+-                await this.handleModelCommand(searchTerm);
+-                return;
+-            }
++            // PATCHED by enhanced-model-selector: /model falls through to session.prompt()
++            // where our extension intercepts it via the 'input' event.
++            // if (text === "/model" || text.startsWith("/model ")) {
++            //     const searchTerm = text.startsWith("/model ") ? text.slice(7).trim() : undefined;
++            //     this.editor.setText("");
++            //     await this.handleModelCommand(searchTerm);
++            //     return;
++            // }
+             if (text === "/export" || text.startsWith("/export ")) {
+                 await this.handleExportCommand(text);
+                 this.editor.setText("");
