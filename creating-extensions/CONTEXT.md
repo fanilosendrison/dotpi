@@ -19,8 +19,7 @@ global root.
 
 ## tsconfig.json
 
-Use `paths` with absolute paths — symlinks and `npm link` do not work reliably
-with VSCode's TypeScript server for globally installed packages.
+Use `paths` with absolute paths pointing to the global npm root.
 
 ```json
 {
@@ -57,12 +56,8 @@ Key points:
   cannot reach the global npm root
 - No `package.json` or `node_modules/` needed — the paths handle everything
 
-## VSCode Checklist
+## Common Pitfall
 
-When imports are red and the tsconfig looks correct:
-
-1. **Workspace root must be the project folder** — opening `~` or a parent folder
-   makes the tsconfig invisible
-2. **Restart the TS server** — `Cmd+Shift+P` → `TypeScript: Restart TS Server`
-   (only available when a `.ts` file is the active tab)
-3. **Check the TS version** — bottom-right status bar, next to `TypeScript`
+If imports are red despite a correct tsconfig, check that the VSCode workspace root
+is the project folder, not a parent directory — a tsconfig in a subdirectory is
+invisible when the workspace is `~` or `Projects/`.
