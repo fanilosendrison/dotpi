@@ -1,13 +1,14 @@
 /**
- * Pi extension — blocks direct git commit unless message follows Conventional Commits.
+ * Pi extension — blocks direct git commit unless message follows Conventional Commits
+ * AND the commit is followed by a push.
  *
- * Forces the agent to use /git-commits-push (or at minimum produce a valid message).
+ * Forces the agent to use /git-commits-push.
  * Mirrors ~/.agents/agent-hooks/git-commits-skill-reminder/
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 
-const GIT_COMMIT = /\bgit\s+commit\b/;
+const GIT_COMMIT = /git\s+commit\b/;
 const CC_REGEX = /^[a-z]+(\([^)]+\))?!?:\s\S/;
 
 function extractMessage(command: string): string | null {
@@ -42,8 +43,8 @@ export default function (pi: ExtensionAPI) {
       };
     }
 
-    // Block if commit is not followed by push (skill mandates auto-push)
-    if (!/git\s+push/.test(event.input.command)) {
+    // Block if commit is not followed by push
+    if (!/git\s+push\b/.test(event.input.command)) {
       return {
         block: true,
         reason:
