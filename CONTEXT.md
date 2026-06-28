@@ -35,7 +35,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── command-validator/
 │   │   └── CONTEXT.md         ← Bash security rules
 │   ├── commit-validator/
-│   │   └── CONTEXT.md         ← Conventional Commits validation
+│   │   └── CONTEXT.md         ← How commits are validated
 │   ├── creating-extensions/
 │   │   └── CONTEXT.md         ← Conventions for new extensions
 │   ├── documenting-self-modifications/
@@ -62,7 +62,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 |----------------------------------------------------------|-------------------------------------------------|
 | Add / modify an API key | `docs/managing-api-keys/CONTEXT.md` (Doppler-based auth) |
 | Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` (How model picker has been extended with costs) |
-| Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (Conventional Commits) |
+| Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (How commits are validated) |
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
 | Understand the command validator | `docs/command-validator/CONTEXT.md` (bash security rules) |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
