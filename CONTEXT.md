@@ -27,7 +27,8 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 │   ├── enhanced-model-selector.ts
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
-│   └── secret-scanner.ts
+│   ├── secret-scanner.ts
+│   └── __tests__/          ← 66 unit tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
 ├── creating-extensions/
 │   └── CONTEXT.md          ← Things to know when creating new extensions
@@ -54,6 +55,7 @@ Write through `~/.pi/agent/`, never directly to `dotpi/`. Commits go to the dotp
 | Understand the git push enforcer | `pi-itself/git-commits-push-enforcer/CONTEXT.md` |
 | Understand the command validator | `pi-itself/command-validator/CONTEXT.md` |
 | Understand the global context extension | `pi-itself/extended-global-context/CONTEXT.md` |
+| Run extension unit tests | `extensions/__tests__/` (`bun test`) |
 | Document a new harness modification | `documenting-self-modifications/CONTEXT.md` |
 | Things to know when creating new extensions | `creating-extensions/CONTEXT.md` |
 | See all harness modifications | `pi-itself/CONTEXT.md` |
