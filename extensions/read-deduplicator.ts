@@ -4,24 +4,63 @@
  *
  * Blocks re-reads when: fingerprint matches AND file still in provider payload.
  * Allows re-reads when: first read, file modified, or content truncated from payload.
+ *
+ * Logs blocked reads to ~/.pi/stats/read-deduplicator/<session-id>.md
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType, isReadToolResult } from "@earendil-works/pi-coding-agent";
 import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
+import { createBlockedLog } from "./read-deduplicator-internals/blocked-log";
 import { statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export default function (pi: ExtensionAPI) {
   const tracker = createReadTracker();
-  let currentTurn = 0;
-
-  // Track current turn number
-  pi.on("turn_start", async (event) => {
-    currentTurn = event.turnIndex;
+  const statsDir = join(homedir(), ".pi", "stats", "read-deduplicator");
+  const blockedLog = createBlockedLog({
+    statsDir,
+    cwd: process.cwd(),
+    dryRun: false,
   });
 
-  // Before each provider request, update stillInContext for all tracked files
+  let currentTurn = 0;
+  let cycleStartTs = "";
+  let cycleReadsAttempted = 0;
+  const cycleTurns = new Set<number>();
+
+  // ── Session lifecycle ──────────────────────────────────────────────────
+
+  pi.on("session_start", () => {
+    blockedLog.startSession();
+  });
+
+  pi.on("agent_start", () => {
+    cycleStartTs = new Date().toISOString();
+    cycleReadsAttempted = 0;
+    cycleTurns.clear();
+    blockedLog.onAgentStart({ timestamp: cycleStartTs });
+  });
+
+  pi.on("agent_end", () => {
+    blockedLog.onAgentEnd({
+      timestamp: new Date().toISOString(),
+      totalTurns: currentTurn,
+    });
+  });
+
+  // ── Turn tracking ──────────────────────────────────────────────────────
+
+  pi.on("turn_start", async (event) => {
+    currentTurn = event.turnIndex;
+    cycleTurns.add(event.turnIndex);
+    blockedLog.onTurnStart({ turnIndex: event.turnIndex });
+  });
+
+  // ── Cycle boundary: before each provider request ─────────────────────
+
   pi.on("before_provider_request", async (event) => {
-    // Extract all text from the payload messages (avoid JSON.stringify which escapes newlines)
+    // Update stillInContext for all tracked files
     const messages = (event.payload as any)?.messages ?? [];
     const payloadText = messages
       .flatMap((m: any) =>
@@ -33,23 +72,40 @@ export default function (pi: ExtensionAPI) {
     for (const [path, entry] of tracker.entries()) {
       tracker.setStillInContext(path, payloadText.includes(entry.injectedText));
     }
+
+    // End the current cycle — flush blocked reads to file
+    const endTs = new Date().toISOString();
+    if (cycleStartTs) {
+      blockedLog.endCycle({
+        startTs: cycleStartTs,
+        endTs,
+        readsAttempted: cycleReadsAttempted,
+        totalTurns: cycleTurns.size,
+      });
+    }
+    cycleStartTs = endTs;
+    cycleReadsAttempted = 0;
+    cycleTurns.clear();
   });
 
-  // Guard read calls
+  // ── Guard read calls ──────────────────────────────────────────────────
+
   pi.on("tool_call", async (event) => {
     if (!isToolCallEventType("read", event)) return;
 
     const path = event.input.path;
     if (!path || typeof path !== "string") return;
 
-    let fingerprint: string;
+    cycleReadsAttempted++;
+
+    let stat: ReturnType<typeof statSync>;
     try {
-      const stat = statSync(path);
-      fingerprint = `${stat.mtimeMs}:${stat.size}`;
+      stat = statSync(path);
     } catch {
       return; // file doesn't exist yet — let read handle the error
     }
 
+    const fingerprint = `${stat.mtimeMs}:${stat.size}`;
     const entry = tracker.get(path);
 
     // First read — always allow
@@ -60,6 +116,12 @@ export default function (pi: ExtensionAPI) {
 
     // Same fingerprint, still in context — block
     if (entry.stillInContext) {
+      blockedLog.addBlock({
+        ts: new Date().toISOString(),
+        path,
+        sizeBytes: stat.size,
+        turnIndex: currentTurn,
+      });
       return {
         block: true,
         reason: `(already in context, turn ${entry.turn})`,
@@ -69,7 +131,8 @@ export default function (pi: ExtensionAPI) {
     // Same fingerprint, but truncated from context — allow
   });
 
-  // Capture injected text after successful reads
+  // ── Capture injected text after successful reads ─────────────────────
+
   pi.on("tool_result", async (event) => {
     if (!isReadToolResult(event)) return;
 
