@@ -242,4 +242,48 @@ describe("path-guard / checkBashCommand", () => {
       checkBashCommand(`cp /tmp/a ~/Developper/Projects/dotpi/file.ts`).allowed,
     ).toBe(false);
   });
+
+  // ── unwrapCommand regression: env -i bypass attempts ─────────────────
+  test("blocks env -i /bin/bash -c with dotpi redirect inside", () => {
+    const r = checkBashCommand(
+      `env -i HOME=$HOME PATH=$PATH /bin/bash -c 'cd ${PROJECTS}/dotpi && echo hi > specs/file.md'`,
+    );
+    expect(r.allowed).toBe(false);
+    expect(r.reason).toContain("~/.pi/");
+  });
+
+  test("blocks env -i /usr/bin/bash -c with dotpi path inside", () => {
+    const r = checkBashCommand(
+      `env -i PATH=/usr/bin /usr/bin/bash -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  test("blocks env -i sh -c with dotpi path inside (bare shell name)", () => {
+    const r = checkBashCommand(
+      `env -i sh -c 'git add ${PROJECTS}/dotpi/file.ts'`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  test("blocks env -i bash -c with dotpi path in double quotes", () => {
+    const r = checkBashCommand(
+      `env -i bash -c "echo hi > ${PROJECTS}/dotpi/file.ts"`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  test("blocks exec env -i bash -c with dotpi path inside", () => {
+    const r = checkBashCommand(
+      `exec env -i bash -c 'cd ${PROJECTS}/dotpi && git status'`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  test("blocks env -i $SHELL -c with dotpi path inside", () => {
+    const r = checkBashCommand(
+      `env -i $SHELL -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
+    );
+    expect(r.allowed).toBe(false);
+  });
 });
