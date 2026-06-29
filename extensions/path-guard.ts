@@ -16,7 +16,7 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
-    const givenPath = event.input.file_path;
+    const givenPath = event.input.file_path ?? event.input.path;
     if (!givenPath || typeof givenPath !== "string") return;
 
     const result = checkPath(givenPath);
