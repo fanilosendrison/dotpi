@@ -72,6 +72,25 @@ describe("path-guard / checkPath", () => {
   test("allows non-existent files outside Projects/", () => {
     expect(checkPath("/tmp/new-folder/new-file.ts").allowed).toBe(true);
   });
+
+  // ── tilde expansion (regression: previously infinite-looped) ─────────
+  test("does not infinite-loop on ~/ paths inside dot* repos", () => {
+    // Before the fix, checkPath("~/Developper/Projects/dotpi/...") entered
+    // an infinite loop inside resolveReal because the ancestor walk kept
+    // producing `~` (no `/` to strip), and existsSync("~") always returned
+    // false. The test would hang the suite indefinitely.
+    expect(
+      checkPath("~/Developper/Projects/dotpi/extensions/path-guard.ts").allowed,
+    ).toBe(false);
+  });
+
+  test("does not infinite-loop on ~/ paths outside Projects/", () => {
+    expect(checkPath("~/some/random/file.ts").allowed).toBe(true);
+  });
+
+  test("does not infinite-loop on bare ~", () => {
+    expect(checkPath("~").allowed).toBe(true);
+  });
 });
 
 describe("path-guard / extractBashPaths", () => {
@@ -207,5 +226,20 @@ describe("path-guard / checkBashCommand", () => {
     );
     expect(r.allowed).toBe(false);
     expect(r.reason).toContain("~/.agents/");
+  });
+
+  // ── tilde expansion (regression: previously infinite-looped) ─────────
+  // Before the fix, `ls ~/Developper/Projects/dotpi` would hang the agent
+  // because checkPath entered an infinite loop in resolveReal.
+  test("does not infinite-loop on ls ~/Developper/Projects/dotpi", () => {
+    expect(
+      checkBashCommand("ls ~/Developper/Projects/dotpi").allowed,
+    ).toBe(false);
+  });
+
+  test("does not infinite-loop on cp to ~/Developper/Projects/dotpi", () => {
+    expect(
+      checkBashCommand(`cp /tmp/a ~/Developper/Projects/dotpi/file.ts`).allowed,
+    ).toBe(false);
   });
 });
