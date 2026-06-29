@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createReadTracker } from "../read-deduplicator/read-tracker";
+import { createReadTracker } from "../read-deduplicator-internals/read-tracker";
 
 describe("read-deduplicator / createReadTracker", () => {
   // ── get / track ────────────────────────────────────────────────────────

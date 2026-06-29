@@ -18,7 +18,7 @@ import {
   createBlockedLog,
   type BlockedLogAPI,
   type AddBlockResult,
-} from "../read-deduplicator/blocked-log";
+} from "../read-deduplicator-internals/blocked-log";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
