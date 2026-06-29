@@ -23,7 +23,6 @@ go to the dotpi repo.
 ├── auth.json               ← Provider credentials (gitignored)
 ├── auth.json.example       ← Template for auth.json (committed)
 ├── settings.json           ← Global settings
-├── .pi/                    ← dotpi/.pi (committed harness data)
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── specs/                  ← Design specs for future extensions
 ├── creating-extensions/    ← Alias to docs/creating-extensions/
