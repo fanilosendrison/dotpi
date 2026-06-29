@@ -23,16 +23,20 @@ go to the dotpi repo.
 ├── auth.json               ← Provider credentials (gitignored)
 ├── auth.json.example       ← Template for auth.json (committed)
 ├── settings.json           ← Global settings
+├── .pi/                    ← dotpi/.pi (committed harness data)
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── specs/                  ← Design specs for future extensions
+├── creating-extensions/    ← Alias to docs/creating-extensions/
+├── documenting-self-modifications/  ← Alias to docs/documenting-self-modifications/
 ├── extensions/             ← Auto-discovered extensions
 │   ├── command-validator.ts
 │   ├── commit-validator.ts
 │   ├── enhanced-model-selector.ts
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
-│   ├── secret-scanner.ts
 │   ├── path-guard.ts
+│   ├── read-deduplicator.ts
+│   ├── secret-scanner.ts
 │   └── __tests__/          ← unit tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
