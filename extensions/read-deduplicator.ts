@@ -5,7 +5,7 @@
  * Blocks re-reads when: fingerprint matches AND file still in provider payload.
  * Allows re-reads when: first read, file modified, or content truncated from payload.
  *
- * Logs blocked reads to ~/.pi/stats/read-deduplicator/<session-id>.md
+ * Logs blocked reads to ~/neelopedia/stats/read-deduplicator/<session-id>.md
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType, isReadToolResult } from "@earendil-works/pi-coding-agent";
@@ -17,7 +17,7 @@ import { join } from "node:path";
 
 export default function (pi: ExtensionAPI) {
   const tracker = createReadTracker();
-  const statsDir = join(homedir(), ".pi", "stats", "read-deduplicator");
+  const statsDir = join(homedir(), "neelopedia", "stats", "read-deduplicator");
   const blockedLog = createBlockedLog({
     statsDir,
     cwd: process.cwd(),
