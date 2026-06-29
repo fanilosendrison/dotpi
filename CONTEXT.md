@@ -22,7 +22,6 @@ go to the dotpi repo.
 ├── CONTEXT.md              ← You are here (topic router)
 ├── auth.json               ← Provider credentials (gitignored)
 ├── auth.json.example       ← Template for auth.json (committed)
-├── .gitignore              ← Git ignore rules
 ├── settings.json           ← Global settings
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── specs/                  ← Design specs for future extensions
