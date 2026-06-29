@@ -7,7 +7,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { checkPath, checkBashCommand } from "../../dotagents/agent-hooks/path-guard/src/core/path-guard";
+import { checkPath, checkBashCommand } from "../../../.agents/agent-hooks/path-guard/src/core/path-guard";
 
 export default function (pi: ExtensionAPI) {
   // Guard Write and Edit

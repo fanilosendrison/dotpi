@@ -12,7 +12,7 @@ import {
   extractMessage,
   isValidCC,
   hasPush,
-} from "../../../dotagents/agent-hooks/git-commits-push-enforcer/src/core/validator";
+} from "../../../.agents/agent-hooks/git-commits-push-enforcer/src/core/validator";
 
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {
