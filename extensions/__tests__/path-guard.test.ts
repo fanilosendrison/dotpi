@@ -259,9 +259,9 @@ describe("path-guard / checkBashCommand", () => {
     expect(r.allowed).toBe(false);
   });
 
-  test("blocks env -i sh -c with dotpi path inside (bare shell name)", () => {
+  test("blocks env -i sh -c with dotpi redirect inside (bare shell name)", () => {
     const r = checkBashCommand(
-      `env -i sh -c 'git add ${PROJECTS}/dotpi/file.ts'`,
+      `env -i sh -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
     );
     expect(r.allowed).toBe(false);
   });
@@ -273,16 +273,64 @@ describe("path-guard / checkBashCommand", () => {
     expect(r.allowed).toBe(false);
   });
 
-  test("blocks exec env -i bash -c with dotpi path inside", () => {
+  test("allows exec env -i bash -c with pure git operations on dotpi", () => {
     const r = checkBashCommand(
       `exec env -i bash -c 'cd ${PROJECTS}/dotpi && git status'`,
     );
-    expect(r.allowed).toBe(false);
+    expect(r.allowed).toBe(true);
   });
 
   test("blocks env -i $SHELL -c with dotpi path inside", () => {
     const r = checkBashCommand(
       `env -i $SHELL -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  // ── git whitelist: pure git operations on dot* repos ────────────────
+  test("allows cd dotpi && git status", () => {
+    expect(
+      checkBashCommand(`cd ${PROJECTS}/dotpi && git status`).allowed,
+    ).toBe(true);
+  });
+
+  test("allows cd dotpi && git add && git commit && git push", () => {
+    expect(
+      checkBashCommand(
+        `cd ${PROJECTS}/dotpi && git add . && git commit -m "test" && git push`,
+      ).allowed,
+    ).toBe(true);
+  });
+
+  test("allows git -C dotpi status (full chain)", () => {
+    expect(
+      checkBashCommand(`git -C ${PROJECTS}/dotpi status`).allowed,
+    ).toBe(true);
+  });
+
+  test("allows subshell git on dotpi", () => {
+    expect(
+      checkBashCommand(`(cd ${PROJECTS}/dotpi && git log --oneline -3)`).allowed,
+    ).toBe(true);
+  });
+
+  test("allows env -i bash -c with pure git on dotpi", () => {
+    expect(
+      checkBashCommand(
+        `env -i HOME=$HOME PATH=$PATH bash -c 'cd ${PROJECTS}/dotpi && git commit -m "test" && git push'`,
+      ).allowed,
+    ).toBe(true);
+  });
+
+  test("blocks cd dotpi && ls (not a git command)", () => {
+    expect(
+      checkBashCommand(`cd ${PROJECTS}/dotpi && ls -la`).allowed,
+    ).toBe(false);
+  });
+
+  test("blocks cd dotpi && git status && echo hi > file (mixed with non-git)", () => {
+    const r = checkBashCommand(
+      `cd ${PROJECTS}/dotpi && git status && echo hi > ${PROJECTS}/dotpi/out.txt`,
     );
     expect(r.allowed).toBe(false);
   });
