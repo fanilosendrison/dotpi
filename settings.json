@@ -3,5 +3,6 @@
   "theme": "dark",
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-v4-pro",
-  "defaultThinkingLevel": "xhigh"
+  "defaultThinkingLevel": "xhigh",
+  "packages": []
 }
