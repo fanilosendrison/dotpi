@@ -25,8 +25,6 @@ go to the dotpi repo.
 ├── settings.json           ← Global settings
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── specs/                  ← Design specs for future extensions
-├── creating-extensions/    ← Alias to docs/creating-extensions/
-├── documenting-self-modifications/  ← Alias to docs/documenting-self-modifications/
 ├── extensions/             ← Auto-discovered extensions
 │   ├── command-validator.ts
 │   ├── commit-validator.ts
@@ -46,8 +44,6 @@ go to the dotpi repo.
 │   │   └── CONTEXT.md         ← How commits are validated
 │   ├── creating-extensions/
 │   │   └── CONTEXT.md         ← Conventions for new extensions
-│   ├── documenting-self-modifications/
-│   │   └── CONTEXT.md         ← How to document harness changes
 │   ├── enhanced-model-selector/
 │   │   └── CONTEXT.md         ← How model picker has been extended with costs
 │   ├── extended-global-context/
@@ -79,9 +75,14 @@ go to the dotpi repo.
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
 | Run extension tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
-| Document a new harness modification | `docs/documenting-self-modifications/CONTEXT.md` (How to document harness changes) |
 | Conventions for new extensions | `docs/creating-extensions/CONTEXT.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
+
+## Skills
+
+To document a modification to this harness (new extension, patch, or convention),
+invoke the `/document-self-modif` skill. It will walk through creating the
+`CONTEXT.md`, updating the router, and keeping every index in sync.
 
 ## Writing Rules
 
