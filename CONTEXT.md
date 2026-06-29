@@ -77,7 +77,7 @@ go to the dotpi repo.
 | Understand the command validator | `docs/command-validator/CONTEXT.md` (Bash security rules) |
 | Understand the path guard | `docs/path-guard/CONTEXT.md` (blocks writes to dot* repos) |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
-| Run extension unit tests | `extensions/__tests__/` (`bun test`) |
+| Run extension tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Document a new harness modification | `docs/documenting-self-modifications/CONTEXT.md` (How to document harness changes) |
 | Conventions for new extensions | `docs/creating-extensions/CONTEXT.md` (Conventions for new extensions) |
