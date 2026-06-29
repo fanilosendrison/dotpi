@@ -213,9 +213,18 @@ describe("path-guard / checkBashCommand", () => {
     expect(r.allowed).toBe(false);
   });
 
-  test("allows writes through ~/.pi/ in bash", () => {
+  test("allows writes through ~/.pi/ in bash (expanded)", () => {
     const r = checkBashCommand(
       `echo hi > ${HOME}/.pi/agent/test.txt`,
+    );
+    expect(r.allowed).toBe(true);
+  });
+
+  test("allows writes through ~/.pi/ in bash (tilde form)", () => {
+    // Regression: ~ wasn't expanded before gateway comparison,
+    // so "~/.pi/agent/..." failed startsWith("/Users/.../.../.../.pi/agent").
+    const r = checkBashCommand(
+      `echo hi > ~/.pi/agent/test.txt`,
     );
     expect(r.allowed).toBe(true);
   });
