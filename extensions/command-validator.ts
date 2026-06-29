@@ -1,12 +1,12 @@
 /**
  * Pi extension — validates bash commands against security rules.
  *
- * Imports the shared validator from ~/.agents/agent-hooks/command-validator/.
+ * Imports the shared validator from ~/.agents/agent-enforcers/command-validator/.
  * No duplicated logic — all harnesses share the same rules.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { CommandValidator } from "../../../.agents/agent-hooks/command-validator/src/core/validator";
+import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator";
 
 const DESTRUCTIVE_PATTERNS = [
   />\s*\/dev\/(sda|hda|nvme)/i,

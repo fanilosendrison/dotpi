@@ -1,12 +1,12 @@
 /**
  * Pi extension — blocks git commits containing secrets, API keys, or tokens.
  *
- * Imports scanDiff from ~/.agents/agent-hooks/secret-scanner/.
+ * Imports scanDiff from ~/.agents/agent-enforcers/secret-scanner/.
  * No duplicated detection logic.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { scanDiff } from "../../../.agents/agent-hooks/secret-scanner/src/core/scanner";
+import { scanDiff } from "../../../.agents/agent-enforcers/secret-scanner/src/core/scanner";
 import { execSync } from "node:child_process";
 
 export default function (pi: ExtensionAPI) {

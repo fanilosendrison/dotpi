@@ -4,7 +4,7 @@ import {
   extractMessage,
   isValidCC,
   hasPush,
-} from "../../../dotagents/agent-hooks/git-commits-push-enforcer/src/core/validator";
+} from "../../../dotagents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
 
 describe("git-commits-push-enforcer", () => {
   // ── isGitCommit ────────────────────────────────────────────────────────

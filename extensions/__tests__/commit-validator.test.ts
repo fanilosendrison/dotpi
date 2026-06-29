@@ -3,7 +3,7 @@ import {
   isGitCommit,
   extractCommitMessage,
   validateCommitMessage,
-} from "../../../dotagents/agent-hooks/commit-msg-validator/src/core/validator";
+} from "../../../dotagents/agent-enforcers/commit-msg-validator/src/core/validator";
 
 describe("commit-validator", () => {
   // ── isGitCommit ────────────────────────────────────────────────────────

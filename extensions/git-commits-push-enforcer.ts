@@ -2,7 +2,7 @@
  * Pi extension — blocks direct git commit unless message follows Conventional Commits
  * AND the commit is followed by a push.
  *
- * Imports the shared validator from ~/.agents/agent-hooks/git-commits-push-enforcer/.
+ * Imports the shared validator from ~/.agents/agent-enforcers/git-commits-push-enforcer/.
  * Forces the agent to use /git-commits-push.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -12,7 +12,7 @@ import {
   extractMessage,
   isValidCC,
   hasPush,
-} from "../../../.agents/agent-hooks/git-commits-push-enforcer/src/core/validator";
+} from "../../../.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
 
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {

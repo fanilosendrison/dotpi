@@ -1,7 +1,7 @@
 /**
  * Pi extension — validates git commit messages against Conventional Commits 1.0.0.
  *
- * Imports the shared validator from ~/.agents/agent-hooks/commit-msg-validator/.
+ * Imports the shared validator from ~/.agents/agent-enforcers/commit-msg-validator/.
  * No duplicated validation logic.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -10,7 +10,7 @@ import {
   isGitCommit,
   extractCommitMessage,
   validateCommitMessage,
-} from "../../../.agents/agent-hooks/commit-msg-validator/src/core/validator";
+} from "../../../.agents/agent-enforcers/commit-msg-validator/src/core/validator";
 
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {

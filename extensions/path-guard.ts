@@ -3,11 +3,11 @@
  * instead of through its ~/. prefix symlink.
  *
  * Covers Write, Edit, and Bash tool calls.
- * Uses shared logic from ~/.agents/agent-hooks/shared/core/path-guard.
+ * Uses shared logic from ~/.agents/agent-enforcers/shared/core/path-guard.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { checkPath, checkBashCommand } from "../../../.agents/agent-hooks/path-guard/src/core/path-guard";
+import { checkPath, checkBashCommand } from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
 
 export default function (pi: ExtensionAPI) {
   // Guard Write and Edit

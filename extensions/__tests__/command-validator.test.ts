@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CommandValidator } from "../../../dotagents/agent-hooks/command-validator/src/core/validator";
+import { CommandValidator } from "../../../dotagents/agent-enforcers/command-validator/src/core/validator";
 
 const validator = new CommandValidator();
 

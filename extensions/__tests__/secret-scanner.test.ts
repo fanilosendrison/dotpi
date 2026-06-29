@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { scanDiff } from "../../../dotagents/agent-hooks/secret-scanner/src/core/scanner";
+import { scanDiff } from "../../../dotagents/agent-enforcers/secret-scanner/src/core/scanner";
 
 describe("secret-scanner / scanDiff", () => {
   // ── clean diffs ────────────────────────────────────────────────────────

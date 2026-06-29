@@ -3,7 +3,7 @@ import {
   checkPath,
   extractBashPaths,
   checkBashCommand,
-} from "../../../dotagents/agent-hooks/path-guard/src/core/path-guard";
+} from "../../../dotagents/agent-enforcers/path-guard/src/core/path-guard";
 import { join } from "node:path";
 
 const HOME = "/Users/famillesendrison";
@@ -23,11 +23,11 @@ describe("path-guard / checkPath", () => {
 
   // ── dotagents → ~/.agents ─────────────────────────────────────────────
   test("allows writes through ~/.agents/", () => {
-    expect(checkPath(HOME + "/.agents/agent-hooks/shared/core/path-guard.ts").allowed).toBe(true);
+    expect(checkPath(HOME + "/.agents/agent-enforcers/shared/core/path-guard.ts").allowed).toBe(true);
   });
 
   test("blocks writes directly to dotagents/", () => {
-    expect(checkPath(join(PROJECTS, "dotagents/agent-hooks/shared/core/path-guard.ts")).allowed).toBe(false);
+    expect(checkPath(join(PROJECTS, "dotagents/agent-enforcers/shared/core/path-guard.ts")).allowed).toBe(false);
   });
 
   // ── dotclaude → ~/.claude ─────────────────────────────────────────────
