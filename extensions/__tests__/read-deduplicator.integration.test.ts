@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createReadTracker, type TrackEntry } from "../../../dotagents/agent-hooks/read-deduplicator/src/core/read-tracker";
+import { createReadTracker, type TrackEntry } from "../read-deduplicator/read-tracker";
 
 /**
  * Integration tests for the read-deduplicator decision chain.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createReadTracker } from "../../../dotagents/agent-hooks/read-deduplicator/src/core/read-tracker";
+import { createReadTracker } from "../read-deduplicator/read-tracker";
 
 describe("read-deduplicator / createReadTracker", () => {
   // ── get / track ────────────────────────────────────────────────────────

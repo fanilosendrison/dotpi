@@ -7,7 +7,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType, isReadToolResult } from "@earendil-works/pi-coding-agent";
-import { createReadTracker } from "../../dotagents/agent-hooks/read-deduplicator/src/core/read-tracker";
+import { createReadTracker } from "./read-deduplicator/read-tracker";
 import { statSync } from "node:fs";
 
 export default function (pi: ExtensionAPI) {
