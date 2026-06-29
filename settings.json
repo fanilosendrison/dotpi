@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.80.2",
   "theme": "dark",
-  "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-pro",
+  "defaultProvider": "together",
+  "defaultModel": "MiniMaxAI/MiniMax-M2.7",
   "defaultThinkingLevel": "high"
 }
