@@ -36,7 +36,7 @@ go to the dotpi repo.
 │   ├── path-guard.ts
 │   ├── read-deduplicator.ts
 │   ├── secret-scanner.ts
-│   └── __tests__/          ← unit tests (bun test __tests__/)
+│   └── __tests__/          ← tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
