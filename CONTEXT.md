@@ -72,6 +72,7 @@ go to the dotpi repo.
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
 | Understand the command validator | `docs/command-validator/CONTEXT.md` (Bash security rules) |
 | Understand the path guard | `docs/path-guard/CONTEXT.md` (blocks writes to dot* repos) |
+| Understand the read deduplicator | `docs/read-deduplicator/CONTEXT.md` (avoids re-injecting already-read files) |
 | Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
 | Run extension tests | `extensions/__tests__/` (`bun test`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |

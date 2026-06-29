@@ -41,3 +41,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 7. Path Guard
 - **Date** : 2026-06-28
 - **Doc** : [`path-guard/CONTEXT.md`](path-guard/CONTEXT.md)
+
+### 8. Read Deduplicator
+- **Date** : 2026-06-29
+- **Doc** : [`read-deduplicator/CONTEXT.md`](read-deduplicator/CONTEXT.md)
