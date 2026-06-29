@@ -182,6 +182,44 @@ describe("path-guard / extractBashPaths", () => {
     );
     expect(paths.filter((p) => p === `${PROJECTS}/dotpi/a`)).toHaveLength(1);
   });
+
+  // ── relative paths (regression: previously allowed bypass via cd) ──
+  test("extracts relative paths containing /", () => {
+    const paths = extractBashPaths(
+      `mkdir -p ../../Developper/Projects/dotpi/.pi`,
+    );
+    expect(paths).toContain("../../Developper/Projects/dotpi/.pi");
+  });
+
+  test("extracts relative redirect targets", () => {
+    const paths = extractBashPaths(
+      `echo hi > ../../../dotpi/out.txt`,
+    );
+    expect(paths).toContain("../../../dotpi/out.txt");
+  });
+
+  test("extracts relative tee targets", () => {
+    const paths = extractBashPaths(
+      `echo hi | tee ../dotpi/log.txt`,
+    );
+    expect(paths).toContain("../dotpi/log.txt");
+  });
+
+  test("extracts ./ paths", () => {
+    const paths = extractBashPaths(
+      `cat ./some/file.txt`,
+    );
+    expect(paths).toContain("./some/file.txt");
+  });
+
+  test("skips flags even when they contain /", () => {
+    // --foo/bar is a flag, not a path
+    const paths = extractBashPaths(
+      `somecmd --foo/bar /real/path`,
+    );
+    expect(paths).not.toContain("--foo/bar");
+    expect(paths).toContain("/real/path");
+  });
 });
 
 describe("path-guard / checkBashCommand", () => {
@@ -340,6 +378,29 @@ describe("path-guard / checkBashCommand", () => {
   test("blocks cd dotpi && git status && echo hi > file (mixed with non-git)", () => {
     const r = checkBashCommand(
       `cd ${PROJECTS}/dotpi && git status && echo hi > ${PROJECTS}/dotpi/out.txt`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  // ── relative path bypass (regression) ────────────────────────────────
+  test("blocks relative mkdir into dotpi", () => {
+    const r = checkBashCommand(
+      `cd ~/.pi/agent && mkdir -p ../../Developper/Projects/dotpi/.pi`,
+    );
+    expect(r.allowed).toBe(false);
+    expect(r.reason).toContain("~/.pi/");
+  });
+
+  test("blocks relative redirect into dotpi", () => {
+    const r = checkBashCommand(
+      `echo hi > ../../Developper/Projects/dotpi/file.ts`,
+    );
+    expect(r.allowed).toBe(false);
+  });
+
+  test("blocks relative tee into dotpi", () => {
+    const r = checkBashCommand(
+      `echo hi | tee ../../Developper/Projects/dotpi/out.txt`,
     );
     expect(r.allowed).toBe(false);
   });
