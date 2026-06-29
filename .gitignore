@@ -1,3 +1,6 @@
 # Nothing to ignore — secrets (auth.json) live in ~/.pi/agent/,
 # not in this repo. This repo only tracks the version-controlled
 # config files symlinked into ~/.pi/agent/.
+
+# macOS
+.DS_Store
