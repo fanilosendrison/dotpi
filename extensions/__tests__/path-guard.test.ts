@@ -347,6 +347,26 @@ describe("path-guard / rewriteBashCommand", () => {
     expect(r.newCommand).toContain(`${HOME}/.pi/agent/out.txt`);
   });
 
+  test("allows git operations with trailing shell status helpers", () => {
+    const oldCwd = process.cwd();
+    try {
+      // Must be run in a directory that has the target relative path so resolveReal finds it
+      process.chdir(join(PROJECTS, "dotagents"));
+      const r = rewriteBashCommand(
+        `git add -- agent-enforcers/path-guard/src/core/path-guard.ts 2>&1; echo "exit:$?"`,
+      );
+      expect(r.rewritten).toBe(false);
+    } finally {
+      process.chdir(oldCwd);
+    }
+
+    expect(
+      rewriteBashCommand(
+        `git commit -m "docs: clean" && echo "done"`,
+      ).rewritten,
+    ).toBe(false);
+  });
+
   // ── relative path bypass (regression) ────────────────────────────────
   test("rewrites relative mkdir into dotpi", () => {
     const oldCwd = process.cwd();
