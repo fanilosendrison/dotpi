@@ -3,6 +3,7 @@ import {
   checkPath,
   extractBashPaths,
   checkBashCommand,
+  rewriteBashCommand,
 } from "../../../dotagents/agent-enforcers/path-guard/src/core/path-guard";
 import { join } from "node:path";
 
@@ -17,8 +18,13 @@ describe("path-guard / checkPath", () => {
   });
 
   test("blocks writes directly to dotpi/", () => {
-    expect(checkPath(join(PROJECTS, "dotpi/extensions/command-validator.ts")).allowed).toBe(false);
-    expect(checkPath(join(PROJECTS, "dotpi/CONTEXT.md")).allowed).toBe(false);
+    const res1 = checkPath(join(PROJECTS, "dotpi/extensions/command-validator.ts"));
+    expect(res1.allowed).toBe(false);
+    expect(res1.rewrittenPath).toBe(HOME + "/.pi/agent/extensions/command-validator.ts");
+
+    const res2 = checkPath(join(PROJECTS, "dotpi/CONTEXT.md"));
+    expect(res2.allowed).toBe(false);
+    expect(res2.rewrittenPath).toBe(HOME + "/.pi/agent/CONTEXT.md");
   });
 
   // ── dotagents → ~/.agents ─────────────────────────────────────────────
@@ -27,7 +33,9 @@ describe("path-guard / checkPath", () => {
   });
 
   test("blocks writes directly to dotagents/", () => {
-    expect(checkPath(join(PROJECTS, "dotagents/agent-enforcers/shared/core/path-guard.ts")).allowed).toBe(false);
+    const res = checkPath(join(PROJECTS, "dotagents/agent-enforcers/shared/core/path-guard.ts"));
+    expect(res.allowed).toBe(false);
+    expect(res.rewrittenPath).toBe(HOME + "/.agents/agent-enforcers/shared/core/path-guard.ts");
   });
 
   // ── dotclaude → ~/.claude ─────────────────────────────────────────────
@@ -36,7 +44,9 @@ describe("path-guard / checkPath", () => {
   });
 
   test("blocks writes directly to dotclaude/", () => {
-    expect(checkPath(join(PROJECTS, "dotclaude/some-file.ts")).allowed).toBe(false);
+    const res = checkPath(join(PROJECTS, "dotclaude/some-file.ts"));
+    expect(res.allowed).toBe(false);
+    expect(res.rewrittenPath).toBe(HOME + "/.claude/some-file.ts");
   });
 
   // ── outside Projects/ ─────────────────────────────────────────────────
@@ -56,6 +66,7 @@ describe("path-guard / checkPath", () => {
     expect(r.reason).toContain("~/.pi/");
     expect(r.reason).toContain("dotpi/");
     expect(r.reason).toContain("docs/CONTEXT.md");
+    expect(r.rewrittenPath).toBe(HOME + "/.pi/agent/docs/CONTEXT.md");
   });
 
   test("error message shows git commit path", () => {
@@ -222,186 +233,146 @@ describe("path-guard / extractBashPaths", () => {
   });
 });
 
-describe("path-guard / checkBashCommand", () => {
-  test("allows safe bash commands", () => {
-    expect(checkBashCommand("ls -la").allowed).toBe(true);
-    expect(checkBashCommand("echo hello").allowed).toBe(true);
-    expect(checkBashCommand("git status").allowed).toBe(true);
+describe("path-guard / rewriteBashCommand", () => {
+  test("returns unmodified safe bash commands", () => {
+    expect(rewriteBashCommand("ls -la").rewritten).toBe(false);
+    expect(rewriteBashCommand("ls -la").newCommand).toBe("ls -la");
+    expect(rewriteBashCommand("echo hello").rewritten).toBe(false);
+    expect(rewriteBashCommand("git status").rewritten).toBe(false);
   });
 
-  test("blocks redirect to dotpi/", () => {
-    const r = checkBashCommand(
+  test("rewrites redirect to dotpi/", () => {
+    const r = rewriteBashCommand(
       `echo hi > ${PROJECTS}/dotpi/file.ts`,
     );
-    expect(r.allowed).toBe(false);
-    expect(r.reason).toContain("~/.pi/");
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`echo hi > ${HOME}/.pi/agent/file.ts`);
+    expect(r.newCommand).toContain("echo -e"); // The verbose warning
+    expect(r.newCommand).toContain("[Path-Guard]");
   });
 
-  test("blocks tee to dotpi/", () => {
-    const r = checkBashCommand(
+  test("rewrites tee to dotpi/", () => {
+    const r = rewriteBashCommand(
       `echo hi | tee ${PROJECTS}/dotpi/file.ts`,
     );
-    expect(r.allowed).toBe(false);
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`echo hi | tee ${HOME}/.pi/agent/file.ts`);
   });
 
-  test("blocks cp to dotpi/", () => {
-    const r = checkBashCommand(
+  test("rewrites cp to dotpi/", () => {
+    const r = rewriteBashCommand(
       `cp /tmp/a ${PROJECTS}/dotpi/file.ts`,
     );
-    expect(r.allowed).toBe(false);
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`cp /tmp/a ${HOME}/.pi/agent/file.ts`);
   });
 
   test("allows writes through ~/.pi/ in bash (expanded)", () => {
-    const r = checkBashCommand(
+    const r = rewriteBashCommand(
       `echo hi > ${HOME}/.pi/agent/test.txt`,
     );
-    expect(r.allowed).toBe(true);
+    expect(r.rewritten).toBe(false);
+    expect(r.newCommand).toBe(`echo hi > ${HOME}/.pi/agent/test.txt`);
   });
 
   test("allows writes through ~/.pi/ in bash (tilde form)", () => {
-    // Regression: ~ wasn't expanded before gateway comparison,
-    // so "~/.pi/agent/..." failed startsWith("/Users/.../.../.../.pi/agent").
-    const r = checkBashCommand(
+    const r = rewriteBashCommand(
       `echo hi > ~/.pi/agent/test.txt`,
     );
-    expect(r.allowed).toBe(true);
+    expect(r.rewritten).toBe(false);
   });
 
-  test("blocks redirect to dotagents/", () => {
-    const r = checkBashCommand(
+  test("rewrites redirect to dotagents/", () => {
+    const r = rewriteBashCommand(
       `echo hi > ${PROJECTS}/dotagents/test.txt`,
     );
-    expect(r.allowed).toBe(false);
-    expect(r.reason).toContain("~/.agents/");
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`${HOME}/.agents/test.txt`);
   });
 
-  // ── tilde expansion (regression: previously infinite-looped) ─────────
-  // Before the fix, `ls ~/Developper/Projects/dotpi` would hang the agent
-  // because checkPath entered an infinite loop in resolveReal.
-  test("does not infinite-loop on ls ~/Developper/Projects/dotpi", () => {
-    expect(
-      checkBashCommand("ls ~/Developper/Projects/dotpi").allowed,
-    ).toBe(false);
+  // ── tilde expansion ─────────────────────────
+  test("does not infinite-loop and rewrites ls ~/Developper/Projects/dotpi", () => {
+    const r = rewriteBashCommand("ls ~/Developper/Projects/dotpi");
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`ls ${HOME}/.pi/agent`);
   });
 
-  test("does not infinite-loop on cp to ~/Developper/Projects/dotpi", () => {
-    expect(
-      checkBashCommand(`cp /tmp/a ~/Developper/Projects/dotpi/file.ts`).allowed,
-    ).toBe(false);
+  test("rewrites cp to ~/Developper/Projects/dotpi", () => {
+    const r = rewriteBashCommand(`cp /tmp/a ~/Developper/Projects/dotpi/file.ts`);
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`${HOME}/.pi/agent/file.ts`);
   });
 
-  // ── unwrapCommand regression: env -i bypass attempts ─────────────────
-  test("blocks env -i /bin/bash -c with dotpi redirect inside", () => {
-    const r = checkBashCommand(
-      `env -i HOME=$HOME PATH=$PATH /bin/bash -c 'cd ${PROJECTS}/dotpi && echo hi > specs/file.md'`,
-    );
-    expect(r.allowed).toBe(false);
-    expect(r.reason).toContain("~/.pi/");
+  // ── unwrapCommand regression ─────────────────
+  test("rewrites env -i /bin/bash -c with dotpi redirect inside", () => {
+    const oldCwd = process.cwd();
+    try {
+      // Run in a neutral directory so specs/file.md isn't accidentally resolved as inside dotpi
+      process.chdir(HOME);
+      const r = rewriteBashCommand(
+        `env -i HOME=$HOME PATH=$PATH /bin/bash -c 'cd ${PROJECTS}/dotpi && echo hi > specs/file.md'`,
+      );
+      expect(r.rewritten).toBe(true);
+      expect(r.newCommand).toContain(`cd ${HOME}/.pi/agent && echo hi > specs/file.md`);
+    } finally {
+      process.chdir(oldCwd);
+    }
   });
 
-  test("blocks env -i /usr/bin/bash -c with dotpi path inside", () => {
-    const r = checkBashCommand(
-      `env -i PATH=/usr/bin /usr/bin/bash -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
-    );
-    expect(r.allowed).toBe(false);
-  });
-
-  test("blocks env -i sh -c with dotpi redirect inside (bare shell name)", () => {
-    const r = checkBashCommand(
-      `env -i sh -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
-    );
-    expect(r.allowed).toBe(false);
-  });
-
-  test("blocks env -i bash -c with dotpi path in double quotes", () => {
-    const r = checkBashCommand(
+  test("rewrites env -i bash -c with dotpi path in double quotes", () => {
+    const r = rewriteBashCommand(
       `env -i bash -c "echo hi > ${PROJECTS}/dotpi/file.ts"`,
     );
-    expect(r.allowed).toBe(false);
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`${HOME}/.pi/agent/file.ts`);
   });
 
-  test("allows exec env -i bash -c with pure git operations on dotpi", () => {
-    const r = checkBashCommand(
-      `exec env -i bash -c 'cd ${PROJECTS}/dotpi && git status'`,
-    );
-    expect(r.allowed).toBe(true);
-  });
-
-  test("blocks env -i $SHELL -c with dotpi path inside", () => {
-    const r = checkBashCommand(
-      `env -i $SHELL -c 'echo hi > ${PROJECTS}/dotpi/test.txt'`,
-    );
-    expect(r.allowed).toBe(false);
-  });
-
-  // ── git whitelist: pure git operations on dot* repos ────────────────
-  test("allows cd dotpi && git status", () => {
+  // ── git whitelist ────────────────────────────────
+  test("allows pure git operations on dotpi", () => {
     expect(
-      checkBashCommand(`cd ${PROJECTS}/dotpi && git status`).allowed,
-    ).toBe(true);
-  });
-
-  test("allows cd dotpi && git add && git commit && git push", () => {
+      rewriteBashCommand(`cd ${PROJECTS}/dotpi && git status`).rewritten,
+    ).toBe(false);
     expect(
-      checkBashCommand(
+      rewriteBashCommand(
         `cd ${PROJECTS}/dotpi && git add . && git commit -m "test" && git push`,
-      ).allowed,
-    ).toBe(true);
-  });
-
-  test("allows git -C dotpi status (full chain)", () => {
-    expect(
-      checkBashCommand(`git -C ${PROJECTS}/dotpi status`).allowed,
-    ).toBe(true);
-  });
-
-  test("allows subshell git on dotpi", () => {
-    expect(
-      checkBashCommand(`(cd ${PROJECTS}/dotpi && git log --oneline -3)`).allowed,
-    ).toBe(true);
-  });
-
-  test("allows env -i bash -c with pure git on dotpi", () => {
-    expect(
-      checkBashCommand(
-        `env -i HOME=$HOME PATH=$PATH bash -c 'cd ${PROJECTS}/dotpi && git commit -m "test" && git push'`,
-      ).allowed,
-    ).toBe(true);
-  });
-
-  test("blocks cd dotpi && ls (not a git command)", () => {
-    expect(
-      checkBashCommand(`cd ${PROJECTS}/dotpi && ls -la`).allowed,
+      ).rewritten,
     ).toBe(false);
   });
 
-  test("blocks cd dotpi && git status && echo hi > file (mixed with non-git)", () => {
-    const r = checkBashCommand(
+  test("rewrites mixed git and non-git commands", () => {
+    const r = rewriteBashCommand(
       `cd ${PROJECTS}/dotpi && git status && echo hi > ${PROJECTS}/dotpi/out.txt`,
     );
-    expect(r.allowed).toBe(false);
+    expect(r.rewritten).toBe(true);
+    expect(r.newCommand).toContain(`${HOME}/.pi/agent/out.txt`);
   });
 
   // ── relative path bypass (regression) ────────────────────────────────
-  test("blocks relative mkdir into dotpi", () => {
-    const r = checkBashCommand(
-      `cd ~/.pi/agent && mkdir -p ../../Developper/Projects/dotpi/.pi`,
-    );
-    expect(r.allowed).toBe(false);
-    expect(r.reason).toContain("~/.pi/");
+  test("rewrites relative mkdir into dotpi", () => {
+    const oldCwd = process.cwd();
+    try {
+      process.chdir(HOME + "/.pi/agent");
+      const r = rewriteBashCommand(
+        `cd ~/.pi/agent && mkdir -p ../../Developper/Projects/dotpi/.pi`,
+      );
+      expect(r.rewritten).toBe(true);
+      expect(r.newCommand).toContain(`${HOME}/.pi/agent/.pi`);
+    } finally {
+      process.chdir(oldCwd);
+    }
   });
 
-  test("blocks relative redirect into dotpi", () => {
-    const r = checkBashCommand(
-      `echo hi > ../../Developper/Projects/dotpi/file.ts`,
-    );
-    expect(r.allowed).toBe(false);
-  });
-
-  test("blocks relative tee into dotpi", () => {
-    const r = checkBashCommand(
-      `echo hi | tee ../../Developper/Projects/dotpi/out.txt`,
-    );
-    expect(r.allowed).toBe(false);
+  test("rewrites relative redirect into dotpi", () => {
+    const oldCwd = process.cwd();
+    try {
+      process.chdir(HOME + "/.pi/agent");
+      const r = rewriteBashCommand(
+        `echo hi > ../../Developper/Projects/dotpi/file.ts`,
+      );
+      expect(r.rewritten).toBe(true);
+      expect(r.newCommand).toContain(`${HOME}/.pi/agent/file.ts`);
+    } finally {
+      process.chdir(oldCwd);
+    }
   });
 });

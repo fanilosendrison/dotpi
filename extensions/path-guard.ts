@@ -7,7 +7,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { checkPath, checkBashCommand } from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
+import { checkPath, rewriteBashCommand } from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
 
 export default function (pi: ExtensionAPI) {
   // Guard Write and Edit
@@ -16,12 +16,14 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
-    const givenPath = event.input.file_path ?? event.input.path;
+    const givenPath = event.input.file_path ?? event.input.path ?? event.input.TargetFile;
     if (!givenPath || typeof givenPath !== "string") return;
 
     const result = checkPath(givenPath);
-    if (!result.allowed) {
-      return { block: true, reason: result.reason };
+    if (!result.allowed && result.rewrittenPath) {
+      if ("file_path" in event.input) event.input.file_path = result.rewrittenPath;
+      if ("path" in event.input) event.input.path = result.rewrittenPath;
+      if ("TargetFile" in event.input) event.input.TargetFile = result.rewrittenPath;
     }
   });
 
@@ -34,9 +36,9 @@ export default function (pi: ExtensionAPI) {
     const command = event.input.command;
     if (!command || typeof command !== "string") return;
 
-    const result = checkBashCommand(command);
-    if (!result.allowed) {
-      return { block: true, reason: result.reason };
+    const result = rewriteBashCommand(command);
+    if (result.rewritten) {
+      event.input.command = result.newCommand;
     }
   });
 }
