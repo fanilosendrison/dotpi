@@ -7,22 +7,23 @@
 
 ## What
 
-Blocks `Write`, `Edit`, and `Bash` tool calls that target any `dot*` repo under
+Intercepts and transparently rewrites `Write`, `Edit`, and `Bash` tool calls that target any `dot*` repo under
 `~/Developper/Projects/` (dotpi, dotagents, dotclaude, etc.) instead of through
 their `~/.` prefix gateway.
 
-For dotpi specifically: writes go through `~/.pi/agent/`, commits through
-`cd ~/Developper/Projects/dotpi && git ...`.
+For dotpi specifically: writes directed at `dotpi/` are silently rewritten to `~/.pi/agent/`.
+Git commits must still be done through `cd ~/Developper/Projects/dotpi && git ...`.
 
-When blocked, the error message shows:
-- The correct `~/.` gateway path to use for writes
-- The `dot*` repo path for git commits
+Instead of blocking the agent with an error, the extension now acts as a "verbose wrapper":
+- It mutates the target path on the fly to its safe `~/.` gateway.
+- For bash commands, it prepends a `[Path-Guard] 🔄 Redirection silencieuse...` warning to `stderr` so the agent is aware, but allows the command to succeed.
 
 ## Why
 
 The harness rule is: **always write through `~/.pi/agent/`, never directly to `dotpi/`**.
 The agent kept violating it because nothing enforced it mechanically. This extension
-closes that gap.
+originally blocked those writes, but now transparently redirects them to prevent
+friction and wasted iterations while maintaining the exact same security guarantees.
 
 ## How It Works
 
@@ -60,6 +61,8 @@ Intercepts `tool_call` for `write` and `edit`. Reads the target path from
    - Skips flags (tokens starting with `-` even if they contain `/`)
    - Skips paths inside single/double quotes
 4. Checks each candidate path via `checkPath`
+5. Uses `rewriteBashCommand` to mutate the bash command, replacing any forbidden path with its `~/.` gateway path.
+6. Prepends an `echo` warning to `stderr` if any rewrite occurred.
 
 ### Git whitelist
 
