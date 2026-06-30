@@ -56,7 +56,8 @@ apply_one() {
 }
 
 # Apply all .patch files from patches/
-find "$REPO_ROOT/patches" -name "*.patch" -print | while read -r patch; do
+# Use -L to follow symlinks (BSD find on macOS doesn't descend into dir symlinks by default)
+find -L "$REPO_ROOT/patches" -name "*.patch" -print | while read -r patch; do
     apply_one "$patch"
 done
 
