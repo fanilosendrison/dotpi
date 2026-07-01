@@ -93,7 +93,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_call", async (event) => {
     if (!isToolCallEventType("read", event)) return;
 
-    const path = event.input.path;
+    const path = event.input.path ?? event.input.file_path ?? event.input.AbsolutePath;
     if (!path || typeof path !== "string") return;
 
     cycleReadsAttempted++;
@@ -136,7 +136,7 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_result", async (event) => {
     if (!isReadToolResult(event)) return;
 
-    const path = event.input.path as string;
+    const path = (event.input.path ?? event.input.file_path ?? event.input.AbsolutePath) as string;
     if (!path || typeof path !== "string") return;
 
     const textContent = event.content
