@@ -16,11 +16,24 @@ export default function (pi: ExtensionAPI) {
       return;
     }
 
-    const result = checkFile(filePath);
-    if (!result.success && result.output) {
+    try {
+      const result = checkFile(filePath);
+      if (!result.success && result.output) {
+        return {
+          isError: true,
+          content: [{
+            type: "text",
+            text: `Biome linter errors in ${filePath}:\n\n${result.output}`,
+          }],
+        };
+      }
+    } catch (error) {
       return {
         isError: true,
-        content: `Biome linter errors in ${filePath}:\n\n${result.output}`,
+        content: [{
+          type: "text",
+          text: `Internal Linter Error: An exception occurred while running the post-write linter on ${filePath}:\n\n${error instanceof Error ? error.message : String(error)}`
+        }]
       };
     }
   });

@@ -44,6 +44,6 @@ describe("post-write-linter Pi extension", () => {
     }, {});
     expect(invalidResult).toBeDefined();
     expect(invalidResult!.isError).toBe(true);
-    expect(invalidResult!.content).toContain("Biome linter errors");
+    expect(invalidResult!.content[0].text).toContain("Biome linter errors");
   });
 });
