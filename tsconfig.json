@@ -24,7 +24,7 @@
     ],
     "typeRoots": [
       "./node_modules/@types",
-      "../dotagents/node_modules/@types"
+      "../../.agents/node_modules/@types"
     ]
   },
   "include": [
