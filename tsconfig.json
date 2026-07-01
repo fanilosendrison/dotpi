@@ -19,7 +19,13 @@
     "skipLibCheck": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "types": ["bun"]
+    "types": [
+      "bun"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "../dotagents/node_modules"
+    ]
   },
   "include": [
     "extensions/**/*.ts",
