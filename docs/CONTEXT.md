@@ -45,3 +45,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 8. Read Deduplicator
 - **Date** : 2026-06-29
 - **Doc** : [`read-deduplicator/CONTEXT.md`](read-deduplicator/CONTEXT.md)
+
+### 9. Post-Write Linter
+- **Date** : 2026-07-01
+- **Doc** : [`post-write-linter/CONTEXT.md`](post-write-linter/CONTEXT.md)

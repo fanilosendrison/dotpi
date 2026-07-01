@@ -47,10 +47,12 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   │   └── CONTEXT.md         ← How global context has been extended
 │   ├── git-commits-push-enforcer/
 │   │   └── CONTEXT.md         ← How to commit & push
-│   ├── path-guard/
-│   │   └── CONTEXT.md         ← Blocks writes to dot* repos
 │   ├── managing-api-keys/
 │   │   └── CONTEXT.md         ← Doppler-based auth
+│   ├── path-guard/
+│   │   └── CONTEXT.md         ← Blocks writes to dot* repos
+│   ├── post-write-linter/
+│   │   └── CONTEXT.md         ← Runs Biome after every write/edit
 │   └── read-deduplicator/
 │       └── CONTEXT.md         ← avoids re-injecting already-read files + blocked-reads log
 ├── patches/                ← Pi dist patches
@@ -77,6 +79,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Conventions for new extensions | `docs/creating-extensions/CONTEXT.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
+| Understand the post-write linter | `docs/post-write-linter/CONTEXT.md` (Runs Biome after every write/edit) |
 
 ## Skills
 
