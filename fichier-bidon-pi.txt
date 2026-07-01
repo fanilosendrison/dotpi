@@ -1,2 +1,0 @@
-Ceci est un fichier bidon créé spécifiquement dans le dépôt dotpi.
-Il sert à tester l'intégration bout-en-bout de l'orchestrateur git-commits-push-TL avec le vrai wrapper Pi et l'API Minimax.
