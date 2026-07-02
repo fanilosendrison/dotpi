@@ -1,0 +1,6 @@
+{
+  "<provider-slug>": {
+    "type": "api_key",
+    "key": "!$(jq -r '.<provider-slug>.key' ~/.agents/agent-credentials.json)"
+  }
+}
