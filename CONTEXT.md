@@ -20,6 +20,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 ├── auth.json               ← Provider credentials (gitignored)
 ├── auth.json.template      ← Template for auth.json (committed)
 ├── settings.json           ← Global settings
+├── trust.json              ← Trust settings
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── specs/                  ← Design specs for future extensions
 ├── extensions/             ← Auto-discovered extensions
@@ -29,32 +30,24 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
 │   ├── path-guard.ts
+│   ├── post-write-linter.ts
 │   ├── read-deduplicator.ts
 │   ├── secret-scanner.ts
+│   ├── read-deduplicator-internals/
 │   └── __tests__/          ← tests (bun test __tests__/)
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
-│   ├── command-validator/
-│   │   └── CONTEXT.md         ← Bash security rules
-│   ├── commit-validator/
-│   │   └── CONTEXT.md         ← How commits are validated
-│   ├── creating-extensions/
-│   │   └── CONTEXT.md         ← Conventions for new extensions
-│   ├── enhanced-model-selector/
-│   │   └── CONTEXT.md         ← How model picker has been extended with costs
-│   ├── extended-global-context/
-│   │   └── CONTEXT.md         ← How global context has been extended
-│   ├── git-commits-push-enforcer/
-│   │   └── CONTEXT.md         ← How to commit & push
-│   ├── managing-api-keys-in-pi/
-│   │   └── CONTEXT.md         ← How you manage API keys
-│   ├── path-guard/
-│   │   └── CONTEXT.md         ← Blocks writes to dot* repos
-│   ├── post-write-linter/
-│   │   └── CONTEXT.md         ← Runs Biome after every write/edit
-│   └── read-deduplicator/
-│       └── CONTEXT.md         ← avoids re-injecting already-read files + blocked-reads log
+│   ├── command-validator.md     ← Bash security rules
+│   ├── commit-validator.md      ← How commits are validated
+│   ├── creating-extensions.md   ← Conventions for new extensions
+│   ├── enhanced-model-selector.md ← How model picker has been extended with costs
+│   ├── extended-global-context.md ← How global context has been extended
+│   ├── git-commits-push-enforcer.md ← How to commit & push
+│   ├── managing-api-keys-in-pi.md ← How you manage API keys
+│   ├── path-guard.md            ← Blocks writes to dot* repos
+│   ├── post-write-linter.md     ← Runs Biome after every write/edit
+│   └── read-deduplicator.md     ← avoids re-injecting already-read files + blocked-reads log
 ├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
 │       ├── interactive-mode.patch
@@ -65,25 +58,27 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 
 ## Quick Navigation
 
-| Want to... | Go here |
-|----------------------------------------------------------|-------------------------------------------------|
-| Understand Pi's auth bridge | `docs/managing-api-keys-in-pi/CONTEXT.md` (How you manage API keys) |
-| Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` (How model picker has been extended with costs) |
-| Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (How commits are validated) |
-| Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
-| Understand the command validator | `docs/command-validator/CONTEXT.md` (Bash security rules) |
-| Understand the path guard | `docs/path-guard/CONTEXT.md` (blocks writes to dot* repos) |
-| Understand the read deduplicator | `docs/read-deduplicator/CONTEXT.md` (avoids re-injecting already-read files + blocked-reads log) |
-| Understand the global context extension | `docs/extended-global-context/CONTEXT.md` (How global context has been extended) |
-| Run extension tests | `extensions/__tests__/` (`bun test`) |
-| Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
-| Conventions for new extensions | `docs/creating-extensions/CONTEXT.md` (Conventions for new extensions) |
-| See all harness modifications | `docs/CONTEXT.md` |
-| Understand the post-write linter | `docs/post-write-linter/CONTEXT.md` (Runs Biome after every write/edit) |
+| Want to...                                  | Go here                                                                                  |
+|---------------------------------------------|------------------------------------------------------------------------------------------|
+| Understand Pi's auth bridge                 | `docs/managing-api-keys-in-pi.md` (How you manage API keys)                              |
+| Understand the enhanced model selector      | `docs/enhanced-model-selector.md` (How model picker has been extended with costs)        |
+| Understand the commit validation extensions | `docs/commit-validator.md` (How commits are validated)                                   |
+| Understand the git push enforcer            | `docs/git-commits-push-enforcer.md` (How to commit & push)                               |
+| Understand the command validator            | `docs/command-validator.md` (Bash security rules)                                        |
+| Understand the path guard                   | `docs/path-guard.md` (blocks writes to dot* repos)                                       |
+| Understand the read deduplicator            | `docs/read-deduplicator.md` (avoids re-injecting already-read files + blocked-reads log) |
+| Understand the global context extension     | `docs/extended-global-context.md` (How global context has been extended)                 |
+| Understand the post-write linter            | `docs/post-write-linter.md` (Runs Biome after every write/edit)                          |
+| Run extension tests                         | `extensions/__tests__/` (`bun test`)                                                     |
+| Reapply patches after pi update             | `patches/enhanced-model-selector/apply.sh`                                               |
+| Conventions for new extensions              | `docs/creating-extensions.md` (Conventions for new extensions)                           |
+| See all harness modifications               | `docs/CONTEXT.md`                                                                        |
 
-## Skills
+## Transversal Skills
 
-To document a modification to this harness (new extension, patch, or convention),
-invoke the `/document-self-modif` skill. It will walk through creating the
-`CONTEXT.md`, updating the router, and keeping every index in sync.
+| Want to...                                          | Use this skill                    |
+|-----------------------------------------------------|-----------------------------------|
+| Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
+| Enforce conventional commits and push               | `/git-commits-push`               |
+| Create or update a new skill                        | `/skill-creator`                  |
 

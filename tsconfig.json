@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "preserve",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "paths": {
       "@earendil-works/pi-coding-agent": [
         "/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent"

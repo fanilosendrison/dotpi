@@ -5,3 +5,4 @@
 # macOS
 .DS_Store
 trust.json
+node_modules/
