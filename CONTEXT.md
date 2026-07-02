@@ -18,7 +18,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 ├── AGENTS.md               ← loaded at startup
 ├── CONTEXT.md              ← You are here (topic router)
 ├── auth.json               ← Provider credentials (gitignored)
-├── auth.json.example       ← Template for auth.json (committed)
+├── auth.json.template      ← Template for auth.json (committed)
 ├── settings.json           ← Global settings
 ├── bin/                    ← fd, rg (Rust binaries for find/grep)
 ├── specs/                  ← Design specs for future extensions
@@ -47,8 +47,8 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   │   └── CONTEXT.md         ← How global context has been extended
 │   ├── git-commits-push-enforcer/
 │   │   └── CONTEXT.md         ← How to commit & push
-│   ├── managing-api-keys/
-│   │   └── CONTEXT.md         ← Doppler-based auth
+│   ├── managing-api-keys-in-pi/
+│   │   └── CONTEXT.md         ← How you manage API keys
 │   ├── path-guard/
 │   │   └── CONTEXT.md         ← Blocks writes to dot* repos
 │   ├── post-write-linter/
@@ -67,7 +67,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 
 | Want to... | Go here |
 |----------------------------------------------------------|-------------------------------------------------|
-| Add / modify an API key | `docs/managing-api-keys/CONTEXT.md` (Doppler-based auth) |
+| Understand Pi's auth bridge | `docs/managing-api-keys-in-pi/CONTEXT.md` (How you manage API keys) |
 | Understand the enhanced model selector | `docs/enhanced-model-selector/CONTEXT.md` (How model picker has been extended with costs) |
 | Understand the commit validation extensions | `docs/commit-validator/CONTEXT.md` (How commits are validated) |
 | Understand the git push enforcer | `docs/git-commits-push-enforcer/CONTEXT.md` (How to commit & push) |
