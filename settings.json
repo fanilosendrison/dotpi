@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.80.3",
   "theme": "dark",
-  "defaultProvider": "openai",
-  "defaultModel": "gpt-5.4-mini",
+  "defaultProvider": "together",
+  "defaultModel": "MiniMaxAI/MiniMax-M3",
   "defaultThinkingLevel": "high",
   "packages": []
 }
