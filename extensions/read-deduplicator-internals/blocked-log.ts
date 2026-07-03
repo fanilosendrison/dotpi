@@ -54,10 +54,11 @@ export function createBlockedLog(opts: {
 	let cycleBlockedCount = 0;
 	let statusCallback: ((key: string, msg: string) => void) | null = null;
 	let cycleStartTs: string | null = null;
+	let cycleId: string = crypto.randomUUID();
 
 	const sessionId = opts.sessionId || crypto.randomUUID();
 
-	function appendEvent(eventType: string, details: any, timestamp?: string) {
+	function appendEvent(eventType: string, details: any, timestamp?: string, eventCycleId?: string) {
 		if (opts.dryRun) return;
 		const event = {
 			timestamp: timestamp || new Date().toISOString(),
@@ -67,6 +68,7 @@ export function createBlockedLog(opts: {
 			agent: "pi",
 			workspace: opts.cwd,
 			sessionId,
+			cycleId: eventCycleId || cycleId,
 			details,
 		};
 		try {
@@ -148,6 +150,7 @@ export function createBlockedLog(opts: {
 				cycleStartTs = meta.endTs;
 				cycleReadsAttempted = 0;
 				cycleBlockedCount = 0;
+				cycleId = crypto.randomUUID();
 			} catch (err) {
 				process.stderr.write(
 					`[read-deduplicator] Error ending cycle: ${err}\n`,
@@ -159,6 +162,7 @@ export function createBlockedLog(opts: {
 			cycleStartTs = event.timestamp;
 			cycleReadsAttempted = 0;
 			cycleBlockedCount = 0;
+			cycleId = crypto.randomUUID();
 		},
 
 		onTurnStart(event) {

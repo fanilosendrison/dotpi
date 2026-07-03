@@ -58,6 +58,7 @@ describe("BlockedLog JSONL", () => {
     expect(events[0].details.sizeBytes).toBe(100);
     expect(events[0].details.turnIndex).toBe(1);
     expect(events[0].agent).toBe("pi");
+    expect(typeof events[0].cycleId).toBe("string");
   });
 
   test("writes cycle_summary event on endCycle", () => {
@@ -71,6 +72,7 @@ describe("BlockedLog JSONL", () => {
     expect(events[1].eventType).toBe("cycle_summary");
     expect(events[1].details.readsAttempted).toBe(5);
     expect(events[1].details.blockedCount).toBe(1);
+    expect(events[1].cycleId).toBe(events[0].cycleId);
   });
 
   test("resolves paths relative to cwd", () => {

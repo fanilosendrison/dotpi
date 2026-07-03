@@ -53,6 +53,7 @@ Deux types d'événements (`eventType`) sont enregistrés : `"block"` et `"cycle
   "agent": "pi",
   "workspace": "/Users/famillesendrison/Developper/Projects/dotpi",
   "sessionId": "b3f6c8d1-1234-5678-abcd-ef0123456789",
+  "cycleId": "e2f1c8d1-4567-1234-bcde-ef0123456789",
   "details": {
     "path": "/Users/famillesendrison/Developper/Projects/dotpi/src/utils.ts",
     "sizeBytes": 1024,
@@ -73,6 +74,7 @@ Deux types d'événements (`eventType`) sont enregistrés : `"block"` et `"cycle
   "agent": "pi",
   "workspace": "/Users/famillesendrison/Developper/Projects/dotpi",
   "sessionId": "b3f6c8d1-1234-5678-abcd-ef0123456789",
+  "cycleId": "e2f1c8d1-4567-1234-bcde-ef0123456789",
   "details": {
     "startTs": "2026-07-03T12:00:00.000Z",
     "endTs": "2026-07-03T12:05:00.000Z",
@@ -94,6 +96,7 @@ Deux types d'événements (`eventType`) sont enregistrés : `"block"` et `"cycle
 | `agent` | String | L'agent exécutant, toujours `"pi"`. |
 | `workspace` | String | Le CWD de l'agent. |
 | `sessionId` | UUID | Identifiant unique généré pour la session courante. |
+| `cycleId` | UUID | Identifiant unique généré au début de chaque cycle, partagé entre les blocks et le résumé de ce cycle. |
 | `details` | Object | Métadonnées spécifiques à l'événement. |
 
 ---
