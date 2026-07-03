@@ -28,7 +28,7 @@ Tests organisés en 10 groupes fonctionnels. Pattern : **Given** (état initial)
 |---|-----|----------|
 | T07 | `appends cycle block on endCycle with blocked reads` | Given session ouverte, 2 `addBlock()` appelés. When `endCycle(startTs, endTs, readsTentés, totalTurns)`. Then bloc `## Cycle N` écrit en fin de fichier avec `**Reads** : X tentés / 2 bloqués` et les 2 lignes de blocage. |
 | T08 | `writes nothing on endCycle with zero blocked reads` | Given session ouverte, 0 `addBlock()` appelé (mais des reads tentés). When `endCycle(...)`. Then rien n'est écrit. |
-| T09 | `skips cycle number for empty cycles (absolute numbering)` | Given Cycle 1 a 2 blocages. Cycle 2 a 0 blocage. Cycle 3 a 1 blocage. When flush des 3 cycles. Then fichier contient `Cycle 1` et `Cycle 3` (pas de `Cycle 2`). |
+| T09 | `skips cycle number for empty cycles (absolute numbering)` | Given Cycle 1 a 2 blocages. Cycle 2 a 0 read et 0 blockage. Cycle 3 a 1 blocage. When flush des 3 cycles. Then fichier contient `Cycle 1` et `Cycle 3` (pas de `Cycle 2`). **Note** : depuis la refacto, un cycle avec uniquement des `addRead` (0 blocks) **émet quand même** un `cycle_summary` si `readsAttempted > 0`. |
 | T10 | `flushes automatically at 2000 entries` | Given un cycle avec 2001 blocages. When le 2001ᵉ `addBlock()` est appelé. Then flush automatique déclenché avant `endCycle`, format `## Cycle N` écrit partiellement, buffer vidé et rouvert. |
 
 ## 3. Format des lignes de blocage
@@ -82,7 +82,7 @@ Tests organisés en 10 groupes fonctionnels. Pattern : **Given** (état initial)
 
 | # | Nom | Scénario |
 |---|-----|----------|
-| T33 | `dry-run mode lets reads pass but logs them` | Given `RD_DRY_RUN=true`. When read bloqué normalement. Then read **passe à travers** (non bloqué) mais est **loggé** comme s'il était bloqué. |
+| T33 | `dry-run mode lets reads pass but logs them` | Given `RD_DRY_RUN=true`. When read bloqué normalement. Then read **passe à travers** (non bloqué) mais est **loggé** comme `block`. Idem pour les reads autorisés : loggés comme `read` (comportement normal). |
 | T34 | `dry-run off blocks reads normally` | Given `RD_DRY_RUN` non défini. When read déjà lu. Then read **bloqué** et loggé. |
 
 ## 9. Intégration avec les events Pi
@@ -91,7 +91,7 @@ Tests organisés en 10 groupes fonctionnels. Pattern : **Given** (état initial)
 |---|-----|----------|
 | T35 | `agent_start opens cycle with timestamp` | Given session ouverte. When `agent_start` event. Then buffer initialisé, cycleStartTs capturé. |
 | T36 | `turn_start stores turnIndex` | Given `turn_start` avec `event.turnIndex = 3`. When émis. Then `currentTurnIndex = 3`. |
-| T37 | `tool_call(read) blocks already-seen file` | Given fichier `/foo.ts` déjà lu. When `tool_call(read, { path: "/foo.ts" })`. Then retourne `{ block: true }`, `addBlock` appelé avec `turnIndex` courant. |
+| T37 | `tool_call(read) blocks already-seen file` | Given fichier `/foo.ts` déjà lu. When `tool_call(read, { path: "/foo.ts" })`. Then retourne `{ block: true }`, `addBlock` appelé avec `turnIndex` courant. **Note** : depuis la refacto, `cycleReadsAttempted` est incrémenté **avant** la décision (cf. T47/T48). |
 | T38 | `tool_call(read) allows new file` | Given fichier `/bar.ts` jamais lu. When `tool_call(read, { path: "/bar.ts" })`. Then pas de blocage, pas de log. |
 | T39 | `tool_call(read) allows when read-tracker says file changed` | Given fichier `/foo.ts` déjà lu mais modifié depuis. When `tool_call(read)`. Then pas de blocage, pas de log. |
 | T40 | `agent_end flushes buffer with duration` | Given cycle avec 3 blocages. When `agent_end`. Then `flush()` appelé, `## Cycle N — start → end (M turns)` écrit. |
@@ -102,9 +102,36 @@ Tests organisés en 10 groupes fonctionnels. Pattern : **Given** (état initial)
 |---|-----|----------|
 | T41 | `updates status on each blocked read` | Given 5 reads bloqués dans la session. When le 5ᵉ bloque. Then `ctx.ui.setStatus("rd", "5 reads bloqués")` appelé. |
 
+## 11. `addRead` — Per-Path Metrics (nouveau)
+
+Voir [`read-deduplicator-per-path-stats.md`](./read-deduplicator-per-path-stats.md) pour la motivation.
+
+| # | Nom | Scénario |
+|---|-----|----------|
+| T42 | `addRead appends a "read" event with path, sizeBytes, turnIndex` | Given session ouverte. When `addRead({ ts, path, sizeBytes: 1024, turnIndex: 3 })`. Then `events.jsonl` contient une ligne avec `eventType: "read"`, `details.path` normalisé, `details.sizeBytes: 1024`, `details.turnIndex: 3`. |
+| T43 | `addRead does NOT touch blocked-log's internal counter` | Given 3 calls `addRead` + 0 blocks + `endCycle({ readsAttempted: 0 })`. Then **no** `cycle_summary` emitted (confirming `addRead` didn't bump the counter). |
+| T44 | `addRead handles empty textContent gracefully` | Given `tool_result` avec `textContent` vide (handler skips). Then rien n'est loggé (skip comme le `tracker.track` actuel). |
+| T45 | `addRead skips log when path matches filter` | Given `.pathfilter` contient `/secret/`. When `addRead({ path: "/secret/x.ts" })`. Then événement **non** loggé. |
+| T46 | `addRead skips log when path normalization fails` | Given path inexistant (realpath throw). When `addRead(...)`. Then `{ logged: false }`. |
+
+## 11b. Compteur extension-owned (nouveau)
+
+| # | Nom | Scénario |
+|---|-----|----------|
+| T47 | `endCycle uses readsAttempted value passed in (not internal counter)` | Given 3 calls `addRead` + `endCycle({ readsAttempted: 3 })`. Then `cycle_summary.readsAttempted == 3` (passed value). |
+| T48 | `blocked reads do not double-count readsAttempted` | Given 1 addRead + 2 addBlock + `endCycle({ readsAttempted: 3 })`. Then `cycle_summary.readsAttempted == 3` (not 5). Regression test pour le bug pré-refacto. |
+| T49 | `cycle_summary.readsAttempted == sum(read events) + sum(block events) per cycle` | Given 2 reads + 1 block dans un cycle. When consumer parse. Then `cycle_summary.readsAttempted == 3`. Invariant global pour validation par les consumers. |
+
+## 12. Intégrité cycle_summary & wiring extension (nouveau)
+
+| # | Nom | Scénario |
+|---|-----|----------|
+| T50 | `addRead is emitted in tool_result, not tool_call` | Given read autorisé. When observer Pi. Then `tool_call(read)` → pas de `read` event ; `tool_result(read)` → `read` event présent dans `events.jsonl`. |
+| T51 | `addRead is NOT emitted when read fails (no tool_result with content)` | Given `read` d'un fichier inexistant. When observer. Then ni `read` event ni `block` event dans `events.jsonl`. |
+
 ---
 
-**Total : 41 tests**, 10 groupes.
+**Total : 51 tests**, 12 groupes.
 
-Ordre d'implémentation TDD recommandé : 3 → 4 → 1 → 2 → 5 → 7 → 6 → 8 → 10 → 9
-(unitaires purs → intégration fichiers → robustesse → concurrence → events Pi).
+Ordre d'implémentation TDD recommandé : 3 → 4 → 1 → 2 → 5 → 7 → 6 → 8 → 10 → 9 → 11 → 11b → 12
+(unitaires purs → intégration fichiers → robustesse → concurrence → events Pi → per-path metrics).

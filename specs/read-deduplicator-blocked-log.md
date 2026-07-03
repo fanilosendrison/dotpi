@@ -1,9 +1,10 @@
 # Spec — read-deduplicator : Blocked-Reads Log
 
-- **Date** : 2026-07-03
+- **Date** : 2026-07-03 (rev. 2026-07-03 : ajout event `read` + refacto compteur)
 - **Statut** : Implemented (Migrated to JSONL)
 - **Dossier de sortie** : `/Users/famillesendrison/neelopedia/stats/pi/read-deduplicator/`
 - **Extension touchée** : `~/.pi/agent/extensions/read-deduplicator.ts`
+- **Spec liée** : [`read-deduplicator-per-path-stats.md`](./read-deduplicator-per-path-stats.md) — motivation et impact volume de l'event `read`
 
 ---
 
@@ -39,7 +40,7 @@ Le session ID (`sessionId`) est un identifiant unique (UUID v4) généré au dé
 ## Format du fichier (JSON Lines)
 
 Le log utilise le format **JSONL** (un objet JSON valide par ligne).
-Deux types d'événements (`eventType`) sont enregistrés : `"block"` et `"cycle_summary"`.
+Trois types d'événements (`eventType`) sont enregistrés : `"block"`, `"read"` et `"cycle_summary"`.
 
 ### 1. Événement de Blocage (`"eventType": "block"`)
 Émis à chaque fois qu'un appel `read` est bloqué.
@@ -62,7 +63,28 @@ Deux types d'événements (`eventType`) sont enregistrés : `"block"` et `"cycle
 }
 ```
 
-### 2. Résumé de Cycle (`"eventType": "cycle_summary"`)
+### 2. Événement de Lecture (`"eventType": "read"`)
+Émis à chaque fois qu'un appel `read` est autorisé par le dédup (lecture réussie, contenu capturé dans le tracker). Voir [`read-deduplicator-per-path-stats.md`](./read-deduplicator-per-path-stats.md) pour la motivation.
+
+```json
+{
+  "timestamp": "2026-07-03T12:00:00.000Z",
+  "eventId": "a1b2c3d4-1234-5678-abcd-ef0123456789",
+  "extension": "read-deduplicator",
+  "eventType": "read",
+  "agent": "pi",
+  "workspace": "/Users/famillesendrison/Developper/Projects/dotpi",
+  "sessionId": "b3f6c8d1-1234-5678-abcd-ef0123456789",
+  "cycleId": "e2f1c8d1-4567-1234-bcde-ef0123456789",
+  "details": {
+    "path": "/Users/famillesendrison/Developper/Projects/dotpi/src/utils.ts",
+    "sizeBytes": 1024,
+    "turnIndex": 3
+  }
+}
+```
+
+### 3. Résumé de Cycle (`"eventType": "cycle_summary"`)
 Émis à la fin d'un cycle d'agent (avant l'envoi de la requête au modèle) s'il y a eu des tentatives de lectures.
 
 ```json
@@ -84,6 +106,8 @@ Deux types d'événements (`eventType`) sont enregistrés : `"block"` et `"cycle
   }
 }
 ```
+
+> **Note** : depuis la refacto (2026-07-03), `readsAttempted` est incrémenté par l'extension dans `tool_call(read)` (avant la décision bloquer/autoriser). Le champ représente le **nombre total de tentatives de lecture**, pas seulement les blocks. L'invariant `cycle_summary.readsAttempted == count(read events) + count(block events)` pour le cycle est testable depuis `events.jsonl`.
 
 ### Champs communs
 
