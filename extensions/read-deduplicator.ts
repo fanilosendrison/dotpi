@@ -18,7 +18,7 @@ import { join } from "node:path";
 export default function (pi: ExtensionAPI) {
   const sessionId = crypto.randomUUID();
   const tracker = createReadTracker();
-  const statsDir = join(homedir(), "neelopedia", "stats", "read-deduplicator");
+  const statsDir = join(homedir(), "neelopedia", "stats", "pi", "read-deduplicator");
   const blockedLog = createBlockedLog({
     statsDir,
     sessionId,

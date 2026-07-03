@@ -2,7 +2,7 @@
 
 - **Date** : 2026-07-03
 - **Statut** : Implemented (Migrated to JSONL)
-- **Dossier de sortie** : `/Users/famillesendrison/neelopedia/stats/read-deduplicator/`
+- **Dossier de sortie** : `/Users/famillesendrison/neelopedia/stats/pi/read-deduplicator/`
 - **Extension touchée** : `~/.pi/agent/extensions/read-deduplicator.ts`
 
 ---
@@ -15,7 +15,7 @@ Logger chaque `read` bloqué par read-deduplicator dans un fichier unifié `even
 
 ## Emplacement des logs
 
-`/Users/famillesendrison/neelopedia/stats/read-deduplicator/events.jsonl`
+`/Users/famillesendrison/neelopedia/stats/pi/read-deduplicator/events.jsonl`
 
 - Un seul fichier unifié `events.jsonl` pour toutes les sessions.
 - Append-only.
@@ -25,7 +25,7 @@ Logger chaque `read` bloqué par read-deduplicator dans un fichier unifié `even
 
 Pour éviter de logguer des chemins révélant une structure privée, un filtre optionnel est appliqué côté extension avant d'ajouter l'événement :
 
-- Fichier de configuration : `~/neelopedia/stats/read-deduplicator/.pathfilter` (une regex par ligne)
+- Fichier de configuration : `~/neelopedia/stats/pi/read-deduplicator/.pathfilter` (une regex par ligne)
 - Le filtre s'applique sur le chemin **normalisé**.
 - Si un chemin match une regex → le read est bloqué, mais **pas loggé**.
 - Si le fichier n'existe pas → aucun filtrage.
@@ -112,7 +112,7 @@ When `events.jsonl` exceeds **5 MB**, the consumer (stats tool or dashboard gene
 
 1. Rename `events.jsonl` → `events-<ISO_DATE>.jsonl` (e.g., `events-2026-07-03.jsonl`).
 2. Create a fresh empty `events.jsonl`.
-3. Archived log files are stored alongside the active log in `~/neelopedia/stats/read-deduplicator/`.
+3. Archived log files are stored alongside the active log in `~/neelopedia/stats/pi/read-deduplicator/`.
 
 ### 2. Retention
 Archived log files are retained indefinitely. Deletion is a manual user decision.
