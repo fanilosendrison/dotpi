@@ -83,6 +83,18 @@ export default function (pi: ExtensionAPI) {
 					: [typeof m.content === "string" ? m.content : ""],
 			)
 			.join("\n");
+
+		const trackedEntries = Array.from(tracker.entries());
+		console.log(
+			`[read-dedup DEBUG] before_provider_request: payloadText.length=${payloadText.length}, trackedEntries=${trackedEntries.length}`,
+		);
+		for (const [path, entry] of trackedEntries) {
+			const found = payloadText.includes(entry.injectedText);
+			console.log(
+				`[read-dedup DEBUG]   path=${path}, injectedText.length=${entry.injectedText.length}, foundInPayload=${found}, stillInContext(before)=${entry.stillInContext}`,
+			);
+		}
+
 		for (const [path, entry] of tracker.entries()) {
 			tracker.setStillInContext(path, payloadText.includes(entry.injectedText));
 		}
@@ -122,6 +134,10 @@ export default function (pi: ExtensionAPI) {
 
 		const fingerprint = `${stat.mtimeMs}:${stat.size}`;
 		const entry = tracker.get(path);
+
+		console.log(
+			`[read-dedup DEBUG] tool_call read: path=${path}, fingerprint=${fingerprint}, hasEntry=${!!entry}, entryFingerprint=${entry?.fingerprint ?? "none"}, stillInContext=${entry?.stillInContext ?? "n/a"}, entryTurn=${entry?.turn ?? "n/a"}`,
+		);
 
 		// First read — always allow
 		if (!entry) return;
