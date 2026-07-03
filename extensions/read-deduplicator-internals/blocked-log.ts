@@ -18,6 +18,12 @@ export interface BlockedLogAPI {
 		sizeBytes: number;
 		turnIndex: number;
 	}): AddBlockResult;
+	addRead(entry: {
+		ts: string;
+		path: string;
+		sizeBytes: number;
+		turnIndex: number;
+	}): AddBlockResult;
 	endCycle(meta: {
 		startTs: string;
 		endTs: string;
@@ -58,7 +64,12 @@ export function createBlockedLog(opts: {
 
 	const sessionId = opts.sessionId || crypto.randomUUID();
 
-	function appendEvent(eventType: string, details: any, timestamp?: string, eventCycleId?: string) {
+	function appendEvent(
+		eventType: string,
+		details: any,
+		timestamp?: string,
+		eventCycleId?: string,
+	) {
 		if (opts.dryRun) return;
 		const event = {
 			timestamp: timestamp || new Date().toISOString(),
@@ -91,7 +102,6 @@ export function createBlockedLog(opts: {
 		},
 
 		addBlock(entry) {
-			cycleReadsAttempted++;
 			try {
 				const normalized = normalizePath(entry.path, opts.cwd);
 				if (!normalized) {
@@ -129,6 +139,34 @@ export function createBlockedLog(opts: {
 					`[read-deduplicator] Error adding block: ${err}\n`,
 				);
 				return { blocked: true, logged: false };
+			}
+		},
+
+		addRead(entry) {
+			try {
+				const normalized = normalizePath(entry.path, opts.cwd);
+				if (!normalized) {
+					return { blocked: false, logged: false };
+				}
+
+				if (matchesFilter(normalized, pathFilters)) {
+					return { blocked: false, logged: false };
+				}
+
+				appendEvent(
+					"read",
+					{
+						path: normalized,
+						sizeBytes: entry.sizeBytes,
+						turnIndex: entry.turnIndex,
+					},
+					entry.ts,
+				);
+
+				return { blocked: false, logged: true };
+			} catch (err) {
+				process.stderr.write(`[read-deduplicator] Error adding read: ${err}\n`);
+				return { blocked: false, logged: false };
 			}
 		},
 

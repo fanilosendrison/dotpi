@@ -58,6 +58,7 @@ export default function (pi: ExtensionAPI) {
 		blockedLog.onAgentEnd({
 			timestamp: new Date().toISOString(),
 			totalTurns: currentTurn,
+			readsAttempted: cycleReadsAttempted,
 		});
 	});
 
@@ -189,5 +190,13 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
+
+		// Log the successful read for per-path metrics
+		blockedLog.addRead({
+			ts: new Date().toISOString(),
+			path,
+			sizeBytes: stat.size,
+			turnIndex: currentTurn,
+		});
 	});
 }
