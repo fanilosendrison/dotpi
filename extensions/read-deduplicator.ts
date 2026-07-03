@@ -5,10 +5,15 @@
  * Blocks re-reads when: fingerprint matches AND file still in provider payload.
  * Allows re-reads when: first read, file modified, or content truncated from payload.
  *
- * Logs blocked reads to ~/neelopedia/stats/read-deduplicator/<session-id>.md
+ * Logs blocked reads and successful reads to
+ * ~/neelopedia/stats/pi/read-deduplicator/events.jsonl
+ *
+ * Environment:
+ *   RD_DRY_RUN=true — log blocks but do not actually block (debug mode).
  */
 
-import { statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { closeSync, openSync, readSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -18,6 +23,56 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { createBlockedLog } from "./read-deduplicator-internals/blocked-log";
 import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
+
+// ── Fingerprint helpers ────────────────────────────────────────────────────
+//
+// Fingerprint = `${mtimeMs}:${size}:${sha256(first N bytes)[:16]}`
+//
+// The content sample catches the edge case where a file is modified in-place
+// but mtimeMs is unchanged (same-second write on coarse-resolution FS) AND
+// size is unchanged (same-length edit). 64 bits of SHA is plenty to detect
+// any difference in the first 4KB.
+
+const FINGERPRINT_SAMPLE_BYTES = 4096;
+
+function sampleFileHash(path: string): string {
+	let fd: number;
+	try {
+		fd = openSync(path, "r");
+	} catch {
+		return "err";
+	}
+	try {
+		const buf = Buffer.alloc(FINGERPRINT_SAMPLE_BYTES);
+		const n = readSync(fd, buf, 0, FINGERPRINT_SAMPLE_BYTES, 0);
+		if (n === 0) return "empty";
+		return createHash("sha256")
+			.update(buf.subarray(0, n))
+			.digest("hex")
+			.slice(0, 16);
+	} finally {
+		try {
+			closeSync(fd);
+		} catch {
+			// already closed or invalid fd — ignore
+		}
+	}
+}
+
+function computeFingerprint(
+	path: string,
+): { fingerprint: string; sizeBytes: number } | null {
+	let stat: ReturnType<typeof statSync>;
+	try {
+		stat = statSync(path);
+	} catch {
+		return null;
+	}
+	return {
+		fingerprint: `${stat.mtimeMs}:${stat.size}:${sampleFileHash(path)}`,
+		sizeBytes: stat.size,
+	};
+}
 
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
@@ -33,7 +88,12 @@ export default function (pi: ExtensionAPI) {
 		statsDir,
 		sessionId,
 		cwd: process.cwd(),
-		dryRun: false,
+		dryRun: process.env.RD_DRY_RUN === "true",
+	});
+
+	// Wire health-check status updates ("N reads bloqués") to the Pi status bar.
+	blockedLog.setStatusCallback((key, msg) => {
+		pi.ui.setStatus(key, msg);
 	});
 
 	let currentTurn = 0;
@@ -85,17 +145,6 @@ export default function (pi: ExtensionAPI) {
 			)
 			.join("\n");
 
-		const trackedEntries = Array.from(tracker.entries());
-		console.log(
-			`[read-dedup DEBUG] before_provider_request: payloadText.length=${payloadText.length}, trackedEntries=${trackedEntries.length}`,
-		);
-		for (const [path, entry] of trackedEntries) {
-			const found = payloadText.includes(entry.injectedText);
-			console.log(
-				`[read-dedup DEBUG]   path=${path}, injectedText.length=${entry.injectedText.length}, foundInPayload=${found}, stillInContext(before)=${entry.stillInContext}`,
-			);
-		}
-
 		for (const [path, entry] of tracker.entries()) {
 			tracker.setStillInContext(path, payloadText.includes(entry.injectedText));
 		}
@@ -126,19 +175,11 @@ export default function (pi: ExtensionAPI) {
 
 		cycleReadsAttempted++;
 
-		let stat: ReturnType<typeof statSync>;
-		try {
-			stat = statSync(path);
-		} catch {
-			return; // file doesn't exist yet — let read handle the error
-		}
+		const fp = computeFingerprint(path);
+		if (!fp) return; // file doesn't exist yet — let read handle the error
 
-		const fingerprint = `${stat.mtimeMs}:${stat.size}`;
+		const { fingerprint } = fp;
 		const entry = tracker.get(path);
-
-		console.log(
-			`[read-dedup DEBUG] tool_call read: path=${path}, fingerprint=${fingerprint}, hasEntry=${!!entry}, entryFingerprint=${entry?.fingerprint ?? "none"}, stillInContext=${entry?.stillInContext ?? "n/a"}, entryTurn=${entry?.turn ?? "n/a"}`,
-		);
 
 		// First read — always allow
 		if (!entry) return;
@@ -151,7 +192,7 @@ export default function (pi: ExtensionAPI) {
 			blockedLog.addBlock({
 				ts: new Date().toISOString(),
 				path,
-				sizeBytes: stat.size,
+				sizeBytes: fp.sizeBytes,
 				turnIndex: currentTurn,
 			});
 			return {
@@ -181,13 +222,10 @@ export default function (pi: ExtensionAPI) {
 
 		if (!textContent) return;
 
-		let fingerprint: string;
-		try {
-			const stat = statSync(path);
-			fingerprint = `${stat.mtimeMs}:${stat.size}`;
-		} catch {
-			return;
-		}
+		const fp = computeFingerprint(path);
+		if (!fp) return;
+
+		const { fingerprint, sizeBytes } = fp;
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
 
@@ -195,7 +233,7 @@ export default function (pi: ExtensionAPI) {
 		blockedLog.addRead({
 			ts: new Date().toISOString(),
 			path,
-			sizeBytes: stat.size,
+			sizeBytes,
 			turnIndex: currentTurn,
 		});
 	});
