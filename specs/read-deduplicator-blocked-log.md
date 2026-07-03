@@ -105,6 +105,21 @@ Pour éviter la corruption en cas d'écritures concurrentes (deux instances Pi, 
 - L'événement JSON stringifié (`+ \n`) est ajouté à la fin.
 - Un fichier `.tmp` est écrit puis remplacé de façon atomique via `fs.renameSync()`.
 
+## Log Rotation Policy
+
+### 1. Size-Based Rotation
+When `events.jsonl` exceeds **5 MB**, the consumer (stats tool or dashboard generator) must rotate the log:
+
+1. Rename `events.jsonl` → `events-<ISO_DATE>.jsonl` (e.g., `events-2026-07-03.jsonl`).
+2. Create a fresh empty `events.jsonl`.
+3. Archived log files are stored alongside the active log in `~/neelopedia/stats/read-deduplicator/`.
+
+### 2. Retention
+Archived log files are retained indefinitely. Deletion is a manual user decision.
+
+### 3. Rotation Responsibility
+Log rotation is **never** performed by the Pi extension (`read-deduplicator.ts`). It is the responsibility of the stats consumer tool (future dashboard or CLI) to check the file size before processing and rotate if necessary.
+
 ## Mode dry-run
 
 Une option `dryRun` désactive le blocage effectif : les reads passent normalement mais sont loggés comme s'ils étaient bloqués. Utile pour valider les statistiques.
