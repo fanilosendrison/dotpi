@@ -1,7 +1,7 @@
-import { formatBlockLine, formatCycleHeader } from "./format";
 import { normalizePath, loadPathFilter, matchesFilter } from "./path-normalize";
-import { ensureDirectory, resolveSessionFilePath, writeSessionHeader } from "./session-file";
+import { ensureDirectory, resolveSessionFilePath } from "./session-file";
 import { atomicAppend } from "./atomic-writer";
+import * as crypto from "node:crypto";
 
 export interface AddBlockResult {
   blocked: boolean;
@@ -39,45 +39,44 @@ export function createBlockedLog(opts: {
 }): BlockedLogAPI {
   const filePath = resolveSessionFilePath(opts.statsDir, opts.sessionId, opts.forceFilePath);
   let pathFilters: string[] = [];
-  let buffer: string[] = [];
-  let absoluteCycleNum = 0;
-  let cycleStartTs: string | null = null;
+  
   let currentTurnIndex = 0;
   let cycleReadsAttempted = 0;
   let totalSessionBlocked = 0;
+  let cycleBlockedCount = 0;
   let statusCallback: ((key: string, msg: string) => void) | null = null;
+  let cycleStartTs: string | null = null;
 
-  function flushBuffer(startTs: string, endTs: string, readsAttempted: number, totalTurns: number) {
-    if (buffer.length === 0) {
-      absoluteCycleNum++;
-      return;
+  const sessionId = opts.sessionId || crypto.randomUUID();
+
+  function appendEvent(eventType: string, details: any, timestamp?: string) {
+    if (opts.dryRun) return;
+    const event = {
+      timestamp: timestamp || new Date().toISOString(),
+      eventId: crypto.randomUUID(),
+      extension: "read-deduplicator",
+      eventType,
+      agent: "pi",
+      workspace: opts.cwd,
+      sessionId,
+      details,
+    };
+    try {
+      atomicAppend(filePath, JSON.stringify(event) + "\n");
+    } catch (e) {
+      process.stderr.write(`[read-deduplicator] Error appending JSON: ${e}\n`);
     }
-
-    absoluteCycleNum++;
-    const header = formatCycleHeader(
-      absoluteCycleNum,
-      startTs,
-      endTs,
-      totalTurns,
-      readsAttempted,
-      buffer.length
-    );
-    
-    const newContent = header + buffer.join("\n") + "\n\n";
-    atomicAppend(filePath, newContent);
-    buffer = [];
   }
 
   return {
     filePath,
     
     get currentCycleBlockCount() {
-      return buffer.length;
+      return cycleBlockedCount;
     },
 
     startSession() {
       ensureDirectory(opts.statsDir);
-      writeSessionHeader(filePath, opts.sessionId, opts.cwd);
       pathFilters = loadPathFilter(opts.statsDir);
     },
 
@@ -93,24 +92,21 @@ export function createBlockedLog(opts: {
           return { blocked: true, logged: false };
         }
 
-        const formatted = formatBlockLine({
-          ts: entry.ts,
+        appendEvent("block", {
           path: normalized,
           sizeBytes: entry.sizeBytes,
           turnIndex: entry.turnIndex,
-        });
+        }, entry.ts);
 
-        buffer.push(formatted);
         totalSessionBlocked++;
+        cycleBlockedCount++;
 
         if (statusCallback) {
           statusCallback("rd", `${totalSessionBlocked} reads bloqués`);
         }
 
-        if (buffer.length >= 2000) {
-          flushBuffer(cycleStartTs ?? entry.ts, entry.ts, cycleReadsAttempted, entry.turnIndex);
+        if (!cycleStartTs) {
           cycleStartTs = entry.ts;
-          cycleReadsAttempted = 0;
         }
 
         return { blocked: !opts.dryRun, logged: true };
@@ -122,19 +118,27 @@ export function createBlockedLog(opts: {
 
     endCycle(meta) {
       try {
-        flushBuffer(meta.startTs, meta.endTs, meta.readsAttempted, meta.totalTurns);
+        if (meta.readsAttempted > 0 || cycleBlockedCount > 0) {
+          appendEvent("cycle_summary", {
+            startTs: meta.startTs,
+            endTs: meta.endTs,
+            readsAttempted: meta.readsAttempted,
+            blockedCount: cycleBlockedCount,
+            totalTurns: meta.totalTurns,
+          }, meta.endTs);
+        }
         cycleStartTs = meta.endTs;
         cycleReadsAttempted = 0;
+        cycleBlockedCount = 0;
       } catch (err) {
         process.stderr.write(`[read-deduplicator] Error ending cycle: ${err}\n`);
-        buffer = [];
       }
     },
 
     onAgentStart(event) {
       cycleStartTs = event.timestamp;
       cycleReadsAttempted = 0;
-      buffer = [];
+      cycleBlockedCount = 0;
     },
 
     onTurnStart(event) {
@@ -142,7 +146,17 @@ export function createBlockedLog(opts: {
     },
 
     onAgentEnd(event) {
-      flushBuffer(cycleStartTs ?? event.timestamp, event.timestamp, cycleReadsAttempted, event.totalTurns ?? 1);
+       if (cycleReadsAttempted > 0 || cycleBlockedCount > 0) {
+         appendEvent("cycle_summary", {
+            startTs: cycleStartTs || event.timestamp,
+            endTs: event.timestamp,
+            readsAttempted: cycleReadsAttempted || event.readsAttempted || 0,
+            blockedCount: cycleBlockedCount,
+            totalTurns: event.totalTurns ?? 1,
+          }, event.timestamp);
+       }
+       cycleReadsAttempted = 0;
+       cycleBlockedCount = 0;
     },
 
     setStatusCallback(fn) {
