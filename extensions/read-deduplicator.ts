@@ -97,9 +97,9 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	let currentTurn = 0;
+	let lastModel: string | undefined;
 	let cycleStartTs = "";
 	let cycleReadsAttempted = 0;
-	const cycleTurns = new Set<number>();
 
 	// ── Session lifecycle ──────────────────────────────────────────────────
 
@@ -110,7 +110,6 @@ export default function (pi: ExtensionAPI) {
 	pi.on("agent_start", () => {
 		cycleStartTs = new Date().toISOString();
 		cycleReadsAttempted = 0;
-		cycleTurns.clear();
 		blockedLog.onAgentStart({ timestamp: cycleStartTs });
 	});
 
@@ -119,6 +118,7 @@ export default function (pi: ExtensionAPI) {
 			timestamp: new Date().toISOString(),
 			totalTurns: currentTurn,
 			readsAttempted: cycleReadsAttempted,
+			model: lastModel,
 		});
 	});
 
@@ -126,13 +126,15 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("turn_start", async (event) => {
 		currentTurn = event.turnIndex;
-		cycleTurns.add(event.turnIndex);
 		blockedLog.onTurnStart({ turnIndex: event.turnIndex });
 	});
 
 	// ── Cycle boundary: before each provider request ─────────────────────
 
 	pi.on("before_provider_request", async (event) => {
+		// Capture model from provider payload
+		lastModel = (event.payload as any)?.model;
+
 		// Update stillInContext for all tracked files
 		const messages = (event.payload as any)?.messages ?? [];
 		const payloadText = messages
@@ -156,12 +158,12 @@ export default function (pi: ExtensionAPI) {
 				startTs: cycleStartTs,
 				endTs,
 				readsAttempted: cycleReadsAttempted,
-				totalTurns: cycleTurns.size,
+				totalTurns: currentTurn,
+				model: lastModel,
 			});
 		}
 		cycleStartTs = endTs;
 		cycleReadsAttempted = 0;
-		cycleTurns.clear();
 	});
 
 	// ── Guard read calls ──────────────────────────────────────────────────
