@@ -10,6 +10,7 @@
  */
 
 import crypto from "node:crypto";
+import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -64,9 +65,34 @@ export default function (pi: ExtensionAPI) {
 		if (!isCommitIntent(cmd)) return;
 		statsLog.incTotal();
 
-		// Skill invocation — count and let it pass
+		// Skill invocation — log models + let it pass
 		if (cmd.includes("git-commits-push")) {
-			statsLog.incSkillInvoked();
+			// Read skill's settings.json to capture internal model
+			let skillModel = "unknown";
+			let skillProvider = "unknown";
+			try {
+				const skillDir = join(
+					homedir(),
+					".agents",
+					"skills",
+					"git-commits-push",
+				);
+				const settingsPath = join(skillDir, "src", "config", "settings.json");
+				if (fs.existsSync(settingsPath)) {
+					const raw = fs.readFileSync(settingsPath, "utf-8");
+					const parsed = JSON.parse(raw);
+					if (parsed.model) skillModel = parsed.model;
+					if (parsed.provider) skillProvider = parsed.provider;
+				}
+			} catch {
+				// Non-critical — proceed with "unknown"
+			}
+			statsLog.addSkillInvoke({
+				ts: new Date().toISOString(),
+				parentModel: lastModel ?? "unknown",
+				skillModel,
+				skillProvider,
+			});
 			return;
 		}
 

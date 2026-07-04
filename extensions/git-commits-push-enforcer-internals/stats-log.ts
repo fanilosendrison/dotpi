@@ -32,6 +32,12 @@ export interface StatsLogAPI {
 	addBlockPush(entry: { ts: string; message: string }): void;
 	incAllowedRaw(): void;
 	incSkillInvoked(): void;
+	addSkillInvoke(entry: {
+		ts: string;
+		parentModel: string;
+		skillModel: string;
+		skillProvider: string;
+	}): void;
 	flushSummary(event: {
 		endTs: string;
 		model?: string;
@@ -52,6 +58,9 @@ export function createStatsLog(opts: {
 	let blockedPush = 0;
 	let allowedRaw = 0;
 	let skillInvoked = 0;
+	let lastParentModel: string | undefined;
+	let lastSkillModel: string | undefined;
+	let lastSkillProvider: string | undefined;
 	let cycleId = crypto.randomUUID();
 
 	function appendEvent(
@@ -98,6 +107,22 @@ export function createStatsLog(opts: {
 			skillInvoked++;
 		},
 
+		addSkillInvoke(entry) {
+			skillInvoked++;
+			lastParentModel = entry.parentModel;
+			lastSkillModel = entry.skillModel;
+			lastSkillProvider = entry.skillProvider;
+			appendEvent(
+				"skill_invoke",
+				{
+					parentModel: entry.parentModel,
+					skillModel: entry.skillModel,
+					skillProvider: entry.skillProvider,
+				},
+				entry.ts,
+			);
+		},
+
 		flushSummary(event) {
 			if (totalCommits === 0) return;
 
@@ -110,6 +135,9 @@ export function createStatsLog(opts: {
 					blockedPush,
 					allowedRaw,
 					skillInvoked,
+					parentModel: lastParentModel,
+					skillModel: lastSkillModel,
+					skillProvider: lastSkillProvider,
 					blockRate:
 						totalCommits > 0
 							? parseFloat(
