@@ -36,6 +36,7 @@ export interface BlockedLogAPI {
 		timestamp: string;
 		totalTurns?: number;
 		readsAttempted?: number;
+		model?: string;
 	}): void;
 	setStatusCallback(fn: (key: string, msg: string) => void): void;
 }
@@ -181,6 +182,7 @@ export function createBlockedLog(opts: {
 							readsAttempted: meta.readsAttempted,
 							blockedCount: cycleBlockedCount,
 							totalTurns: meta.totalTurns,
+							model: meta.model,
 						},
 						meta.endTs,
 					);
@@ -217,6 +219,7 @@ export function createBlockedLog(opts: {
 						readsAttempted: cycleReadsAttempted || event.readsAttempted || 0,
 						blockedCount: cycleBlockedCount,
 						totalTurns: event.totalTurns ?? 1,
+						model: event.model,
 					},
 					event.timestamp,
 				);
