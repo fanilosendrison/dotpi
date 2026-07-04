@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.80.3",
   "theme": "dark",
-  "defaultProvider": "together",
-  "defaultModel": "MiniMaxAI/MiniMax-M3",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "xhigh",
   "packages": []
 }
