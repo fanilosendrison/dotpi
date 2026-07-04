@@ -65,8 +65,11 @@ export default function (pi: ExtensionAPI) {
 		if (!isCommitIntent(cmd)) return;
 		statsLog.incTotal();
 
-		// Skill invocation — log models + let it pass
+		// Skill invocation — log models, pass env vars, let it pass
 		if (cmd.includes("git-commits-push")) {
+			// Pass parent model/session to the skill via env vars
+			process.env.PI_PARENT_MODEL = lastModel ?? "unknown";
+			process.env.PI_SESSION_ID = sessionId;
 			// Read skill's settings.json to capture internal model
 			let skillModel = "unknown";
 			let skillProvider = "unknown";
