@@ -38,16 +38,17 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
-│   ├── command-validator.md     ← Bash security rules
-│   ├── commit-validator.md      ← How commits are validated
-│   ├── creating-extensions.md   ← Conventions for new extensions
-│   ├── enhanced-model-selector.md ← How model picker has been extended with costs
-│   ├── extended-global-context.md ← How global context has been extended
-│   ├── git-commits-push-enforcer.md ← How to commit & push
-│   ├── managing-api-keys-in-pi.md ← How you manage API keys
-│   ├── path-guard.md            ← Blocks writes to dot* repos
-│   ├── post-write-linter.md     ← Runs Biome after every write/edit
-│   └── read-deduplicator.md     ← avoids re-injecting already-read files + blocked-reads log
+│   ├── command-validator.md                      ← Bash security rules
+│   ├── commit-validator.md                       ← How commits are validated
+│   ├── creating-extensions.md                    ← Conventions for new extensions
+│   ├── enhanced-model-selector.md                ← How model picker has been extended with costs
+│   ├── extended-global-context.md                ← How global context has been extended
+│   ├── git-commits-push-enforcer.md              ← How to commit & push
+│   ├── git-commits-push-skill-retry-overhaul.md  ← Unified retry on all catches
+│   ├── managing-api-keys-in-pi.md                ← How you manage API keys
+│   ├── path-guard.md                             ← Blocks writes to dot* repos
+│   ├── post-write-linter.md                      ← Runs Biome after every write/edit
+│   └── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
 ├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
 │       ├── interactive-mode.patch
@@ -82,3 +83,5 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 | Enforce conventional commits and push               | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
 
+
+| Understand the retry mechanism in git-commits-push | `docs/git-commits-push-skill-retry-overhaul.md` (Unified retry on all catches) |

@@ -49,3 +49,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 9. Post-Write Linter
 - **Date** : 2026-07-01
 - **Doc** : [`post-write-linter.md`](post-write-linter.md)
+
+### 10. Git Commits Push Skill — Retry Overhaul
+- **Date** : 2026-07-04
+- **Doc** : [`git-commits-push-skill-retry-overhaul.md`](git-commits-push-skill-retry-overhaul.md)
