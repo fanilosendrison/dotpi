@@ -12,7 +12,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator";
+
+const VALIDATOR_PATH = join(
+	homedir(),
+	".agents/agent-enforcers/command-validator/src/core/validator",
+);
+const { CommandValidator } = require(VALIDATOR_PATH);
+
 import { createStatsLog } from "./command-validator-internals/stats-log";
 
 const DESTRUCTIVE_PATTERNS = [

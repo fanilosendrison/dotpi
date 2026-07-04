@@ -14,11 +14,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import {
-	checkPath,
-	extractBashPaths,
-	rewriteBashCommand,
-} from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
+
+const CORE_PATH = join(
+	homedir(),
+	".agents/agent-enforcers/path-guard/src/core/path-guard",
+);
+const { checkPath, rewriteBashCommand, extractBashPaths } = require(CORE_PATH);
+
 import { createStatsLog } from "./path-guard-internals/stats-log";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
