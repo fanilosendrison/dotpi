@@ -67,8 +67,12 @@ export default function (pi: ExtensionAPI) {
 					],
 				};
 			}
-			// File passed linting — count it
-			statsLog.incClean();
+			// File passed linting — log it
+			statsLog.addClean({
+				ts: new Date().toISOString(),
+				filePath,
+				language,
+			});
 		} catch {
 			// Internal linter errors are not logged (per spec)
 			return {

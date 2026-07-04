@@ -25,6 +25,7 @@ function atomicAppend(filePath: string, newContent: string): void {
 export interface StatsLogAPI {
 	filePath: string;
 	incClean(): void;
+	addClean(entry: { ts: string; filePath: string; language: string }): void;
 	addLintError(entry: {
 		ts: string;
 		filePath: string;
@@ -79,6 +80,18 @@ export function createStatsLog(opts: {
 
 		incClean() {
 			clean++;
+		},
+
+		addClean(entry) {
+			clean++;
+			appendEvent(
+				"lint_success",
+				{
+					filePath: entry.filePath,
+					language: entry.language,
+				},
+				entry.ts,
+			);
 		},
 
 		addLintError(entry) {
