@@ -4,48 +4,16 @@
  * Imports the shared validator from ~/.agents/agent-enforcers/command-validator/.
  * No duplicated logic — all harnesses share the same rules.
  *
- * Logs all validation events to ~/neelopedia/stats/pi/command-validator/events.jsonl
- * (separate from Claude/Codex hook logs which go to ~/neelopedia/stats/agents/).
+ * Stats logging: counts denies and ask_confirm outcomes per session/model
+ * in ~/neelopedia/stats/pi/command-validator/events.jsonl.
  */
-import { appendFile, mkdir } from "node:fs/promises";
+import crypto from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator";
-
-const LOG_FILE = join(
-	homedir(),
-	"neelopedia",
-	"stats",
-	"pi",
-	"command-validator",
-	"events.jsonl",
-);
-
-async function logEvent(
-	cmd: string,
-	action: string,
-	violations: string[],
-	severity: string,
-) {
-	try {
-		await mkdir(join(LOG_FILE, ".."), { recursive: true });
-		await appendFile(
-			LOG_FILE,
-			JSON.stringify({
-				timestamp: new Date().toISOString(),
-				source: "pi-extension",
-				command: cmd.slice(0, 500),
-				action,
-				violations,
-				severity,
-			}) + "\n",
-		);
-	} catch {
-		/* best-effort */
-	}
-}
+import { createStatsLog } from "./command-validator-internals/stats-log";
 
 const DESTRUCTIVE_PATTERNS = [
 	/>\s*\/dev\/(sda|hda|nvme)/i,
@@ -89,12 +57,39 @@ function isDangerousForAsk(cmd: string): string | null {
 }
 
 export default function (pi: ExtensionAPI) {
+	const sessionId = crypto.randomUUID();
+	const statsDir = join(
+		homedir(),
+		"neelopedia",
+		"stats",
+		"pi",
+		"command-validator",
+	);
+	let lastModel: string | undefined;
+
+	const statsLog = createStatsLog({
+		statsDir,
+		sessionId,
+		cwd: process.cwd(),
+	});
+
 	const validator = new CommandValidator();
+
+	// ── Capture model from provider requests ─────────────────────────────────
+
+	pi.on("before_provider_request", async (event) => {
+		lastModel = (event.payload as any)?.model;
+	});
+
+	// ── Validate bash commands ───────────────────────────────────────────────
 
 	pi.on("tool_call", async (event, ctx) => {
 		if (!isToolCallEventType("bash", event)) return;
 
 		const cmd = event.input.command;
+
+		// Increment total counter (called for every bash command)
+		statsLog.incTotal();
 
 		// Allow chmod +x (making scripts executable)
 		if (/^chmod\s+\+x\s+/.test(cmd.trim())) return;
@@ -102,14 +97,24 @@ export default function (pi: ExtensionAPI) {
 		// Use the shared validator for rm -rf and dangerous command detection
 		const result = validator.validate(cmd);
 		if (result.action === "deny") {
-			await logEvent(cmd, "deny", result.violations, result.severity);
+			statsLog.addDeny({
+				ts: new Date().toISOString(),
+				severity: result.severity,
+				violations: result.violations,
+				command: cmd,
+			});
 			return { block: true, reason: result.violations.join("; ") };
 		}
 
 		// Additional destructive patterns not in the shared validator
 		for (const pattern of DESTRUCTIVE_PATTERNS) {
 			if (pattern.test(cmd)) {
-				await logEvent(cmd, "deny", ["Destructive pattern"], "CRITICAL");
+				statsLog.addDeny({
+					ts: new Date().toISOString(),
+					severity: "CRITICAL",
+					violations: ["Destructive pattern"],
+					command: cmd,
+				});
 				return {
 					block: true,
 					reason: `Destructive command blocked: ${cmd.slice(0, 80)}`,
@@ -124,11 +129,26 @@ export default function (pi: ExtensionAPI) {
 				"Dangerous command",
 				`Allow: ${cmd.slice(0, 100)}`,
 			);
+			statsLog.addAskConfirm({
+				ts: new Date().toISOString(),
+				tool: dangerous || "unknown",
+				severity: "HIGH",
+				outcome: ok ? "allowed" : "denied",
+				command: cmd,
+			});
 			if (!ok) {
-				await logEvent(cmd, "deny", ["User declined confirmation"], "HIGH");
 				return { block: true, reason: "Blocked by user" };
 			}
-			await logEvent(cmd, "allow", [], "HIGH");
 		}
+	});
+
+	// ── Flush session summary once at session end ───────────────────────────
+
+	pi.on("session_shutdown", () => {
+		statsLog.flushSummary({
+			endTs: new Date().toISOString(),
+			model: lastModel,
+			totalTurns: 0,
+		});
 	});
 }
