@@ -26,34 +26,30 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 - **Date** : 2026-06-28
 - **Doc** : [`extended-global-context.md`](extended-global-context.md)
 
-### 4. Commit Validation Extensions
-- **Date** : 2026-06-28
-- **Doc** : [`commit-validator.md`](commit-validator.md)
-
-### 5. Git Commits Push Enforcer
+### 4. Git Commits Push Enforcer
 - **Date** : 2026-06-28
 - **Doc** : [`git-commits-push-enforcer.md`](git-commits-push-enforcer.md)
 
-### 6. Command Validator
+### 5. Command Validator
 - **Date** : 2026-06-28
 - **Doc** : [`command-validator.md`](command-validator.md)
 
-### 7. Path Guard
+### 6. Path Guard
 - **Date** : 2026-06-28
 - **Doc** : [`path-guard.md`](path-guard.md)
 
-### 8. Read Deduplicator
+### 7. Read Deduplicator
 - **Date** : 2026-06-29
 - **Doc** : [`read-deduplicator.md`](read-deduplicator.md)
 
-### 9. Post-Write Linter
+### 8. Post-Write Linter
 - **Date** : 2026-07-01
 - **Doc** : [`post-write-linter.md`](post-write-linter.md)
 
-### 10. Git Commits Push Skill — Retry Overhaul
+### 9. Git Commits Push Skill — Retry Overhaul
 - **Date** : 2026-07-04
 - **Doc** : [`git-commits-push-skill-retry-overhaul.md`](git-commits-push-skill-retry-overhaul.md)
 
-### 11. Zero-Timeout Filter
+### 10. Zero-Timeout Filter
 - **Date** : 2026-07-05
 - **Doc** : [`zero-timeout-filter.md`](zero-timeout-filter.md)
