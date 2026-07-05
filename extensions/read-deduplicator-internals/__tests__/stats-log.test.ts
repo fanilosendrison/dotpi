@@ -22,7 +22,7 @@ function makeLog(): ReturnType<typeof createStatsLog> {
 	});
 }
 
-function readEvents(log: ReturnType<typeof createBlockedLog>): any[] {
+function readEvents(log: ReturnType<typeof createStatsLog>): any[] {
 	if (!fs.existsSync(log.filePath)) return [];
 	return fs
 		.readFileSync(log.filePath, "utf-8")
@@ -66,7 +66,7 @@ describe("file creation", () => {
 // ── 2. logFileAccess with different actions ─────────────────────────────
 
 describe("logFileAccess (blocked)", () => {
-	test("writes file_access with action blocked and blockedReason", () => {
+	test("writes file_access with all fields for blocked action", () => {
 		const log = makeLog();
 		log.logFileAccess({
 			...BASE,
@@ -75,18 +75,42 @@ describe("logFileAccess (blocked)", () => {
 		});
 
 		const ev = readEvents(log)[0];
+		expect(ev.eventType).toBe("file_access");
+		expect(ev.extension).toBe("read-deduplicator");
+		expect(ev.agent).toBe("pi");
+		expect(ev.workspace).toBe("/w");
+		expect(ev.sessionId).toBe("sess-1");
+		expect(ev.timestamp).toBe("2026-07-03T12:00:00Z");
+		expect(ev.eventId).toBeDefined();
 		expect(ev.details.action).toBe("blocked");
+		expect(ev.details.path).toBe("/a.ts");
+		expect(ev.details.sizeBytes).toBe(100);
+		expect(ev.details.turnIndex).toBe(1);
+		expect(ev.details.parentModel).toBe("deepseek-v4-flash");
+		expect(ev.details.thinkingLevel).toBe("xhigh");
 		expect(ev.details.blockedReason).toBe("already in context (turn 1)");
 	});
 });
 
 describe("logFileAccess (read)", () => {
-	test("writes file_access with action read, no blockedReason", () => {
+	test("writes file_access with all fields for read action, no blockedReason", () => {
 		const log = makeLog();
 		log.logFileAccess({ ...BASE, action: "read" });
 
 		const ev = readEvents(log)[0];
+		expect(ev.eventType).toBe("file_access");
+		expect(ev.extension).toBe("read-deduplicator");
+		expect(ev.agent).toBe("pi");
+		expect(ev.workspace).toBe("/w");
+		expect(ev.sessionId).toBe("sess-1");
+		expect(ev.timestamp).toBe("2026-07-03T12:00:00Z");
+		expect(ev.eventId).toBeDefined();
 		expect(ev.details.action).toBe("read");
+		expect(ev.details.path).toBe("/a.ts");
+		expect(ev.details.sizeBytes).toBe(100);
+		expect(ev.details.turnIndex).toBe(1);
+		expect(ev.details.parentModel).toBe("deepseek-v4-flash");
+		expect(ev.details.thinkingLevel).toBe("xhigh");
 		expect(ev.details.blockedReason).toBeUndefined();
 	});
 });
