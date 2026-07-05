@@ -3,7 +3,7 @@
 - **Date**: 2026-07-05
 - **Type**: Extension
 - **File**: `~/.pi/agent/extensions/path-guard.ts`
-- **Core**: `~/Developper/Projects/dotagents/agent-hooks/path-guard/src/core/path-guard.ts`
+- **Core**: `~/Developper/Projects/dotagents/agent-enforcers/path-guard/src/core/path-guard.ts`
 
 ## What
 
@@ -34,7 +34,7 @@ friction and wasted iterations while maintaining the exact same security guarant
 ### Architecture
 
 The extension (`extensions/path-guard.ts`) is a thin Pi hook. All logic lives
-in the shared core at `dotagents/agent-hooks/path-guard/src/core/path-guard.ts`,
+in the shared core at `dotagents/agent-enforcers/path-guard/src/core/path-guard.ts`,
 reusable by other agent harnesses.
 
 ### Path resolution

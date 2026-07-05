@@ -23,7 +23,7 @@ Listens to `tool_call` → `bash`:
 
 ## Shared Logic
 
-Mirrors `~/.agents/agent-hooks/command-validator/src/core/validator.ts`.
+Mirrors `~/.agents/agent-enforcers/command-validator/src/core/validator.ts`.
 The dangerous commands list and destructive patterns are kept in sync.
 
 ## Relevant Files
@@ -31,4 +31,4 @@ The dangerous commands list and destructive patterns are kept in sync.
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/command-validator.ts` | Pi extension | ✅ |
-| `dotagents/agent-hooks/command-validator/` | Shared security rules | ✅ |
+| `dotagents/agent-enforcers/command-validator/` | Shared security rules | ✅ |
