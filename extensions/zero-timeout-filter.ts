@@ -39,7 +39,10 @@ export default function (pi: ExtensionAPI) {
 	pi.on("before_provider_request", async (event) => {
 		const payload = event.payload as Record<string, unknown> | undefined;
 		lastModel = (payload?.model as string) ?? lastModel;
-		lastThinking = (payload?.thinkingLevel as string) ?? lastThinking;
+	});
+
+	pi.on("thinking_level_select", async (event) => {
+		lastThinking = event.level;
 	});
 
 	// ── Strip timeout on skill invocation ───────────────────────────────────

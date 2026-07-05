@@ -113,9 +113,16 @@ describe("zero-timeout-filter", () => {
 
 	// ── Captures model and thinking ─────────────────────────────────────────
 
-	test("captures model and thinking from before_provider_request", async () => {
+	test("captures model from before_provider_request", async () => {
 		await handlers["before_provider_request"](
-			{ payload: { model: "deepseek-v4-pro", thinkingLevel: "xhigh" } },
+			{ payload: { model: "deepseek-v4-pro" } },
+			{},
+		);
+	});
+
+	test("captures thinking level from thinking_level_select", async () => {
+		await handlers["thinking_level_select"](
+			{ level: "xhigh", previousLevel: undefined },
 			{},
 		);
 	});
