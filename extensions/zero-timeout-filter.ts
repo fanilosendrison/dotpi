@@ -10,13 +10,12 @@
  * for computing the ratio: stripped / git-commits-push invocations.
  */
 import * as crypto from "node:crypto";
+import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-
 import { createStatsLog } from "./zero-timeout-filter-internals/stats-log";
-import * as fs from "node:fs";
 
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
@@ -64,7 +63,7 @@ export default function (pi: ExtensionAPI) {
 		const cmd = event.input.command;
 		if (!cmd || typeof cmd !== "string") return;
 		if (!cmd.includes("bun run start")) return;
-		if (!cmd.includes("git-commits-push")) return;
+		if (!cmd.includes(".agents/skills/git-commits-push")) return;
 
 		const originalTimeout = event.input.timeout;
 
