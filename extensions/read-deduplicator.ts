@@ -5,7 +5,7 @@
  * Blocks re-reads when: fingerprint matches AND file still in provider payload.
  * Allows re-reads when: first read, file modified, or content truncated from payload.
  *
- * Logs blocked reads and successful reads to
+ * Logs a file_access event per read attempt in
  * ~/neelopedia/stats/pi/read-deduplicator/events.jsonl
  *
  * Environment:
@@ -25,13 +25,6 @@ import { createBlockedLog } from "./read-deduplicator-internals/blocked-log";
 import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
 
 // ── Fingerprint helpers ────────────────────────────────────────────────────
-//
-// Fingerprint = `${mtimeMs}:${size}:${sha256(first N bytes)[:16]}`
-//
-// The content sample catches the edge case where a file is modified in-place
-// but mtimeMs is unchanged (same-second write on coarse-resolution FS) AND
-// size is unchanged (same-length edit). 64 bits of SHA is plenty to detect
-// any difference in the first 4KB.
 
 const FINGERPRINT_SAMPLE_BYTES = 4096;
 
@@ -53,9 +46,7 @@ function sampleFileHash(path: string): string {
 	} finally {
 		try {
 			closeSync(fd);
-		} catch {
-			// already closed or invalid fd — ignore
-		}
+		} catch {}
 	}
 }
 
@@ -74,6 +65,19 @@ function computeFingerprint(
 	};
 }
 
+function readDefaultThinking(): string {
+	try {
+		const p = join(homedir(), ".pi", "agent", "settings.json");
+		const { existsSync, readFileSync } = require("node:fs");
+		if (existsSync(p)) {
+			return (
+				JSON.parse(readFileSync(p, "utf-8")).defaultThinkingLevel ?? "unknown"
+			);
+		}
+	} catch {}
+	return "unknown";
+}
+
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
 	const tracker = createReadTracker();
@@ -88,55 +92,39 @@ export default function (pi: ExtensionAPI) {
 		statsDir,
 		sessionId,
 		cwd: process.cwd(),
-		dryRun: process.env.RD_DRY_RUN === "true",
-	});
-
-	// Wire health-check status updates ("N reads bloqués") to the Pi status bar.
-	blockedLog.setStatusCallback((key, msg) => {
-		pi.ui.setStatus(key, msg);
 	});
 
 	let currentTurn = 0;
 	let lastModel: string | undefined;
-	let cycleStartTs = "";
-	let cycleReadsAttempted = 0;
+	let lastThinking: string = readDefaultThinking();
+
+	// ── Capture model + thinking level ──────────────────────────────────────
+
+	pi.on("before_provider_request", async (event) => {
+		lastModel = (event.payload as any)?.model;
+	});
+
+	pi.on("thinking_level_select", async (event) => {
+		lastThinking = event.level;
+	});
 
 	// ── Session lifecycle ──────────────────────────────────────────────────
 
 	pi.on("session_start", () => {
-		blockedLog.startSession();
-	});
-
-	pi.on("agent_start", () => {
-		cycleStartTs = new Date().toISOString();
-		cycleReadsAttempted = 0;
-		blockedLog.onAgentStart({ timestamp: cycleStartTs });
-	});
-
-	pi.on("agent_end", () => {
-		blockedLog.onAgentEnd({
-			timestamp: new Date().toISOString(),
-			totalTurns: currentTurn,
-			readsAttempted: cycleReadsAttempted,
-			model: lastModel,
-		});
+		// Stats dir already created by createBlockedLog
 	});
 
 	// ── Turn tracking ──────────────────────────────────────────────────────
 
 	pi.on("turn_start", async (event) => {
 		currentTurn = event.turnIndex;
-		blockedLog.onTurnStart({ turnIndex: event.turnIndex });
 	});
 
-	// ── Cycle boundary: before each provider request ─────────────────────
+	// ── Update context tracking before each provider request ───────────────
 
 	pi.on("before_provider_request", async (event) => {
-		// Capture model from provider payload
-		lastModel = (event.payload as any)?.model;
-
-		// Update stillInContext for all tracked files
-		const messages = (event.payload as any)?.messages ?? [];
+		const payload = event.payload as any;
+		const messages = payload?.messages ?? [];
 		const payloadText = messages
 			.flatMap((m: any) =>
 				Array.isArray(m.content)
@@ -150,20 +138,6 @@ export default function (pi: ExtensionAPI) {
 		for (const [path, entry] of tracker.entries()) {
 			tracker.setStillInContext(path, payloadText.includes(entry.injectedText));
 		}
-
-		// End the current cycle — flush blocked reads to file
-		const endTs = new Date().toISOString();
-		if (cycleStartTs) {
-			blockedLog.endCycle({
-				startTs: cycleStartTs,
-				endTs,
-				readsAttempted: cycleReadsAttempted,
-				totalTurns: currentTurn,
-				model: lastModel,
-			});
-		}
-		cycleStartTs = endTs;
-		cycleReadsAttempted = 0;
 	});
 
 	// ── Guard read calls ──────────────────────────────────────────────────
@@ -175,27 +149,35 @@ export default function (pi: ExtensionAPI) {
 		const path = input.path ?? input.file_path ?? input.AbsolutePath;
 		if (!path || typeof path !== "string") return;
 
-		cycleReadsAttempted++;
-
 		const fp = computeFingerprint(path);
-		if (!fp) return; // file doesn't exist yet — let read handle the error
+		if (!fp) return;
 
-		const { fingerprint } = fp;
+		const { fingerprint, sizeBytes } = fp;
 		const entry = tracker.get(path);
+
+		const common = {
+			ts: new Date().toISOString(),
+			path,
+			sizeBytes,
+			turnIndex: currentTurn,
+			parentModel: lastModel ?? "unknown",
+			thinkingLevel: lastThinking,
+			sessionId,
+			workspace: process.cwd(),
+		};
 
 		// First read — always allow
 		if (!entry) return;
 
-		// File modified — allow (tracker will be updated in tool_result)
+		// File modified — allow
 		if (entry.fingerprint !== fingerprint) return;
 
 		// Same fingerprint, still in context — block
 		if (entry.stillInContext) {
-			blockedLog.addBlock({
-				ts: new Date().toISOString(),
-				path,
-				sizeBytes: fp.sizeBytes,
-				turnIndex: currentTurn,
+			blockedLog.logFileAccess({
+				...common,
+				action: "blocked",
+				blockedReason: `already in context (turn ${entry.turn})`,
 			});
 			return {
 				block: true,
@@ -203,7 +185,7 @@ export default function (pi: ExtensionAPI) {
 			};
 		}
 
-		// Same fingerprint, but truncated from context — allow
+		// Same fingerprint, truncated from context — allow (falls through)
 	});
 
 	// ── Capture injected text after successful reads ─────────────────────
@@ -231,12 +213,16 @@ export default function (pi: ExtensionAPI) {
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
 
-		// Log the successful read for per-path metrics
-		blockedLog.addRead({
+		blockedLog.logFileAccess({
 			ts: new Date().toISOString(),
+			action: "read",
 			path,
 			sizeBytes,
 			turnIndex: currentTurn,
+			parentModel: lastModel ?? "unknown",
+			thinkingLevel: lastThinking,
+			sessionId,
+			workspace: process.cwd(),
 		});
 	});
 }
