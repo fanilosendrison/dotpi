@@ -93,6 +93,8 @@ describe("logResult (blocked)", () => {
 		expect(ev.details.thinkingLevel).toBe("xhigh");
 		expect(ev.details.findingsCount).toBe(1);
 		expect(ev.details.findings[0].name).toBe("AWS Access Key");
+		expect(ev.details.findings[0].line).toBe("AKIA...FAKE-KEY...");
+		expect(ev.details.findings[0].lineNumber).toBe(12);
 		expect(ev.timestamp).toBe("2026-07-04T12:00:00.000Z");
 		expect(ev.eventId).toBeDefined();
 		expect(ev.cycleId).toBeUndefined();
@@ -115,6 +117,23 @@ describe("logResult (blocked)", () => {
 		expect(ev.details.findings[0].line.endsWith("…")).toBe(true);
 	});
 
+	test("does not truncate short finding line", () => {
+		const dir = makeStatsDir("shortline");
+		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
+
+		log.logResult({
+			ts: "t1",
+			status: "blocked",
+			findings: [{ name: "test", line: "short secret here", lineNumber: 5 }],
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
+		});
+
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.details.findings[0].line).toBe("short secret here");
+		expect(ev.details.findings[0].lineNumber).toBe(5);
+	});
+
 	test("accepts optional commitMsg (truncated to 100 chars)", () => {
 		const dir = makeStatsDir("msg");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
@@ -129,6 +148,24 @@ describe("logResult (blocked)", () => {
 		});
 
 		expect(readEvents(log.filePath)[0].details.commitMsg.length).toBe(100);
+	});
+
+	test("does not truncate short commitMsg", () => {
+		const dir = makeStatsDir("shortmsg");
+		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
+
+		log.logResult({
+			ts: "t1",
+			status: "blocked",
+			findings: [{ name: "test", line: "xxx", lineNumber: 1 }],
+			commitMsg: "feat(api): add endpoint",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
+		});
+
+		expect(readEvents(log.filePath)[0].details.commitMsg).toBe(
+			"feat(api): add endpoint",
+		);
 	});
 });
 
