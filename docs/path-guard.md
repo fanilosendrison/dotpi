@@ -1,6 +1,6 @@
 # Path Guard
 
-- **Date**: 2026-06-29
+- **Date**: 2026-07-05
 - **Type**: Extension
 - **File**: `~/.pi/agent/extensions/path-guard.ts`
 - **Core**: `~/Developper/Projects/dotagents/agent-hooks/path-guard/src/core/path-guard.ts`
@@ -17,6 +17,10 @@ Git commits must still be done through `cd ~/Developper/Projects/dotpi && git ..
 Instead of blocking the agent with an error, the extension now acts as a "verbose wrapper":
 - It mutates the target path on the fly to its safe `~/.` gateway.
 - For bash commands, it prepends a `[Path-Guard] 🔄 Redirection silencieuse...` warning to `stderr` so the agent is aware, but allows the command to succeed.
+
+Stats: logs a `path_access` event per dot* access in
+`~/neelopedia/stats/pi/path-guard/events.jsonl`, with `action: "redirected"`
+or `action: "correct"` for the ratio.
 
 ## Why
 
@@ -76,3 +80,22 @@ Any directory under `~/Developper/Projects/` whose name starts with `dot` is
 automatically protected. The gateway is derived as `~/.<name>/` (e.g. `dotpi` →
 `~/.pi/`, `dotagents` → `~/.agents/`). dotpi is special-cased to use
 `~/.pi/agent/` as its gateway.
+
+## Stats
+
+One event per dot* access:
+
+```json
+{
+  "eventType": "path_access",
+  "details": {
+    "action": "redirected",
+    "toolType": "bash",
+    "repo": "dotpi",
+    "parentModel": "deepseek-v4-flash",
+    "thinkingLevel": "xhigh"
+  }
+}
+```
+
+Both `redirected` and `correct` actions are logged for the ratio.
