@@ -16,9 +16,24 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 
 import { createStatsLog } from "./zero-timeout-filter-internals/stats-log";
+import * as fs from "node:fs";
 
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
+
+	// Read default thinking level from settings as fallback
+	const defaultThinking: string = (() => {
+		try {
+			const path = join(homedir(), ".pi", "agent", "settings.json");
+			if (fs.existsSync(path)) {
+				const raw = fs.readFileSync(path, "utf-8");
+				return JSON.parse(raw).defaultThinkingLevel ?? "unknown";
+			}
+		} catch {}
+		return "unknown";
+	})();
+	let lastModel: string | undefined;
+	let lastThinking: string | undefined = defaultThinking;
 	let statsLog: ReturnType<typeof createStatsLog> | undefined;
 
 	function ensureStatsLog() {
@@ -30,9 +45,6 @@ export default function (pi: ExtensionAPI) {
 		}
 		return statsLog;
 	}
-
-	let lastModel: string | undefined;
-	let lastThinking: string | undefined;
 
 	// ── Capture model + thinking level ──────────────────────────────────────
 
