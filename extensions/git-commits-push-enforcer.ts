@@ -7,7 +7,7 @@
  * Stats in ~/neelopedia/stats/pi/git-commits-push-enforcer/events.jsonl.
  */
 
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -30,6 +30,19 @@ function isCommitIntent(cmd: string): boolean {
 	return GIT_COMMIT.test(cmd) || isSkillCmd(cmd);
 }
 
+function readDefaultThinking(): string {
+	try {
+		const path = join(homedir(), ".pi", "agent", "settings.json");
+		if (fs.existsSync(path)) {
+			return (
+				JSON.parse(fs.readFileSync(path, "utf-8")).defaultThinkingLevel ??
+				"unknown"
+			);
+		}
+	} catch {}
+	return "unknown";
+}
+
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
 	const statsDir = join(
@@ -40,6 +53,7 @@ export default function (pi: ExtensionAPI) {
 		"git-commits-push-enforcer",
 	);
 	let lastModel: string | undefined;
+	let lastThinking: string = readDefaultThinking();
 
 	const statsLog = createStatsLog({
 		statsDir,
@@ -47,10 +61,14 @@ export default function (pi: ExtensionAPI) {
 		cwd: process.cwd(),
 	});
 
-	// ── Capture model ───────────────────────────────────────────────────────
+	// ── Capture model + thinking level ──────────────────────────────────────
 
 	pi.on("before_provider_request", async (event) => {
 		lastModel = (event.payload as any)?.model;
+	});
+
+	pi.on("thinking_level_select", async (event) => {
+		lastThinking = event.level;
 	});
 
 	// ── Intercept commit intent and log ─────────────────────────────────────
@@ -72,30 +90,13 @@ export default function (pi: ExtensionAPI) {
 		process.env.PI_PARENT_MODEL = lastModel ?? "unknown";
 		process.env.PI_SESSION_ID = sessionId;
 
-		// Read skill's settings.json to capture internal model
-		let skillModel = "unknown";
-		let skillProvider = "unknown";
-		try {
-			const skillDir = join(homedir(), ".agents", "skills", "git-commits-push");
-			const settingsPath = join(skillDir, "src", "config", "settings.json");
-			if (fs.existsSync(settingsPath)) {
-				const raw = fs.readFileSync(settingsPath, "utf-8");
-				const parsed = JSON.parse(raw);
-				if (parsed.model) skillModel = parsed.model;
-				if (parsed.provider) skillProvider = parsed.provider;
-			}
-		} catch {
-			// Non-critical — proceed with "unknown"
-		}
-
 		statsLog.logTriggered({
 			ts: new Date().toISOString(),
 			rawCommand: cmd,
 			detectedBy,
 			toolCallId: event.toolCallId,
 			parentModel: lastModel ?? "unknown",
-			skillModel,
-			skillProvider,
+			thinkingLevel: lastThinking,
 		});
 	});
 }

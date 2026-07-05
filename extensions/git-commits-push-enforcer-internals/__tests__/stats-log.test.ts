@@ -47,8 +47,7 @@ describe("file creation", () => {
 			detectedBy: "git-commit",
 			toolCallId: "tcid1",
 			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
+			thinkingLevel: "xhigh",
 		});
 		expect(fs.existsSync(log.filePath)).toBe(true);
 		expect(readEvents(log.filePath).length).toBe(1);
@@ -63,8 +62,7 @@ describe("file creation", () => {
 			detectedBy: "git-commits-push",
 			toolCallId: "tcid1",
 			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
+			thinkingLevel: "xhigh",
 		});
 		expect(fs.existsSync(log.filePath)).toBe(true);
 	});
@@ -83,8 +81,7 @@ describe("logTriggered", () => {
 			detectedBy: "git-commit",
 			toolCallId: "tcid-abc",
 			parentModel: "deepseek-v4-pro",
-			skillModel: "deepseek-v4-flash",
-			skillProvider: "deepseek",
+			thinkingLevel: "xhigh",
 		});
 
 		const ev = readEvents(log.filePath)[0];
@@ -99,8 +96,9 @@ describe("logTriggered", () => {
 		expect(ev.details.detectedBy).toBe("git-commit");
 		expect(ev.details.toolCallId).toBe("tcid-abc");
 		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
-		expect(ev.details.skillModel).toBe("deepseek-v4-flash");
-		expect(ev.details.skillProvider).toBe("deepseek");
+		expect(ev.details.thinkingLevel).toBe("xhigh");
+		expect(ev.details.skillModel).toBeUndefined();
+		expect(ev.details.skillProvider).toBeUndefined();
 		expect(ev.timestamp).toBe("2026-07-04T12:00:00.000Z");
 		expect(ev.eventId).toBeDefined();
 	});
@@ -115,8 +113,7 @@ describe("logTriggered", () => {
 			detectedBy: "git-commits-push",
 			toolCallId: "tcid-2",
 			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
+			thinkingLevel: "low",
 		});
 
 		const ev = readEvents(log.filePath)[0];
@@ -124,7 +121,7 @@ describe("logTriggered", () => {
 	});
 });
 
-// ── 3. Single event ─────────────────────────────────────────────────────
+// ── 3. Single event per trigger ─────────────────────────────────────────
 
 describe("single event per trigger", () => {
 	test("one logTriggered call produces one event", () => {
@@ -137,8 +134,7 @@ describe("single event per trigger", () => {
 			detectedBy: "git-commit",
 			toolCallId: "tc1",
 			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
+			thinkingLevel: "xhigh",
 		});
 
 		const ev = readEvents(log.filePath);
@@ -160,8 +156,7 @@ describe("event accumulation", () => {
 			detectedBy: "git-commit",
 			toolCallId: "tc1",
 			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
+			thinkingLevel: "xhigh",
 		});
 		log.logTriggered({
 			ts: "t2",
@@ -169,8 +164,7 @@ describe("event accumulation", () => {
 			detectedBy: "git-commits-push",
 			toolCallId: "tc2",
 			parentModel: "m3",
-			skillModel: "m4",
-			skillProvider: "p2",
+			thinkingLevel: "low",
 		});
 
 		const ev = readEvents(log.filePath);
@@ -208,8 +202,7 @@ describe("schema compliance", () => {
 			detectedBy: "git-commit",
 			toolCallId: "tc1",
 			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
+			thinkingLevel: "xhigh",
 		});
 
 		for (const ev of readEvents(log.filePath)) {
@@ -217,23 +210,5 @@ describe("schema compliance", () => {
 			expect(ev.extension).toBe("git-commits-push-enforcer");
 			expect(ev.agent).toBe("pi");
 		}
-	});
-
-	test("no cycleId field present", () => {
-		const dir = makeStatsDir("nocycle");
-		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-
-		log.logTriggered({
-			ts: "t1",
-			rawCommand: "git commit -m 'x'",
-			detectedBy: "git-commit",
-			toolCallId: "tc1",
-			parentModel: "m1",
-			skillModel: "m2",
-			skillProvider: "p1",
-		});
-
-		const ev = readEvents(log.filePath)[0];
-		expect(ev.cycleId).toBeUndefined();
 	});
 });

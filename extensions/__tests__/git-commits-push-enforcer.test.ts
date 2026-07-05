@@ -22,8 +22,8 @@ describe("git-commits-push-enforcer Pi extension", () => {
 		expect(handlers["before_provider_request"]).toBeDefined();
 	});
 
-	test("does NOT register tool_execution_start", () => {
-		expect(handlers["tool_execution_start"]).toBeUndefined();
+	test("registers thinking_level_select handler", () => {
+		expect(handlers["thinking_level_select"]).toBeDefined();
 	});
 
 	// ── tool_call ──────────────────────────────────────────────────────────

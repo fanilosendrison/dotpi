@@ -35,8 +35,7 @@ export interface StatsLogAPI {
 		detectedBy: "git-commit" | "git-commits-push";
 		toolCallId: string;
 		parentModel: string;
-		skillModel: string;
-		skillProvider: string;
+		thinkingLevel: string;
 	}): void;
 }
 
@@ -77,8 +76,7 @@ export function createStatsLog(opts: {
 					detectedBy: entry.detectedBy,
 					toolCallId: entry.toolCallId,
 					parentModel: entry.parentModel,
-					skillModel: entry.skillModel,
-					skillProvider: entry.skillProvider,
+					thinkingLevel: entry.thinkingLevel,
 				},
 				entry.ts,
 			);
