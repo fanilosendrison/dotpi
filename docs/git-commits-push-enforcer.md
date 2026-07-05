@@ -1,34 +1,49 @@
 # Git Commits Push Enforcer
 
-- **Date**: 2026-06-28
+- **Date**: 2026-07-05
 - **Type**: Extension (no patch needed)
 - **File**: `~/.pi/agent/extensions/git-commits-push-enforcer.ts`
 
 ## What
 
-Forces the agent to use `/git-commits-push` instead of bare `git commit`. Blocks
-any `git commit -m "..."` that doesn't both:
+Intercepts every commit intent (raw `git commit` or skill invocation) and routes
+it through the `/git-commits-push` skill. Logs one `enforcer_triggered` event per
+interception in `~/neelopedia/stats/pi/git-commits-push-enforcer/events.jsonl`.
 
-1. Follow Conventional Commits format (`<type>(<scope>): <description>`)
-2. Include a push in the same command (`&& git push`)
+Does **not** validate or block anything — the skill handles that.
 
 ## How It Works
 
-Listens to `tool_call` → `bash` containing `git commit`:
+Listens to `tool_call` → `bash`. If the command matches a commit intent pattern,
+it sets `PI_PARENT_MODEL` and `PI_SESSION_ID` env vars, then logs the event.
 
-- Extracts the message from `-m "..."`, `-m '...'`, or heredoc
-- If no `-m` → allows (interactive editor)
-- If message doesn't match CC regex → blocks with reminder to use `/git-commits-push`
-- If no `git push` in the command → blocks (skill mandates auto-push)
+Detection patterns:
+- `git commit` — raw git commit (regex `git\s+commit\b`)
+- `/git-commits-push` — skill command (regex `\/git-commits-push(?:\s|$)`)
+- `.agents/skills/git-commits-push` — skill launch path
 
-## Shared Logic
+## Stats
 
-Mirrors `~/.agents/agent-hooks/git-commits-push-enforcer/src/bin/pre-tool-use.ts`.
-Same logic, same regex, same behavior across all harnesses.
+One event per trigger:
+
+```json
+{
+  "eventType": "enforcer_triggered",
+  "details": {
+    "rawCommand": "git commit -m 'feat: x'",
+    "detectedBy": "git-commit",
+    "toolCallId": "call_00_...",
+    "parentModel": "deepseek-v4-flash",
+    "thinkingLevel": "xhigh"
+  }
+}
+```
 
 ## Relevant Files
 
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/git-commits-push-enforcer.ts` | Pi extension | ✅ |
-| `dotagents/agent-hooks/git-commits-push-enforcer/` | Shared hook logic | ✅ |
+| `dotpi/extensions/git-commits-push-enforcer-internals/stats-log.ts` | Stats logging module | ✅ |
+| `dotpi/extensions/__tests__/git-commits-push-enforcer.test.ts` | Extension tests | ✅ |
+| `dotpi/extensions/git-commits-push-enforcer-internals/__tests__/stats-log.test.ts` | Stats-log tests | ✅ |
