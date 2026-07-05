@@ -1,5 +1,5 @@
 /**
- * Pi extension — strips external timeout from the git-commits-push skill.
+ * Pi extension — strips external timeout from git-commits-push skill invocations.
  *
  * The skill manages its own deadlines (600s/delegation). If the agent
  * sets a short shell timeout, it orphans the run. This extension
