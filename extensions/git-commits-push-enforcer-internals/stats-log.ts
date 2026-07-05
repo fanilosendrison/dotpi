@@ -1,8 +1,11 @@
 /**
  * Git-commits-push-enforcer stats logging module.
  *
- * Logs blocked commits to ~/neelopedia/stats/pi/git-commits-push-enforcer/events.jsonl.
- * Tracks all commit intents (raw bash + skill invocations) for the blockRate ratio.
+ * Two event types:
+ *   commit_attempted → logged in tool_execution_start (raw LLM intent)
+ *   skill_invoke     → logged in tool_call (successful routing to the skill)
+ *
+ * No RAM counters, no session_summary — every state is materialized as an event.
  */
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
@@ -27,21 +30,17 @@ function atomicAppend(filePath: string, newContent: string): void {
 
 export interface StatsLogAPI {
 	filePath: string;
-	incTotal(): void;
-	addBlockCC(entry: { ts: string; message: string }): void;
-	addBlockPush(entry: { ts: string; message: string }): void;
-	incAllowedRaw(): void;
-	incSkillInvoked(): void;
+	logCommitAttempted(entry: {
+		ts: string;
+		rawCommand: string;
+		detectedBy: "git-commit" | "git-commits-push";
+		toolCallId: string;
+	}): void;
 	addSkillInvoke(entry: {
 		ts: string;
 		parentModel: string;
 		skillModel: string;
 		skillProvider: string;
-	}): void;
-	flushSummary(event: {
-		endTs: string;
-		model?: string;
-		totalTurns: number;
 	}): void;
 }
 
@@ -52,16 +51,6 @@ export function createStatsLog(opts: {
 }): StatsLogAPI {
 	const filePath = path.join(opts.statsDir, "events.jsonl");
 	fs.mkdirSync(opts.statsDir, { recursive: true });
-
-	let totalCommits = 0;
-	let blockedCC = 0;
-	let blockedPush = 0;
-	let allowedRaw = 0;
-	let skillInvoked = 0;
-	let lastParentModel: string | undefined;
-	let lastSkillModel: string | undefined;
-	let lastSkillProvider: string | undefined;
-	let cycleId = crypto.randomUUID();
 
 	function appendEvent(
 		eventType: string,
@@ -76,7 +65,6 @@ export function createStatsLog(opts: {
 			agent: "pi",
 			workspace: opts.cwd,
 			sessionId: opts.sessionId,
-			cycleId,
 			details,
 		};
 		atomicAppend(filePath, JSON.stringify(event) + "\n");
@@ -85,33 +73,19 @@ export function createStatsLog(opts: {
 	return {
 		filePath,
 
-		incTotal() {
-			totalCommits++;
-		},
-
-		addBlockCC(entry) {
-			blockedCC++;
-			appendEvent("block_cc", { message: entry.message }, entry.ts);
-		},
-
-		addBlockPush(entry) {
-			blockedPush++;
-			appendEvent("block_push", { message: entry.message }, entry.ts);
-		},
-
-		incAllowedRaw() {
-			allowedRaw++;
-		},
-
-		incSkillInvoked() {
-			skillInvoked++;
+		logCommitAttempted(entry) {
+			appendEvent(
+				"commit_attempted",
+				{
+					rawCommand: entry.rawCommand,
+					detectedBy: entry.detectedBy,
+					toolCallId: entry.toolCallId,
+				},
+				entry.ts,
+			);
 		},
 
 		addSkillInvoke(entry) {
-			skillInvoked++;
-			lastParentModel = entry.parentModel;
-			lastSkillModel = entry.skillModel;
-			lastSkillProvider = entry.skillProvider;
 			appendEvent(
 				"skill_invoke",
 				{
@@ -121,39 +95,6 @@ export function createStatsLog(opts: {
 				},
 				entry.ts,
 			);
-		},
-
-		flushSummary(event) {
-			if (totalCommits === 0) return;
-
-			appendEvent(
-				"session_summary",
-				{
-					model: event.model,
-					totalCommits,
-					blockedCC,
-					blockedPush,
-					allowedRaw,
-					skillInvoked,
-					parentModel: lastParentModel,
-					skillModel: lastSkillModel,
-					skillProvider: lastSkillProvider,
-					blockRate:
-						totalCommits > 0
-							? parseFloat(
-									((blockedCC + blockedPush) / totalCommits).toFixed(2),
-								)
-							: 0,
-				},
-				event.endTs,
-			);
-
-			totalCommits = 0;
-			blockedCC = 0;
-			blockedPush = 0;
-			allowedRaw = 0;
-			skillInvoked = 0;
-			cycleId = crypto.randomUUID();
 		},
 	};
 }

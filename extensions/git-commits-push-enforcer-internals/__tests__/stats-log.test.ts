@@ -38,10 +38,15 @@ afterEach(() => {
 // ── 1. File creation ─────────────────────────────────────────────────────
 
 describe("file creation", () => {
-	test("creates events.jsonl on first addBlockCC", () => {
+	test("creates events.jsonl on first logCommitAttempted", () => {
 		const dir = makeStatsDir("file");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-		log.addBlockCC({ ts: "t1", message: "WIP" });
+		log.logCommitAttempted({
+			ts: "t1",
+			rawCommand: "git commit -m 'feat: x'",
+			detectedBy: "git-commit",
+			toolCallId: "tcid1",
+		});
 		expect(fs.existsSync(log.filePath)).toBe(true);
 		expect(readEvents(log.filePath).length).toBe(1);
 	});
@@ -49,105 +54,107 @@ describe("file creation", () => {
 	test("creates parent directory if missing", () => {
 		const dir = path.join(TMP_DIR, "a", "b");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-		log.addBlockCC({ ts: "t1", message: "WIP" });
+		log.addSkillInvoke({
+			ts: "t1",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
+		});
 		expect(fs.existsSync(log.filePath)).toBe(true);
 	});
 });
 
-// ── 2. addBlockCC ────────────────────────────────────────────────────────
+// ── 2. logCommitAttempted ───────────────────────────────────────────────
 
-describe("addBlockCC", () => {
+describe("logCommitAttempted", () => {
 	test("writes valid JSON with all fields", () => {
-		const dir = makeStatsDir("cc");
+		const dir = makeStatsDir("attempt");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.addBlockCC({ ts: "2026-07-04T12:00:00.000Z", message: "WIP" });
+		log.logCommitAttempted({
+			ts: "2026-07-04T12:00:00.000Z",
+			rawCommand: "git commit -m 'feat(api): add x' && git push",
+			detectedBy: "git-commit",
+			toolCallId: "tcid-abc",
+		});
 
 		const ev = readEvents(log.filePath)[0];
 		expect(ev.extension).toBe("git-commits-push-enforcer");
-		expect(ev.eventType).toBe("block_cc");
+		expect(ev.eventType).toBe("commit_attempted");
 		expect(ev.agent).toBe("pi");
 		expect(ev.sessionId).toBe("s1");
 		expect(ev.workspace).toBe("/cwd");
-		expect(ev.details.message).toBe("WIP");
+		expect(ev.details.rawCommand).toBe(
+			"git commit -m 'feat(api): add x' && git push",
+		);
+		expect(ev.details.detectedBy).toBe("git-commit");
+		expect(ev.details.toolCallId).toBe("tcid-abc");
 		expect(ev.timestamp).toBe("2026-07-04T12:00:00.000Z");
 		expect(ev.eventId).toBeDefined();
-		expect(ev.cycleId).toBeDefined();
 	});
-});
 
-// ── 3. addBlockPush ──────────────────────────────────────────────────────
-
-describe("addBlockPush", () => {
-	test("writes valid JSON with all fields", () => {
-		const dir = makeStatsDir("push");
+	test("detectedBy can be git-commits-push", () => {
+		const dir = makeStatsDir("detect");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.addBlockPush({ ts: "t1", message: "feat: add x" });
-
-		const ev = readEvents(log.filePath)[0];
-		expect(ev.eventType).toBe("block_push");
-		expect(ev.details.message).toBe("feat: add x");
-	});
-});
-
-// ── 4. session_summary ──────────────────────────────────────────────────
-
-describe("session_summary", () => {
-	test("writes correct blockRate", () => {
-		const dir = makeStatsDir("summary");
-		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-
-		// Total: 3 blocked (2 cc + 1 push) + 1 allowedRaw + 1 skillInvoked = 5
-		log.incTotal();
-		log.addBlockCC({ ts: "t1", message: "WIP" });
-		log.incTotal();
-		log.addBlockCC({ ts: "t2", message: "fix" });
-		log.incTotal();
-		log.addBlockPush({ ts: "t3", message: "feat: ok" });
-		log.incTotal();
-		log.incAllowedRaw();
-		log.incTotal();
-		log.incSkillInvoked();
-
-		log.flushSummary({
-			endTs: "t4",
-			model: "deepseek-v4-flash",
-			totalTurns: 5,
+		log.logCommitAttempted({
+			ts: "t1",
+			rawCommand: "/git-commits-push",
+			detectedBy: "git-commits-push",
+			toolCallId: "tcid-2",
 		});
 
-		const events = readEvents(log.filePath);
-		expect(events.length).toBe(4); // 3 blocks + 1 summary
-
-		const s = events[3];
-		expect(s.eventType).toBe("session_summary");
-		expect(s.details.model).toBe("deepseek-v4-flash");
-		expect(s.details.totalCommits).toBe(5);
-		expect(s.details.blockedCC).toBe(2);
-		expect(s.details.blockedPush).toBe(1);
-		expect(s.details.allowedRaw).toBe(1);
-		expect(s.details.skillInvoked).toBe(1);
-		expect(s.details.blockRate).toBeCloseTo(0.6, 1); // 3/5
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.details.detectedBy).toBe("git-commits-push");
 	});
+});
 
-	test("is silent when no commits", () => {
-		const dir = makeStatsDir("silent");
-		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-		log.flushSummary({ endTs: "t1", totalTurns: 0 });
-		expect(fs.existsSync(log.filePath)).toBe(false);
-	});
+// ── 3. addSkillInvoke ───────────────────────────────────────────────────
 
-	test("resets counters after flush", () => {
-		const dir = makeStatsDir("reset");
+describe("addSkillInvoke", () => {
+	test("writes valid JSON with model info", () => {
+		const dir = makeStatsDir("skill");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.incTotal();
-		log.addBlockCC({ ts: "t1", message: "WIP" });
-		log.flushSummary({ endTs: "t2", model: "m1", totalTurns: 1 });
+		log.addSkillInvoke({
+			ts: "2026-07-04T12:00:00.000Z",
+			parentModel: "deepseek-v4-pro",
+			skillModel: "deepseek-v4-flash",
+			skillProvider: "deepseek",
+		});
 
-		log.flushSummary({ endTs: "t3", totalTurns: 2 });
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.eventType).toBe("skill_invoke");
+		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
+		expect(ev.details.skillModel).toBe("deepseek-v4-flash");
+		expect(ev.details.skillProvider).toBe("deepseek");
+	});
+});
 
-		expect(readEvents(log.filePath).length).toBe(2); // block + first summary only
+// ── 4. Multiple events ──────────────────────────────────────────────────
+
+describe("event accumulation", () => {
+	test("appends events in order", () => {
+		const dir = makeStatsDir("multi");
+		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
+
+		log.logCommitAttempted({
+			ts: "t1",
+			rawCommand: "git commit -m 'feat: x'",
+			detectedBy: "git-commit",
+			toolCallId: "tc1",
+		});
+		log.addSkillInvoke({
+			ts: "t2",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
+		});
+
+		const ev = readEvents(log.filePath);
+		expect(ev.length).toBe(2);
+		expect(ev[0].eventType).toBe("commit_attempted");
+		expect(ev[1].eventType).toBe("skill_invoke");
 	});
 });
 
@@ -170,18 +177,41 @@ describe("schema compliance", () => {
 			"agent",
 			"workspace",
 			"sessionId",
-			"cycleId",
 			"details",
 		];
 
-		log.addBlockCC({ ts: "t1", message: "WIP" });
-		log.addBlockPush({ ts: "t2", message: "fix" });
-		log.flushSummary({ endTs: "t3", totalTurns: 1 });
+		log.logCommitAttempted({
+			ts: "t1",
+			rawCommand: "git commit -m 'x'",
+			detectedBy: "git-commit",
+			toolCallId: "tc1",
+		});
+		log.addSkillInvoke({
+			ts: "t2",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
+		});
 
 		for (const ev of readEvents(log.filePath)) {
 			for (const f of required) expect(ev[f]).toBeDefined();
 			expect(ev.extension).toBe("git-commits-push-enforcer");
 			expect(ev.agent).toBe("pi");
 		}
+	});
+
+	test("no cycleId field present", () => {
+		const dir = makeStatsDir("nocycle");
+		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
+
+		log.logCommitAttempted({
+			ts: "t1",
+			rawCommand: "git commit -m 'x'",
+			detectedBy: "git-commit",
+			toolCallId: "tc1",
+		});
+
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.cycleId).toBeUndefined();
 	});
 });
