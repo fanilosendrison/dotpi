@@ -1,7 +1,10 @@
 /**
  * Post-write-linter stats logging module.
  *
- * Logs lint errors to ~/neelopedia/stats/pi/post-write-linter/events.jsonl.
+ * One event type:
+ *   lint_result → logged after every write/edit lint check
+ *
+ * No RAM counters, no session_summary — every state is materialized as an event.
  */
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
@@ -24,18 +27,14 @@ function atomicAppend(filePath: string, newContent: string): void {
 
 export interface StatsLogAPI {
 	filePath: string;
-	incClean(): void;
-	addClean(entry: { ts: string; filePath: string; language: string }): void;
-	addLintError(entry: {
+	logResult(entry: {
 		ts: string;
 		filePath: string;
 		language: string;
-		output: string;
-	}): void;
-	flushSummary(event: {
-		endTs: string;
-		model?: string;
-		totalTurns: number;
+		status: "success" | "error";
+		output?: string;
+		parentModel: string;
+		thinkingLevel: string;
 	}): void;
 }
 
@@ -46,10 +45,6 @@ export function createStatsLog(opts: {
 }): StatsLogAPI {
 	const filePath = path.join(opts.statsDir, "events.jsonl");
 	fs.mkdirSync(opts.statsDir, { recursive: true });
-
-	let errors = 0;
-	let clean = 0;
-	let cycleId = crypto.randomUUID();
 
 	function appendEvent(
 		eventType: string,
@@ -64,71 +59,29 @@ export function createStatsLog(opts: {
 			agent: "pi",
 			workspace: opts.cwd,
 			sessionId: opts.sessionId,
-			cycleId,
 			details,
 		};
 		atomicAppend(filePath, JSON.stringify(event) + "\n");
 	}
 
-	function truncate(str: string, max: number): string {
-		if (str.length <= max) return str;
-		return str.slice(0, max) + "…";
-	}
-
 	return {
 		filePath,
 
-		incClean() {
-			clean++;
-		},
-
-		addClean(entry) {
-			clean++;
-			appendEvent(
-				"lint_success",
-				{
-					filePath: entry.filePath,
-					language: entry.language,
-				},
-				entry.ts,
-			);
-		},
-
-		addLintError(entry) {
-			errors++;
-			appendEvent(
-				"lint_error",
-				{
-					filePath: entry.filePath,
-					language: entry.language,
-					output: truncate(entry.output, 500),
-				},
-				entry.ts,
-			);
-		},
-
-		flushSummary(event) {
-			const totalChecked = errors + clean;
-			if (totalChecked === 0) return;
-
-			appendEvent(
-				"session_summary",
-				{
-					model: event.model,
-					totalChecked,
-					errors,
-					clean,
-					errorRate:
-						totalChecked > 0
-							? parseFloat((errors / totalChecked).toFixed(2))
-							: 0,
-				},
-				event.endTs,
-			);
-
-			errors = 0;
-			clean = 0;
-			cycleId = crypto.randomUUID();
+		logResult(entry) {
+			const details: Record<string, unknown> = {
+				filePath: entry.filePath,
+				language: entry.language,
+				status: entry.status,
+				parentModel: entry.parentModel,
+				thinkingLevel: entry.thinkingLevel,
+			};
+			if (entry.output) {
+				details.output =
+					entry.output.length <= 500
+						? entry.output
+						: entry.output.slice(0, 500) + "…";
+			}
+			appendEvent("lint_result", details, entry.ts);
 		},
 	};
 }

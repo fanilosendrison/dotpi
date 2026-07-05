@@ -1,4 +1,5 @@
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
+import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -16,21 +17,36 @@ function extractLanguage(filePath: string): string {
 	return ext;
 }
 
+function readDefaultThinking(): string {
+	try {
+		const p = join(homedir(), ".pi", "agent", "settings.json");
+		if (fs.existsSync(p)) {
+			return (
+				JSON.parse(fs.readFileSync(p, "utf-8")).defaultThinkingLevel ??
+				"unknown"
+			);
+		}
+	} catch {}
+	return "unknown";
+}
+
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
-	const statsDir = join(HOME, "neelopedia", "stats", "pi", "post-write-linter");
 	let lastModel: string | undefined;
-
-	const statsLog = createStatsLog({
-		statsDir,
-		sessionId,
-		cwd: process.cwd(),
-	});
-
-	// ── Capture model ───────────────────────────────────────────────────────
+	let lastThinking: string = readDefaultThinking();
 
 	pi.on("before_provider_request", async (event) => {
 		lastModel = (event.payload as any)?.model;
+	});
+
+	pi.on("thinking_level_select", async (event) => {
+		lastThinking = event.level;
+	});
+
+	const statsLog = createStatsLog({
+		statsDir: join(HOME, "neelopedia", "stats", "pi", "post-write-linter"),
+		sessionId,
+		cwd: process.cwd(),
 	});
 
 	// ── Lint after write/edit ───────────────────────────────────────────────
@@ -47,15 +63,19 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		const language = extractLanguage(filePath);
+		const ts = new Date().toISOString();
 
 		try {
 			const result = checkFile(filePath);
 			if (!result.success && result.output) {
-				statsLog.addLintError({
-					ts: new Date().toISOString(),
+				statsLog.logResult({
+					ts,
 					filePath,
 					language,
+					status: "error",
 					output: result.output,
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
 				});
 				return {
 					isError: true,
@@ -67,14 +87,15 @@ export default function (pi: ExtensionAPI) {
 					],
 				};
 			}
-			// File passed linting — log it
-			statsLog.addClean({
-				ts: new Date().toISOString(),
+			statsLog.logResult({
+				ts,
 				filePath,
 				language,
+				status: "success",
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
 			});
 		} catch {
-			// Internal linter errors are not logged (per spec)
 			return {
 				isError: true,
 				content: [
@@ -85,15 +106,5 @@ export default function (pi: ExtensionAPI) {
 				],
 			};
 		}
-	});
-
-	// ── Flush session summary at session end ────────────────────────────────
-
-	pi.on("session_shutdown", () => {
-		statsLog.flushSummary({
-			endTs: new Date().toISOString(),
-			model: lastModel,
-			totalTurns: 0,
-		});
 	});
 }
