@@ -21,7 +21,7 @@ import {
 	isReadToolResult,
 	isToolCallEventType,
 } from "@earendil-works/pi-coding-agent";
-import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
+import { createReadTracker } from "./read-deduplicator-internals/lib/read-tracker";
 import { createStatsLog } from "./read-deduplicator-internals/stats-log";
 
 // ── Fingerprint helpers ────────────────────────────────────────────────────

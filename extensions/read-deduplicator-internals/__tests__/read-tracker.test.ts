@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { createReadTracker } from "../read-tracker";
+import { createReadTracker } from "../lib/read-tracker";
 
 // ── 1. Basic tracking ─────────────────────────────────────────────────
 

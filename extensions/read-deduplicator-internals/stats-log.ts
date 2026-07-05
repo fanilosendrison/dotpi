@@ -9,7 +9,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import { join } from "node:path";
-import { atomicAppend } from "./atomic-writer";
+import { atomicAppend } from "./lib/atomic-writer";
 
 export interface FileAccessEntry {
 	ts: string;
