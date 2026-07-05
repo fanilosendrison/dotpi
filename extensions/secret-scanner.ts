@@ -4,12 +4,13 @@
  * Imports scanDiff from ~/.agents/agent-enforcers/secret-scanner/.
  * No duplicated detection logic.
  *
- * Stats logging: counts blocked/clean commits per session/model
- * in ~/neelopedia/stats/pi/secret-scanner/events.jsonl.
+ * Stats: logs a scan_result event per scan in
+ * ~/neelopedia/stats/pi/secret-scanner/events.jsonl.
  */
 
 import { execSync } from "node:child_process";
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
+import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -23,27 +24,36 @@ const { scanDiff } = require(SCANNER_PATH);
 
 import { createStatsLog } from "./secret-scanner-internals/stats-log";
 
+function readDefaultThinking(): string {
+	try {
+		const p = join(homedir(), ".pi", "agent", "settings.json");
+		if (fs.existsSync(p)) {
+			return (
+				JSON.parse(fs.readFileSync(p, "utf-8")).defaultThinkingLevel ??
+				"unknown"
+			);
+		}
+	} catch {}
+	return "unknown";
+}
+
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
-	const statsDir = join(
-		homedir(),
-		"neelopedia",
-		"stats",
-		"pi",
-		"secret-scanner",
-	);
 	let lastModel: string | undefined;
-
-	const statsLog = createStatsLog({
-		statsDir,
-		sessionId,
-		cwd: process.cwd(),
-	});
-
-	// ── Capture model ───────────────────────────────────────────────────────
+	let lastThinking: string = readDefaultThinking();
 
 	pi.on("before_provider_request", async (event) => {
 		lastModel = (event.payload as any)?.model;
+	});
+
+	pi.on("thinking_level_select", async (event) => {
+		lastThinking = event.level;
+	});
+
+	const statsLog = createStatsLog({
+		statsDir: join(homedir(), "neelopedia", "stats", "pi", "secret-scanner"),
+		sessionId,
+		cwd: process.cwd(),
 	});
 
 	// ── Scan staged diff on git commit ──────────────────────────────────────
@@ -55,28 +65,39 @@ export default function (pi: ExtensionAPI) {
 		if (!cmd || typeof cmd !== "string") return;
 		if (!/\bgit\s+commit\b/.test(cmd)) return;
 
-		// Count this as a scan attempt (even if git diff fails)
-		statsLog.incTotal();
+		const ts = new Date().toISOString();
 
 		let diff: string;
 		try {
 			diff = execSync("git diff --cached", { encoding: "utf-8" });
 		} catch {
-			// Not a git repo or no staged changes — count as clean (fail-open)
-			statsLog.incClean();
+			statsLog.logResult({
+				ts,
+				status: "clean",
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
+			});
 			return;
 		}
 
 		if (!diff.trim()) {
-			statsLog.incClean();
+			statsLog.logResult({
+				ts,
+				status: "clean",
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
+			});
 			return;
 		}
 
 		const result = scanDiff(diff);
 		if (!result.clean) {
-			statsLog.addBlock({
-				ts: new Date().toISOString(),
+			statsLog.logResult({
+				ts,
+				status: "blocked",
 				findings: result.findings,
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
 			});
 
 			const list = result.findings.map(
@@ -88,16 +109,11 @@ export default function (pi: ExtensionAPI) {
 			};
 		}
 
-		statsLog.incClean();
-	});
-
-	// ── Flush session summary at session end ────────────────────────────────
-
-	pi.on("session_shutdown", () => {
-		statsLog.flushSummary({
-			endTs: new Date().toISOString(),
-			model: lastModel,
-			totalTurns: 0,
+		statsLog.logResult({
+			ts,
+			status: "clean",
+			parentModel: lastModel ?? "unknown",
+			thinkingLevel: lastThinking,
 		});
 	});
 }

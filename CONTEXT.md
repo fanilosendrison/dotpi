@@ -49,6 +49,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   ├── path-guard.md                             ← Blocks writes to dot* repos
 │   ├── post-write-linter.md                      ← Runs Biome after every write/edit
 │   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
+│   ├── secret-scanner.md                         ← Scans git diffs for secrets and blocks commits
 │   └── zero-timeout-filter.md                    ← Strips external timeout from git-commits-push skill
 ├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
@@ -87,4 +88,5 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 
 | Understand the retry mechanism in git-commits-push | `docs/git-commits-push-skill-retry-overhaul.md` (Unified retry on all catches) |
 
+| Understand the secret scanner | `docs/secret-scanner.md` (Scans git diffs for secrets and blocks commits) |
 | Understand the zero-timeout filter | `docs/zero-timeout-filter.md` (Strips external timeout from git-commits-push skill) |

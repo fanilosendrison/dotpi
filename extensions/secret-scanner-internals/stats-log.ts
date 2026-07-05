@@ -1,19 +1,14 @@
 /**
  * Secret-scanner stats logging module.
  *
- * Logs blocked commits (secrets detected) to
- * ~/neelopedia/stats/pi/secret-scanner/events.jsonl.
+ * One event type:
+ *   scan_result → logged for every git commit scan
  *
- * Tracks all git commit scans for the blockRate ratio and
- * most frequent secret patterns.
+ * No RAM counters, no session_summary — every state is materialized as an event.
  */
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { atomicAppend } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/src/atomic-appender.ts";
-
-// ── Finding type (mirror du core pour ne pas importer le core dans les tests)
-// ── Public API types ──────────────────────────────────────────────────────
 
 export interface Finding {
 	name: string;
@@ -22,31 +17,16 @@ export interface Finding {
 }
 
 export interface StatsLogAPI {
-	/** Full path to events.jsonl */
 	filePath: string;
-
-	/** Increment total scan counter (every git commit attempted). */
-	incTotal(): void;
-
-	/** Log a blocked commit with its findings. */
-	addBlock(entry: {
+	logResult(entry: {
 		ts: string;
-		findings: Finding[];
+		status: "clean" | "blocked";
+		findings?: Finding[];
 		commitMsg?: string;
-	}): void;
-
-	/** Increment clean scan counter (commit allowed). */
-	incClean(): void;
-
-	/** Flush a session_summary event. Resets all counters after flush. */
-	flushSummary(event: {
-		endTs: string;
-		model?: string;
-		totalTurns: number;
+		parentModel: string;
+		thinkingLevel: string;
 	}): void;
 }
-
-// ── Factory ───────────────────────────────────────────────────────────────
 
 export function createStatsLog(opts: {
 	statsDir: string;
@@ -54,114 +34,58 @@ export function createStatsLog(opts: {
 	cwd: string;
 }): StatsLogAPI {
 	const filePath = path.join(opts.statsDir, "events.jsonl");
-
-	// Ensure stats directory exists
 	fs.mkdirSync(opts.statsDir, { recursive: true });
-
-	// ── In-memory counters for the session ───────────────────────────────
-
-	let totalScans = 0;
-	let blocks = 0;
-	let clean = 0;
-	const patternCounts = new Map<string, number>();
-	let cycleId = crypto.randomUUID();
-
-	// ── Helpers ─────────────────────────────────────────────────────────
 
 	function truncate(s: string, maxLen: number): string {
 		if (s.length <= maxLen) return s;
 		return s.slice(0, maxLen - 1) + "…";
 	}
 
-	// ── Internal: write one event line ───────────────────────────────────
-
-	function appendEvent(
-		eventType: string,
-		details: Record<string, unknown>,
-		timestamp?: string,
-	): void {
-		const event = {
-			timestamp: timestamp || new Date().toISOString(),
-			eventId: crypto.randomUUID(),
-			extension: "secret-scanner",
-			eventType,
-			agent: "pi",
-			workspace: opts.cwd,
-			sessionId: opts.sessionId,
-			cycleId,
-			details,
-		};
-		atomicAppend(filePath, JSON.stringify(event) + "\n");
+	function atomicAppend(filePath: string, newContent: string): void {
+		try {
+			let existingContent = "";
+			if (fs.existsSync(filePath)) {
+				existingContent = fs.readFileSync(filePath, "utf-8");
+			}
+			const combinedContent = existingContent + newContent;
+			const tmpPath = `${filePath}.tmp.${process.pid}`;
+			fs.writeFileSync(tmpPath, combinedContent);
+			fs.renameSync(tmpPath, filePath);
+		} catch (err) {
+			process.stderr.write(`[secret-scanner] Error writing stats: ${err}\n`);
+		}
 	}
-
-	// ── Public API ──────────────────────────────────────────────────────
 
 	return {
 		filePath,
 
-		incTotal() {
-			totalScans++;
-		},
-
-		addBlock(entry) {
-			blocks++;
-
-			// Track patterns
-			for (const f of entry.findings) {
-				patternCounts.set(f.name, (patternCounts.get(f.name) || 0) + 1);
-			}
-
-			// Truncate finding lines to 80 chars
-			const truncatedFindings = entry.findings.map((f) => ({
-				...f,
-				line: truncate(f.line, 80),
-			}));
-
+		logResult(entry) {
 			const details: Record<string, unknown> = {
-				findingsCount: entry.findings.length,
-				findings: truncatedFindings,
+				status: entry.status,
+				parentModel: entry.parentModel,
+				thinkingLevel: entry.thinkingLevel,
 			};
-
+			if (entry.findings && entry.findings.length > 0) {
+				details.findingsCount = entry.findings.length;
+				details.findings = entry.findings.map((f) => ({
+					...f,
+					line: truncate(f.line, 80),
+				}));
+			}
 			if (entry.commitMsg !== undefined) {
 				details.commitMsg = truncate(entry.commitMsg, 100);
 			}
-
-			appendEvent("block", details, entry.ts);
-		},
-
-		incClean() {
-			clean++;
-		},
-
-		flushSummary(event) {
-			// Rien à reporter si aucun scan n'a eu lieu
-			if (totalScans === 0) return;
-
-			// Patterns triés par fréquence décroissante, puis par nom
-			const sortedPatterns = [...patternCounts.entries()]
-				.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-				.map(([name, count]) => ({ name, count }));
-
-			appendEvent(
-				"session_summary",
-				{
-					model: event.model,
-					totalScans,
-					blocks,
-					clean,
-					blockRate:
-						totalScans > 0 ? parseFloat((blocks / totalScans).toFixed(2)) : 0,
-					patterns: sortedPatterns,
-				},
-				event.endTs,
-			);
-
-			// Reset counters après flush
-			totalScans = 0;
-			blocks = 0;
-			clean = 0;
-			patternCounts.clear();
-			cycleId = crypto.randomUUID();
+			const event = {
+				timestamp: entry.ts,
+				eventId: crypto.randomUUID(),
+				extension: "secret-scanner",
+				eventType: "scan_result",
+				agent: "pi",
+				workspace: opts.cwd,
+				sessionId: opts.sessionId,
+				details,
+			};
+			atomicAppend(filePath, JSON.stringify(event) + "\n");
 		},
 	};
 }
