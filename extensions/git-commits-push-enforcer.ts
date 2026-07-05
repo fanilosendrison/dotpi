@@ -20,9 +20,16 @@ import { createStatsLog } from "./git-commits-push-enforcer-internals/stats-log"
 
 const GIT_COMMIT = /git\s+commit\b/;
 
+const SKILL_CMD = /\/git-commits-push(?:\s|$)/;
+
+/** True when the command is a skill invocation (/git-commits-push or launch command). */
+function isSkillCmd(cmd: string): boolean {
+	return SKILL_CMD.test(cmd) || cmd.includes(".agents/skills/git-commits-push");
+}
+
 /** True when the command represents a commit intent (raw git or skill). */
 function isCommitIntent(cmd: string): boolean {
-	return GIT_COMMIT.test(cmd) || cmd.includes("git-commits-push");
+	return GIT_COMMIT.test(cmd) || isSkillCmd(cmd);
 }
 
 export default function (pi: ExtensionAPI) {
@@ -61,7 +68,7 @@ export default function (pi: ExtensionAPI) {
 		if (!cmd || typeof cmd !== "string") return;
 
 		const isGit = GIT_COMMIT.test(cmd);
-		const isSkill = cmd.includes("git-commits-push");
+		const isSkill = isSkillCmd(cmd);
 		if (!isGit && !isSkill) return;
 
 		statsLog.logCommitAttempted({
