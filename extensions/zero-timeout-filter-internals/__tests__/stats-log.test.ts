@@ -79,6 +79,7 @@ describe("logTimeoutStripped", () => {
 			thinkingLevel: "xhigh",
 			sessionId: "suuid",
 			workspace: "/w",
+			toolCallId: "tcid-abc",
 		});
 
 		const ev = readEvents(path.join(dir, "events.jsonl"))[0];
@@ -90,6 +91,7 @@ describe("logTimeoutStripped", () => {
 		expect(ev.details.originalTimeout).toBe(60);
 		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
 		expect(ev.details.thinkingLevel).toBe("xhigh");
+		expect(ev.details.toolCallId).toBe("tcid-abc");
 		expect(ev.timestamp).toBe("2026-07-05T12:00:00.000Z");
 		expect(ev.eventId).toBeDefined();
 	});
