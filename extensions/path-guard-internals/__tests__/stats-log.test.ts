@@ -1,8 +1,5 @@
 /**
  * Tests for path-guard stats-log module.
- *
- * Run with: bun test path-guard-internals/__tests__/stats-log.test.ts
- * (from ~/.pi/agent/extensions/)
  */
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
@@ -30,88 +27,81 @@ function readEvents(filePath: string): any[] {
 }
 
 beforeEach(() => {
-	// Clean up temp dir before each test
-	if (fs.existsSync(TMP_DIR)) {
+	if (fs.existsSync(TMP_DIR))
 		fs.rmSync(TMP_DIR, { recursive: true, force: true });
-	}
 });
-
 afterEach(() => {
-	// Clean up after test
-	if (fs.existsSync(TMP_DIR)) {
+	if (fs.existsSync(TMP_DIR))
 		fs.rmSync(TMP_DIR, { recursive: true, force: true });
-	}
 });
 
 // ── 1. File creation ─────────────────────────────────────────────────────
 
 describe("file creation", () => {
-	test("creates events.jsonl on first addRedirect", () => {
-		const dir = makeStatsDir("file-creation");
+	test("creates events.jsonl on first logRedirected", () => {
+		const dir = makeStatsDir("file");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/test",
 		});
-
-		log.addRedirect({
-			ts: "2026-07-04T12:00:00.000Z",
+		log.logRedirected({
+			ts: "t1",
 			toolType: "write",
 			repo: "dotpi",
-			givenPath: "/Users/test/Developper/Projects/dotpi/foo.ts",
-			rewrittenTo: "/Users/test/.pi/agent/foo.ts",
+			givenPath: "/dotpi/foo.ts",
+			rewrittenTo: "/.pi/agent/foo.ts",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
-
 		expect(fs.existsSync(log.filePath)).toBe(true);
-		const events = readEvents(log.filePath);
-		expect(events.length).toBe(1);
+		expect(readEvents(log.filePath).length).toBe(1);
 	});
 
 	test("creates parent directory if missing", () => {
-		const dir = path.join(TMP_DIR, "deeply", "nested", "dir");
+		const dir = path.join(TMP_DIR, "a", "b");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/test",
 		});
-
-		log.addRedirect({
-			ts: "2026-07-04T12:00:00.000Z",
+		log.logRedirected({
+			ts: "t1",
 			toolType: "edit",
 			repo: "dotagents",
 			givenPath: "/src/doc.md",
 			rewrittenTo: "~/.agents/doc.md",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
-
 		expect(fs.existsSync(log.filePath)).toBe(true);
 	});
 });
 
-// ── 2. addRedirect ──────────────────────────────────────────────────────
+// ── 2. logRedirected ────────────────────────────────────────────────────
 
-describe("addRedirect", () => {
-	test("writes a valid JSON line with all required fields", () => {
-		const dir = makeStatsDir("redirect");
+describe("logRedirected", () => {
+	test("writes path_redirected with all fields (write)", () => {
+		const dir = makeStatsDir("redirect-write");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/cwd",
 		});
 
-		log.addRedirect({
+		log.logRedirected({
 			ts: "2026-07-04T12:00:00.000Z",
 			toolType: "write",
 			repo: "dotpi",
 			givenPath: "/dotpi/foo.ts",
 			rewrittenTo: "/.pi/agent/foo.ts",
+			parentModel: "deepseek-v4-flash",
+			thinkingLevel: "xhigh",
 		});
 
-		const events = readEvents(log.filePath);
-		expect(events.length).toBe(1);
-
-		const ev = events[0];
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.eventType).toBe("path_redirected");
 		expect(ev.extension).toBe("path-guard");
-		expect(ev.eventType).toBe("redirect");
 		expect(ev.agent).toBe("pi");
 		expect(ev.sessionId).toBe("sess-1");
 		expect(ev.workspace).toBe("/cwd");
@@ -119,324 +109,112 @@ describe("addRedirect", () => {
 		expect(ev.details.repo).toBe("dotpi");
 		expect(ev.details.givenPath).toBe("/dotpi/foo.ts");
 		expect(ev.details.rewrittenTo).toBe("/.pi/agent/foo.ts");
+		expect(ev.details.parentModel).toBe("deepseek-v4-flash");
+		expect(ev.details.thinkingLevel).toBe("xhigh");
+		expect(ev.details.originalCmd).toBeUndefined();
 		expect(ev.timestamp).toBe("2026-07-04T12:00:00.000Z");
 		expect(ev.eventId).toBeDefined();
-		expect(ev.cycleId).toBeDefined();
 	});
 
-	test("supports edit toolType", () => {
-		const dir = makeStatsDir("redirect-edit");
+	test("supports edit and bash toolType", () => {
+		const dir = makeStatsDir("types");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/cwd",
 		});
 
-		log.addRedirect({
-			ts: "2026-07-04T12:00:00.000Z",
+		log.logRedirected({
+			ts: "t1",
 			toolType: "edit",
 			repo: "dotagents",
-			givenPath: "/dotagents/foo.ts",
-			rewrittenTo: "/.agents/foo.ts",
+			givenPath: "/a.ts",
+			rewrittenTo: "/b.ts",
+		});
+		log.logRedirected({
+			ts: "t2",
+			toolType: "bash",
+			repo: "dotpi",
+			givenPath: "/dotpi/cmd",
+			rewrittenTo: "new command",
+			originalCmd: "old command",
 		});
 
-		const events = readEvents(log.filePath);
-		expect(events[0].details.toolType).toBe("edit");
+		const ev = readEvents(log.filePath);
+		expect(ev[0].details.toolType).toBe("edit");
+		expect(ev[1].details.toolType).toBe("bash");
+		expect(ev[1].details.originalCmd).toBe("old command");
+	});
+
+	test("truncates originalCmd to 200 chars", () => {
+		const dir = makeStatsDir("truncate");
+		const log = createStatsLog({
+			statsDir: dir,
+			sessionId: "sess-1",
+			cwd: "/cwd",
+		});
+
+		log.logRedirected({
+			ts: "t1",
+			toolType: "bash",
+			repo: "dotpi",
+			givenPath: "/x",
+			rewrittenTo: "/y",
+			originalCmd: "x".repeat(250),
+		});
+
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.details.originalCmd.length).toBe(201); // 200 + "…"
+		expect(ev.details.originalCmd.endsWith("…")).toBe(true);
 	});
 });
 
-// ── 3. addBashRewrite ───────────────────────────────────────────────────
+// ── 3. Multiple events ──────────────────────────────────────────────────
 
-describe("addBashRewrite", () => {
-	test("writes a valid JSON line with all required fields", () => {
-		const dir = makeStatsDir("bash-rewrite");
+describe("event accumulation", () => {
+	test("appends events in order", () => {
+		const dir = makeStatsDir("multi");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/cwd",
 		});
 
-		log.addBashRewrite({
-			ts: "2026-07-04T12:00:00.000Z",
-			repo: "dotpi",
-			originalCmd: "cp foo.ts dotpi/extensions/",
-			pathsChanged: ["dotpi/extensions/foo.ts"],
-			redirectCount: 1,
-		});
-
-		const events = readEvents(log.filePath);
-		expect(events.length).toBe(1);
-
-		const ev = events[0];
-		expect(ev.extension).toBe("path-guard");
-		expect(ev.eventType).toBe("bash_rewrite");
-		expect(ev.details.repo).toBe("dotpi");
-		expect(ev.details.originalCmd).toBe("cp foo.ts dotpi/extensions/");
-		expect(ev.details.pathsChanged).toEqual(["dotpi/extensions/foo.ts"]);
-		expect(ev.details.redirectCount).toBe(1);
-	});
-
-	test("truncates originalCmd to 200 characters", () => {
-		const dir = makeStatsDir("bash-truncate");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		const longCmd = "x".repeat(250);
-		log.addBashRewrite({
-			ts: "2026-07-04T12:00:00.000Z",
-			repo: "dotpi",
-			originalCmd: longCmd,
-			pathsChanged: [],
-			redirectCount: 0,
-		});
-
-		const events = readEvents(log.filePath);
-		expect(events[0].details.originalCmd.length).toBe(201); // 200 chars + "…"
-		expect(events[0].details.originalCmd.endsWith("…")).toBe(true);
-	});
-
-	test("does not truncate short commands", () => {
-		const dir = makeStatsDir("bash-short");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		const shortCmd = "echo hello";
-		log.addBashRewrite({
-			ts: "2026-07-04T12:00:00.000Z",
-			repo: "dotpi",
-			originalCmd: shortCmd,
-			pathsChanged: [],
-			redirectCount: 0,
-		});
-
-		const events = readEvents(log.filePath);
-		expect(events[0].details.originalCmd).toBe("echo hello");
-		expect(events[0].details.originalCmd.length).toBe(10);
-	});
-});
-
-// ── 4. flushSummary ─────────────────────────────────────────────────────
-
-describe("flushSummary", () => {
-	test("writes session_summary with correct ratios", () => {
-		const dir = makeStatsDir("summary-ratios");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		// 2 redirects out of 5 total writes → 0.4 ratio
-		log.addRedirect({
+		log.logRedirected({
 			ts: "t1",
 			toolType: "write",
 			repo: "dotpi",
 			givenPath: "/a.ts",
 			rewrittenTo: "/b.ts",
 		});
-		log.addRedirect({
+		log.logRedirected({
 			ts: "t2",
-			toolType: "edit",
+			toolType: "bash",
 			repo: "dotagents",
-			givenPath: "/c.md",
-			rewrittenTo: "/d.md",
-		});
-		log.incCorrectWrite();
-		log.incCorrectWrite();
-		log.incCorrectWrite();
-
-		// 1 bash rewrite out of 4 total → 0.25 ratio
-		log.addBashRewrite({
-			ts: "t3",
-			repo: "dotpi",
-			originalCmd: "mv a b",
-			pathsChanged: ["a"],
-			redirectCount: 1,
-		});
-		log.incCorrectBash();
-		log.incCorrectBash();
-		log.incCorrectBash();
-
-		log.flushSummary({
-			endTs: "2026-07-04T13:00:00.000Z",
-			model: "deepseek-v4-flash",
-			totalTurns: 10,
+			givenPath: "/c",
+			rewrittenTo: "/d",
+			originalCmd: "mv c d",
 		});
 
-		const events = readEvents(log.filePath);
-		// 2 redirects + 1 bash_rewrite + 1 summary = 4 events total
-		expect(events.length).toBe(4);
-
-		const summary = events[3];
-		expect(summary.eventType).toBe("session_summary");
-		expect(summary.details.model).toBe("deepseek-v4-flash");
-		expect(summary.details.redirects).toBe(2);
-		expect(summary.details.correctWrites).toBe(3);
-		expect(summary.details.writeTotal).toBe(5);
-		expect(summary.details.writeRatio).toBe(0.4);
-		expect(summary.details.bashRewrites).toBe(1);
-		expect(summary.details.correctBash).toBe(3);
-		expect(summary.details.bashTotal).toBe(4);
-		expect(summary.details.bashRatio).toBe(0.25);
-		expect(summary.details.repos).toEqual(["dotagents", "dotpi"]);
-	});
-
-	test("is silent when no events occurred", () => {
-		const dir = makeStatsDir("summary-silent");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		log.flushSummary({
-			endTs: "2026-07-04T13:00:00.000Z",
-			totalTurns: 0,
-		});
-
-		// File should not exist (nothing written)
-		expect(fs.existsSync(log.filePath)).toBe(false);
-	});
-
-	test("resets counters after flush", () => {
-		const dir = makeStatsDir("summary-reset");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		log.addRedirect({
-			ts: "t1",
-			toolType: "write",
-			repo: "dotpi",
-			givenPath: "/a.ts",
-			rewrittenTo: "/b.ts",
-		});
-		log.flushSummary({ endTs: "t2", model: "m1", totalTurns: 1 });
-
-		// Second flush should produce nothing (counters reset)
-		log.flushSummary({ endTs: "t3", totalTurns: 2 });
-
-		const events = readEvents(log.filePath);
-		expect(events.length).toBe(2); // redirect + first summary, no second summary
-		expect(events[0].eventType).toBe("redirect");
-		expect(events[1].eventType).toBe("session_summary");
-	});
-
-	test("writeRatio is 0 when no writes", () => {
-		const dir = makeStatsDir("summary-zero-writes");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		log.addBashRewrite({
-			ts: "t1",
-			repo: "dotpi",
-			originalCmd: "cmd",
-			pathsChanged: [],
-			redirectCount: 1,
-		});
-		log.flushSummary({ endTs: "t2", model: "m1", totalTurns: 1 });
-
-		const events = readEvents(log.filePath);
-		const summary = events[1];
-		expect(summary.details.writeTotal).toBe(0);
-		expect(summary.details.writeRatio).toBe(0);
-		expect(summary.details.bashTotal).toBe(1);
-		expect(summary.details.bashRatio).toBe(1);
+		const ev = readEvents(log.filePath);
+		expect(ev.length).toBe(2);
+		expect(ev[0].details.toolType).toBe("write");
+		expect(ev[1].details.toolType).toBe("bash");
 	});
 });
 
-// ── 5. Counter isolation ────────────────────────────────────────────────
-
-describe("counter isolation", () => {
-	test("incCorrectWrite does not affect bash counters", () => {
-		const dir = makeStatsDir("counter-isolation");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		log.addRedirect({
-			ts: "t1",
-			toolType: "write",
-			repo: "dotpi",
-			givenPath: "/a",
-			rewrittenTo: "/b",
-		});
-		log.incCorrectWrite();
-		log.incCorrectWrite();
-		log.incCorrectBash();
-		log.incCorrectBash();
-		log.incCorrectBash();
-
-		log.flushSummary({ endTs: "t2", model: "m1", totalTurns: 1 });
-
-		const events = readEvents(log.filePath);
-		const summary = events[events.length - 1];
-		expect(summary.details.redirects).toBe(1);
-		expect(summary.details.correctWrites).toBe(2);
-		expect(summary.details.bashRewrites).toBe(0);
-		expect(summary.details.correctBash).toBe(3);
-	});
-});
-
-// ── 6. Event ordering ───────────────────────────────────────────────────
-
-describe("event ordering", () => {
-	test("events appear in insertion order", () => {
-		const dir = makeStatsDir("ordering");
-		const log = createStatsLog({
-			statsDir: dir,
-			sessionId: "sess-1",
-			cwd: "/cwd",
-		});
-
-		log.addRedirect({
-			ts: "t1",
-			toolType: "write",
-			repo: "dotpi",
-			givenPath: "/a",
-			rewrittenTo: "/b",
-		});
-		log.addBashRewrite({
-			ts: "t2",
-			repo: "dotpi",
-			originalCmd: "cmd",
-			pathsChanged: [],
-			redirectCount: 1,
-		});
-		log.flushSummary({ endTs: "t3", totalTurns: 1 });
-
-		const events = readEvents(log.filePath);
-		expect(events[0].eventType).toBe("redirect");
-		expect(events[1].eventType).toBe("bash_rewrite");
-		expect(events[2].eventType).toBe("session_summary");
-	});
-});
-
-// ── 7. Schema compliance ────────────────────────────────────────────────
+// ── 4. Schema compliance ────────────────────────────────────────────────
 
 describe("schema compliance", () => {
-	test("all events have required top-level fields", () => {
+	test("all events have required fields", () => {
 		const dir = makeStatsDir("schema");
 		const log = createStatsLog({
 			statsDir: dir,
-			sessionId: "sess-uuid",
-			cwd: "/workspace",
+			sessionId: "suuid",
+			cwd: "/w",
 		});
 
-		const requiredFields = [
+		const required = [
 			"timestamp",
 			"eventId",
 			"extension",
@@ -444,62 +222,47 @@ describe("schema compliance", () => {
 			"agent",
 			"workspace",
 			"sessionId",
-			"cycleId",
 			"details",
 		];
 
-		log.addRedirect({
+		log.logRedirected({
 			ts: "t1",
 			toolType: "write",
 			repo: "dotpi",
 			givenPath: "/a",
 			rewrittenTo: "/b",
 		});
-		log.addBashRewrite({
-			ts: "t2",
-			repo: "dotpi",
-			originalCmd: "c",
-			pathsChanged: [],
-			redirectCount: 0,
-		});
-		log.flushSummary({ endTs: "t3", totalTurns: 1 });
 
-		const events = readEvents(log.filePath);
-		for (const ev of events) {
-			for (const field of requiredFields) {
-				expect(ev[field]).toBeDefined();
-			}
+		for (const ev of readEvents(log.filePath)) {
+			for (const f of required) expect(ev[f]).toBeDefined();
 			expect(ev.extension).toBe("path-guard");
 			expect(ev.agent).toBe("pi");
 		}
 	});
 
-	test("UUID format for eventId and sessionId and cycleId", () => {
-		const dir = makeStatsDir("uuid");
+	test("no cycleId field present", () => {
+		const dir = makeStatsDir("nocycle");
 		const log = createStatsLog({
 			statsDir: dir,
-			sessionId: "sess-uuid",
-			cwd: "/cwd",
+			sessionId: "suuid",
+			cwd: "/w",
 		});
 
-		log.addRedirect({
+		log.logRedirected({
 			ts: "t1",
-			toolType: "write",
+			toolType: "bash",
 			repo: "dotpi",
 			givenPath: "/a",
 			rewrittenTo: "/b",
+			originalCmd: "cmd",
 		});
 
-		const events = readEvents(log.filePath);
-		const uuidRe =
-			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-		expect(events[0].eventId).toMatch(uuidRe);
-		expect(events[0].sessionId).toBe("sess-uuid"); // passed in constructor
-		expect(events[0].cycleId).toMatch(uuidRe);
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.cycleId).toBeUndefined();
 	});
 });
 
-// ── 8. Concurrent safety (atomic append pattern) ────────────────────────
+// ── 5. Concurrent safety ────────────────────────────────────────────────
 
 describe("concurrent safety", () => {
 	test("appends to existing file without overwriting", () => {
@@ -510,24 +273,25 @@ describe("concurrent safety", () => {
 			cwd: "/cwd",
 		});
 
-		log.addRedirect({
+		log.logRedirected({
 			ts: "t1",
-			toolType: "write",
+			toolType: "edit",
 			repo: "dotpi",
 			givenPath: "/a",
 			rewrittenTo: "/b",
 		});
-		log.addBashRewrite({
+		log.logRedirected({
 			ts: "t2",
-			repo: "dotpi",
+			toolType: "bash",
+			repo: "dotagents",
+			givenPath: "/c",
+			rewrittenTo: "/d",
 			originalCmd: "cmd",
-			pathsChanged: [],
-			redirectCount: 1,
 		});
 
-		const events = readEvents(log.filePath);
-		expect(events.length).toBe(2);
-		expect(events[0].eventType).toBe("redirect");
-		expect(events[1].eventType).toBe("bash_rewrite");
+		const ev = readEvents(log.filePath);
+		expect(ev.length).toBe(2);
+		expect(ev[0].details.toolType).toBe("edit");
+		expect(ev[1].details.toolType).toBe("bash");
 	});
 });
