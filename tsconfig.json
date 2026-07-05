@@ -1,34 +1,29 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "paths": {
-      "@earendil-works/pi-coding-agent": [
-        "/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent"
-      ],
-      "@earendil-works/pi-ai": [
-        "/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
-      ],
-      "@earendil-works/pi-tui": [
-        "/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
-      ]
-    },
-    "strict": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "types": [
-      "bun"
-    ],
-    "typeRoots": [
-      "./node_modules/@types",
-      "../../.agents/node_modules/@types",
-      "../dotagents/node_modules/@types"
-    ]
-  },
-  "include": [
-    "extensions/**/*.ts",
-    "extensions/*.ts"
-  ]
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "preserve",
+		"moduleResolution": "bundler",
+		"paths": {
+			"@earendil-works/pi-coding-agent": [
+				"/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent"
+			],
+			"@earendil-works/pi-ai": [
+				"/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai"
+			],
+			"@earendil-works/pi-tui": [
+				"/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
+			]
+		},
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"types": ["bun"],
+		"typeRoots": [
+			"./node_modules/@types",
+			"../../.agents/node_modules/@types",
+			"../dotagents/node_modules/@types"
+		]
+	},
+	"include": ["extensions/**/*.ts", "extensions/*.ts"]
 }
