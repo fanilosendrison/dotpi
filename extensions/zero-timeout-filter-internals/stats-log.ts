@@ -30,6 +30,7 @@ export interface StatsLogAPI {
 		thinkingLevel: string;
 		sessionId: string;
 		workspace: string;
+		toolCallId: string;
 	}): void;
 }
 
@@ -52,6 +53,7 @@ export function createStatsLog(opts: { statsDir: string }): StatsLogAPI {
 						originalTimeout: entry.originalTimeout,
 						parentModel: entry.parentModel,
 						thinkingLevel: entry.thinkingLevel,
+						toolCallId: entry.toolCallId,
 					},
 				}) + "\n";
 			atomicAppend(filePath, eventLine);

@@ -44,6 +44,7 @@ describe("file creation", () => {
 			thinkingLevel: "xhigh",
 			sessionId: "s1",
 			workspace: "/cwd",
+			toolCallId: "tc1",
 		});
 		expect(fs.existsSync(path.join(dir, "events.jsonl"))).toBe(true);
 		expect(readEvents(path.join(dir, "events.jsonl")).length).toBe(1);
@@ -59,6 +60,7 @@ describe("file creation", () => {
 			thinkingLevel: "low",
 			sessionId: "s1",
 			workspace: "/cwd",
+			toolCallId: "tc1",
 		});
 		expect(fs.existsSync(path.join(dir, "events.jsonl"))).toBe(true);
 	});
@@ -106,6 +108,7 @@ describe("event accumulation", () => {
 			thinkingLevel: "low",
 			sessionId: "s1",
 			workspace: "/w",
+			toolCallId: "tc1",
 		});
 		log.logTimeoutStripped({
 			ts: "t2",
@@ -114,6 +117,7 @@ describe("event accumulation", () => {
 			thinkingLevel: "xhigh",
 			sessionId: "s2",
 			workspace: "/w2",
+			toolCallId: "tc2",
 		});
 
 		const ev = readEvents(path.join(dir, "events.jsonl"));
@@ -148,6 +152,7 @@ describe("schema compliance", () => {
 			thinkingLevel: "low",
 			sessionId: "s1",
 			workspace: "/w",
+			toolCallId: "tc1",
 		});
 
 		for (const ev of readEvents(path.join(dir, "events.jsonl"))) {

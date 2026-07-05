@@ -66,6 +66,7 @@ export default function (pi: ExtensionAPI) {
 			thinkingLevel: lastThinking ?? "unknown",
 			sessionId,
 			workspace: process.cwd(),
+			toolCallId: event.toolCallId,
 		});
 	});
 }
