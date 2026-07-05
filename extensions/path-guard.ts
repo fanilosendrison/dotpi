@@ -5,11 +5,11 @@
  * Covers Write, Edit, and Bash tool calls.
  * Uses shared logic from ~/.agents/agent-enforcers/shared/core/path-guard.
  *
- * Stats logging: counts redirects and correct writes per session/model
- * in ~/neelopedia/stats/pi/path-guard/events.jsonl.
+ * Stats: logs a path_redirected event per rewrite in
+ * ~/neelopedia/stats/pi/path-guard/events.jsonl.
  */
 
-import crypto from "node:crypto";
+import * as crypto from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -21,11 +21,10 @@ const CORE_PATH = join(
 );
 const { checkPath, rewriteBashCommand, extractBashPaths } = require(CORE_PATH);
 
+import * as fs from "node:fs";
 import { createStatsLog } from "./path-guard-internals/stats-log";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-const PROJECTS = join(homedir(), "Developper", "Projects");
 
 /** True when the path (absolute or ~/) is inside a ~/Developper/Projects/dot* repo. */
 function targetsDotRepo(givenPath: string): boolean {
@@ -45,21 +44,33 @@ function extractRepo(p: string): string | null {
 	return match ? match[1] : null;
 }
 
+	function readDefaultThinking(): string {
+		try {
+			const p = join(homedir(), ".pi", "agent", "settings.json");
+			if (fs.existsSync(p)) {
+				return JSON.parse(fs.readFileSync(p, "utf-8")).defaultThinkingLevel ?? "unknown";
+			}
+		} catch {}
+		return "unknown";
+	}
+
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
-	const statsDir = join(homedir(), "neelopedia", "stats", "pi", "path-guard");
 	let lastModel: string | undefined;
-
-	const statsLog = createStatsLog({
-		statsDir,
-		sessionId,
-		cwd: process.cwd(),
-	});
-
-	// ── Capture model from provider requests ─────────────────────────────────
+	let lastThinking: string = readDefaultThinking();
 
 	pi.on("before_provider_request", async (event) => {
 		lastModel = (event.payload as any)?.model;
+	});
+
+	pi.on("thinking_level_select", async (event) => {
+		lastThinking = event.level;
+	});
+
+	const statsLog = createStatsLog({
+		statsDir: join(homedir(), "neelopedia", "stats", "pi", "path-guard"),
+		sessionId,
+		cwd: process.cwd(),
 	});
 
 	// ── Guard Write and Edit ─────────────────────────────────────────────────
@@ -79,92 +90,62 @@ export default function (pi: ExtensionAPI) {
 		const isDot = targetsDotRepo(givenPath);
 		const result = checkPath(givenPath);
 
-		if (isDot) {
-			if (!result.allowed && result.rewrittenPath) {
-				// Redirect — log it
-				const toolType = isToolCallEventType("write", event)
-					? ("write" as const)
-					: ("edit" as const);
-				const repo = extractRepo(givenPath) || "unknown";
-				statsLog.addRedirect({
-					ts: new Date().toISOString(),
-					toolType,
-					repo,
-					givenPath,
-					rewrittenTo: result.rewrittenPath,
-				});
-				// Rewrite the path in the event input
-				if ("file_path" in event.input)
-					event.input.file_path = result.rewrittenPath;
-				if ("path" in event.input) event.input.path = result.rewrittenPath;
-				if ("TargetFile" in event.input)
-					event.input.TargetFile = result.rewrittenPath;
-			} else {
-				// Path already correctly addressed via ~/. gateway
-				statsLog.incCorrectWrite();
-			}
-		} else {
-			// Not a dot* repo — apply rewrite if needed (existing behaviour)
-			if (!result.allowed && result.rewrittenPath) {
-				if ("file_path" in event.input)
-					event.input.file_path = result.rewrittenPath;
-				if ("path" in event.input) event.input.path = result.rewrittenPath;
-				if ("TargetFile" in event.input)
-					event.input.TargetFile = result.rewrittenPath;
-			}
+		if (isDot && !result.allowed && result.rewrittenPath) {
+			const toolType = isToolCallEventType("write", event)
+				? ("write" as const)
+				: ("edit" as const);
+			const repo = extractRepo(givenPath) || "unknown";
+			statsLog.logRedirected({
+				ts: new Date().toISOString(),
+				toolType,
+				repo,
+				givenPath,
+				rewrittenTo: result.rewrittenPath,
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
+			});
+			if ("file_path" in event.input)
+				event.input.file_path = result.rewrittenPath;
+			if ("path" in event.input) event.input.path = result.rewrittenPath;
+			if ("TargetFile" in event.input)
+				event.input.TargetFile = result.rewrittenPath;
+		} else if (!result.allowed && result.rewrittenPath) {
+			// Non-dot path — apply rewrite silently
+			if ("file_path" in event.input)
+				event.input.file_path = result.rewrittenPath;
+			if ("path" in event.input) event.input.path = result.rewrittenPath;
+			if ("TargetFile" in event.input)
+				event.input.TargetFile = result.rewrittenPath;
 		}
 	});
 
 	// ── Guard Bash commands that write to dot* repos ─────────────────────────
 
 	pi.on("tool_call", async (event) => {
-		if (!isToolCallEventType("bash", event)) {
-			return;
-		}
+		if (!isToolCallEventType("bash", event)) return;
 
 		const command = event.input.command;
 		if (!command || typeof command !== "string") return;
 
-		// Extract paths once to detect dot* targets (avoid calling rewrite
-		// twice — rewriteBashCommand calls extractBashPaths internally).
 		const paths = extractBashPaths(command);
 		const dotPaths = paths.filter((p) => targetsDotRepo(p));
-
 		const result = rewriteBashCommand(command);
 
 		if (result.rewritten) {
-			// Apply the rewritten command
 			event.input.command = result.newCommand;
-
-			// Log the rewrite if any dot* paths were involved
 			if (dotPaths.length > 0) {
 				const repo = extractRepo(dotPaths[0]) || "unknown";
-				statsLog.addBashRewrite({
+				statsLog.logRedirected({
 					ts: new Date().toISOString(),
+					toolType: "bash",
 					repo,
+					givenPath: dotPaths[0],
+					rewrittenTo: result.newCommand,
 					originalCmd: command,
-					pathsChanged: dotPaths,
-					redirectCount: dotPaths.length,
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
 				});
 			}
-		} else if (dotPaths.length > 0) {
-			// Command targets dot* repos but was not rewritten
-			// (paths already correct or git-only command)
-			statsLog.incCorrectBash();
 		}
-	});
-
-	// ── Flush session summary once at session end ───────────────────────────
-	//
-	// On utilise session_shutdown plutôt que agent_end (qui se déclenche à
-	// chaque cycle). Les compteurs cumulent sur toute la session et ne sont
-	// flushés qu'ici.
-
-	pi.on("session_shutdown", () => {
-		statsLog.flushSummary({
-			endTs: new Date().toISOString(),
-			model: lastModel,
-			totalTurns: 0,
-		});
 	});
 }
