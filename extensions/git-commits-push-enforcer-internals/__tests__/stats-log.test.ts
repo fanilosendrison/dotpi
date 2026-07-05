@@ -38,14 +38,17 @@ afterEach(() => {
 // ── 1. File creation ─────────────────────────────────────────────────────
 
 describe("file creation", () => {
-	test("creates events.jsonl on first logCommitAttempted", () => {
+	test("creates events.jsonl on first logTriggered", () => {
 		const dir = makeStatsDir("file");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-		log.logCommitAttempted({
+		log.logTriggered({
 			ts: "t1",
 			rawCommand: "git commit -m 'feat: x'",
 			detectedBy: "git-commit",
 			toolCallId: "tcid1",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
 		});
 		expect(fs.existsSync(log.filePath)).toBe(true);
 		expect(readEvents(log.filePath).length).toBe(1);
@@ -54,8 +57,11 @@ describe("file creation", () => {
 	test("creates parent directory if missing", () => {
 		const dir = path.join(TMP_DIR, "a", "b");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
-		log.addSkillInvoke({
+		log.logTriggered({
 			ts: "t1",
+			rawCommand: "/git-commits-push",
+			detectedBy: "git-commits-push",
+			toolCallId: "tcid1",
 			parentModel: "m1",
 			skillModel: "m2",
 			skillProvider: "p1",
@@ -64,23 +70,26 @@ describe("file creation", () => {
 	});
 });
 
-// ── 2. logCommitAttempted ───────────────────────────────────────────────
+// ── 2. logTriggered ─────────────────────────────────────────────────────
 
-describe("logCommitAttempted", () => {
-	test("writes valid JSON with all fields", () => {
-		const dir = makeStatsDir("attempt");
+describe("logTriggered", () => {
+	test("writes enforcer_triggered with all fields", () => {
+		const dir = makeStatsDir("triggered");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.logCommitAttempted({
+		log.logTriggered({
 			ts: "2026-07-04T12:00:00.000Z",
 			rawCommand: "git commit -m 'feat(api): add x' && git push",
 			detectedBy: "git-commit",
 			toolCallId: "tcid-abc",
+			parentModel: "deepseek-v4-pro",
+			skillModel: "deepseek-v4-flash",
+			skillProvider: "deepseek",
 		});
 
 		const ev = readEvents(log.filePath)[0];
+		expect(ev.eventType).toBe("enforcer_triggered");
 		expect(ev.extension).toBe("git-commits-push-enforcer");
-		expect(ev.eventType).toBe("commit_attempted");
 		expect(ev.agent).toBe("pi");
 		expect(ev.sessionId).toBe("s1");
 		expect(ev.workspace).toBe("/cwd");
@@ -89,6 +98,9 @@ describe("logCommitAttempted", () => {
 		);
 		expect(ev.details.detectedBy).toBe("git-commit");
 		expect(ev.details.toolCallId).toBe("tcid-abc");
+		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
+		expect(ev.details.skillModel).toBe("deepseek-v4-flash");
+		expect(ev.details.skillProvider).toBe("deepseek");
 		expect(ev.timestamp).toBe("2026-07-04T12:00:00.000Z");
 		expect(ev.eventId).toBeDefined();
 	});
@@ -97,11 +109,14 @@ describe("logCommitAttempted", () => {
 		const dir = makeStatsDir("detect");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.logCommitAttempted({
+		log.logTriggered({
 			ts: "t1",
 			rawCommand: "/git-commits-push",
 			detectedBy: "git-commits-push",
 			toolCallId: "tcid-2",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
 		});
 
 		const ev = readEvents(log.filePath)[0];
@@ -109,25 +124,26 @@ describe("logCommitAttempted", () => {
 	});
 });
 
-// ── 3. addSkillInvoke ───────────────────────────────────────────────────
+// ── 3. Single event ─────────────────────────────────────────────────────
 
-describe("addSkillInvoke", () => {
-	test("writes valid JSON with model info", () => {
-		const dir = makeStatsDir("skill");
+describe("single event per trigger", () => {
+	test("one logTriggered call produces one event", () => {
+		const dir = makeStatsDir("single");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.addSkillInvoke({
-			ts: "2026-07-04T12:00:00.000Z",
-			parentModel: "deepseek-v4-pro",
-			skillModel: "deepseek-v4-flash",
-			skillProvider: "deepseek",
+		log.logTriggered({
+			ts: "t1",
+			rawCommand: "git commit -m 'fix: x'",
+			detectedBy: "git-commit",
+			toolCallId: "tc1",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
 		});
 
-		const ev = readEvents(log.filePath)[0];
-		expect(ev.eventType).toBe("skill_invoke");
-		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
-		expect(ev.details.skillModel).toBe("deepseek-v4-flash");
-		expect(ev.details.skillProvider).toBe("deepseek");
+		const ev = readEvents(log.filePath);
+		expect(ev.length).toBe(1);
+		expect(ev[0].eventType).toBe("enforcer_triggered");
 	});
 });
 
@@ -138,23 +154,29 @@ describe("event accumulation", () => {
 		const dir = makeStatsDir("multi");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.logCommitAttempted({
+		log.logTriggered({
 			ts: "t1",
 			rawCommand: "git commit -m 'feat: x'",
 			detectedBy: "git-commit",
 			toolCallId: "tc1",
-		});
-		log.addSkillInvoke({
-			ts: "t2",
 			parentModel: "m1",
 			skillModel: "m2",
 			skillProvider: "p1",
 		});
+		log.logTriggered({
+			ts: "t2",
+			rawCommand: "/git-commits-push",
+			detectedBy: "git-commits-push",
+			toolCallId: "tc2",
+			parentModel: "m3",
+			skillModel: "m4",
+			skillProvider: "p2",
+		});
 
 		const ev = readEvents(log.filePath);
 		expect(ev.length).toBe(2);
-		expect(ev[0].eventType).toBe("commit_attempted");
-		expect(ev[1].eventType).toBe("skill_invoke");
+		expect(ev[0].details.detectedBy).toBe("git-commit");
+		expect(ev[1].details.detectedBy).toBe("git-commits-push");
 	});
 });
 
@@ -180,14 +202,11 @@ describe("schema compliance", () => {
 			"details",
 		];
 
-		log.logCommitAttempted({
+		log.logTriggered({
 			ts: "t1",
 			rawCommand: "git commit -m 'x'",
 			detectedBy: "git-commit",
 			toolCallId: "tc1",
-		});
-		log.addSkillInvoke({
-			ts: "t2",
 			parentModel: "m1",
 			skillModel: "m2",
 			skillProvider: "p1",
@@ -204,11 +223,14 @@ describe("schema compliance", () => {
 		const dir = makeStatsDir("nocycle");
 		const log = createStatsLog({ statsDir: dir, sessionId: "s1", cwd: "/cwd" });
 
-		log.logCommitAttempted({
+		log.logTriggered({
 			ts: "t1",
 			rawCommand: "git commit -m 'x'",
 			detectedBy: "git-commit",
 			toolCallId: "tc1",
+			parentModel: "m1",
+			skillModel: "m2",
+			skillProvider: "p1",
 		});
 
 		const ev = readEvents(log.filePath)[0];

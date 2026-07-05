@@ -2,9 +2,7 @@
  * Pi extension — intercepts every commit intent (raw git or /git-commits-push)
  * and routes it through the git-commits-push skill.
  *
- * Two logging points:
- *   tool_execution_start → commit_attempted (raw LLM intent, before any mutation)
- *   tool_call           → skill_invoke     (successful routing to the skill)
+ * Logs one event per trigger: enforcer_triggered with all context.
  *
  * Stats in ~/neelopedia/stats/pi/git-commits-push-enforcer/events.jsonl.
  */
@@ -55,34 +53,11 @@ export default function (pi: ExtensionAPI) {
 		lastModel = (event.payload as any)?.model;
 	});
 
-	// ── Log commit intention at the earliest point ──────────────────────────
+	// ── Intercept commit intent and log ─────────────────────────────────────
 	//
-	// tool_execution_start fires before tool_call, before any extension can
-	// mutate or block the command. This gives us the true "agent intended to
-	// commit" count.
-
-	pi.on("tool_execution_start", async (event) => {
-		if (event.toolName !== "bash") return;
-
-		const cmd = (event.args as any)?.command;
-		if (!cmd || typeof cmd !== "string") return;
-
-		const isGit = GIT_COMMIT.test(cmd);
-		const isSkill = isSkillCmd(cmd);
-		if (!isGit && !isSkill) return;
-
-		statsLog.logCommitAttempted({
-			ts: new Date().toISOString(),
-			rawCommand: cmd,
-			detectedBy: isSkill ? "git-commits-push" : "git-commit",
-			toolCallId: event.toolCallId,
-		});
-	});
-
-	// ── Route commit intent to the skill ────────────────────────────────────
-	//
-	// Every commit intent (raw git or skill invocation) is passed through to
-	// the git-commits-push skill. No validation — the skill handles that.
+	// Every commit intent (raw git or skill invocation) is intercepted here
+	// and passed through to the git-commits-push skill. No validation — the
+	// skill handles that.
 
 	pi.on("tool_call", async (event) => {
 		if (!isToolCallEventType("bash", event)) return;
@@ -90,6 +65,8 @@ export default function (pi: ExtensionAPI) {
 		const cmd = event.input.command;
 		if (!cmd || typeof cmd !== "string") return;
 		if (!isCommitIntent(cmd)) return;
+
+		const detectedBy = isSkillCmd(cmd) ? "git-commits-push" : "git-commit";
 
 		// Pass parent model/session to the skill via env vars
 		process.env.PI_PARENT_MODEL = lastModel ?? "unknown";
@@ -111,8 +88,11 @@ export default function (pi: ExtensionAPI) {
 			// Non-critical — proceed with "unknown"
 		}
 
-		statsLog.addSkillInvoke({
+		statsLog.logTriggered({
 			ts: new Date().toISOString(),
+			rawCommand: cmd,
+			detectedBy,
+			toolCallId: event.toolCallId,
 			parentModel: lastModel ?? "unknown",
 			skillModel,
 			skillProvider,

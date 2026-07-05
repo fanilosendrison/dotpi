@@ -1,9 +1,8 @@
 /**
  * Git-commits-push-enforcer stats logging module.
  *
- * Two event types:
- *   commit_attempted → logged in tool_execution_start (raw LLM intent)
- *   skill_invoke     → logged in tool_call (successful routing to the skill)
+ * One event type:
+ *   enforcer_triggered → logged in tool_call when a commit intent is detected
  *
  * No RAM counters, no session_summary — every state is materialized as an event.
  */
@@ -30,14 +29,11 @@ function atomicAppend(filePath: string, newContent: string): void {
 
 export interface StatsLogAPI {
 	filePath: string;
-	logCommitAttempted(entry: {
+	logTriggered(entry: {
 		ts: string;
 		rawCommand: string;
 		detectedBy: "git-commit" | "git-commits-push";
 		toolCallId: string;
-	}): void;
-	addSkillInvoke(entry: {
-		ts: string;
 		parentModel: string;
 		skillModel: string;
 		skillProvider: string;
@@ -73,22 +69,13 @@ export function createStatsLog(opts: {
 	return {
 		filePath,
 
-		logCommitAttempted(entry) {
+		logTriggered(entry) {
 			appendEvent(
-				"commit_attempted",
+				"enforcer_triggered",
 				{
 					rawCommand: entry.rawCommand,
 					detectedBy: entry.detectedBy,
 					toolCallId: entry.toolCallId,
-				},
-				entry.ts,
-			);
-		},
-
-		addSkillInvoke(entry) {
-			appendEvent(
-				"skill_invoke",
-				{
 					parentModel: entry.parentModel,
 					skillModel: entry.skillModel,
 					skillProvider: entry.skillProvider,
