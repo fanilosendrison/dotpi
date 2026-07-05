@@ -2,8 +2,8 @@
  * Path-guard stats logging module.
  *
  * One event type:
- *   path_redirected → logged when a write/edit/bash path is rewritten
- *                     to the ~/. gateway.
+ *   path_access → logged for every dot* path access, with action field
+ *                 indicating whether it was rewritten or already correct.
  *
  * No RAM counters, no session_summary — every state is materialized as an event.
  */
@@ -28,12 +28,13 @@ function atomicAppend(filePath: string, newContent: string): void {
 
 export interface StatsLogAPI {
 	filePath: string;
-	logRedirected(entry: {
+	logAccess(entry: {
 		ts: string;
 		toolType: "write" | "edit" | "bash";
 		repo: string;
+		action: "redirected" | "correct";
 		givenPath: string;
-		rewrittenTo: string;
+		rewrittenTo?: string;
 		originalCmd?: string;
 		parentModel: string;
 		thinkingLevel: string;
@@ -69,22 +70,25 @@ export function createStatsLog(opts: {
 	return {
 		filePath,
 
-		logRedirected(entry) {
+		logAccess(entry) {
 			const details: Record<string, unknown> = {
 				toolType: entry.toolType,
 				repo: entry.repo,
+				action: entry.action,
 				givenPath: entry.givenPath,
-				rewrittenTo: entry.rewrittenTo,
-				parentModel: entry.parentModel,
-				thinkingLevel: entry.thinkingLevel,
 			};
+			if (entry.rewrittenTo) {
+				details.rewrittenTo = entry.rewrittenTo;
+			}
 			if (entry.originalCmd) {
 				details.originalCmd =
 					entry.originalCmd.length <= 200
 						? entry.originalCmd
 						: entry.originalCmd.slice(0, 200) + "…";
 			}
-			appendEvent("path_redirected", details, entry.ts);
+			details.parentModel = entry.parentModel;
+			details.thinkingLevel = entry.thinkingLevel;
+			appendEvent("path_access", details, entry.ts);
 		},
 	};
 }

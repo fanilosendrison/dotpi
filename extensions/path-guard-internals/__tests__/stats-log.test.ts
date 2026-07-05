@@ -38,17 +38,18 @@ afterEach(() => {
 // ── 1. File creation ─────────────────────────────────────────────────────
 
 describe("file creation", () => {
-	test("creates events.jsonl on first logRedirected", () => {
+	test("creates events.jsonl on first logAccess", () => {
 		const dir = makeStatsDir("file");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/test",
 		});
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
 			toolType: "write",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/dotpi/foo.ts",
 			rewrittenTo: "/.pi/agent/foo.ts",
 			parentModel: "m1",
@@ -65,12 +66,12 @@ describe("file creation", () => {
 			sessionId: "sess-1",
 			cwd: "/test",
 		});
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
 			toolType: "edit",
 			repo: "dotagents",
-			givenPath: "/src/doc.md",
-			rewrittenTo: "~/.agents/doc.md",
+			action: "correct",
+			givenPath: "/dotagents/doc.md",
 			parentModel: "m1",
 			thinkingLevel: "xhigh",
 		});
@@ -78,21 +79,22 @@ describe("file creation", () => {
 	});
 });
 
-// ── 2. logRedirected ────────────────────────────────────────────────────
+// ── 2. logAccess ─────────────────────────────────────────────────────────
 
-describe("logRedirected", () => {
-	test("writes path_redirected with all fields (write)", () => {
-		const dir = makeStatsDir("redirect-write");
+describe("logAccess", () => {
+	test("writes path_access with all fields (redirected)", () => {
+		const dir = makeStatsDir("redirected");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/cwd",
 		});
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "2026-07-04T12:00:00.000Z",
 			toolType: "write",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/dotpi/foo.ts",
 			rewrittenTo: "/.pi/agent/foo.ts",
 			parentModel: "deepseek-v4-flash",
@@ -100,13 +102,14 @@ describe("logRedirected", () => {
 		});
 
 		const ev = readEvents(log.filePath)[0];
-		expect(ev.eventType).toBe("path_redirected");
+		expect(ev.eventType).toBe("path_access");
 		expect(ev.extension).toBe("path-guard");
 		expect(ev.agent).toBe("pi");
 		expect(ev.sessionId).toBe("sess-1");
 		expect(ev.workspace).toBe("/cwd");
 		expect(ev.details.toolType).toBe("write");
 		expect(ev.details.repo).toBe("dotpi");
+		expect(ev.details.action).toBe("redirected");
 		expect(ev.details.givenPath).toBe("/dotpi/foo.ts");
 		expect(ev.details.rewrittenTo).toBe("/.pi/agent/foo.ts");
 		expect(ev.details.parentModel).toBe("deepseek-v4-flash");
@@ -116,34 +119,28 @@ describe("logRedirected", () => {
 		expect(ev.eventId).toBeDefined();
 	});
 
-	test("supports edit and bash toolType", () => {
-		const dir = makeStatsDir("types");
+	test("writes path_access for correct actions without rewrittenTo", () => {
+		const dir = makeStatsDir("correct");
 		const log = createStatsLog({
 			statsDir: dir,
 			sessionId: "sess-1",
 			cwd: "/cwd",
 		});
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
-			toolType: "edit",
-			repo: "dotagents",
-			givenPath: "/a.ts",
-			rewrittenTo: "/b.ts",
-		});
-		log.logRedirected({
-			ts: "t2",
 			toolType: "bash",
 			repo: "dotpi",
+			action: "correct",
 			givenPath: "/dotpi/cmd",
-			rewrittenTo: "new command",
-			originalCmd: "old command",
+			parentModel: "m1",
+			thinkingLevel: "low",
 		});
 
-		const ev = readEvents(log.filePath);
-		expect(ev[0].details.toolType).toBe("edit");
-		expect(ev[1].details.toolType).toBe("bash");
-		expect(ev[1].details.originalCmd).toBe("old command");
+		const ev = readEvents(log.filePath)[0];
+		expect(ev.details.action).toBe("correct");
+		expect(ev.details.rewrittenTo).toBeUndefined();
+		expect(ev.details.originalCmd).toBeUndefined();
 	});
 
 	test("truncates originalCmd to 200 chars", () => {
@@ -154,17 +151,20 @@ describe("logRedirected", () => {
 			cwd: "/cwd",
 		});
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
 			toolType: "bash",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/x",
 			rewrittenTo: "/y",
 			originalCmd: "x".repeat(250),
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
 
 		const ev = readEvents(log.filePath)[0];
-		expect(ev.details.originalCmd.length).toBe(201); // 200 + "…"
+		expect(ev.details.originalCmd.length).toBe(201);
 		expect(ev.details.originalCmd.endsWith("…")).toBe(true);
 	});
 });
@@ -172,7 +172,7 @@ describe("logRedirected", () => {
 // ── 3. Multiple events ──────────────────────────────────────────────────
 
 describe("event accumulation", () => {
-	test("appends events in order", () => {
+	test("appends redirected and correct events in order", () => {
 		const dir = makeStatsDir("multi");
 		const log = createStatsLog({
 			statsDir: dir,
@@ -180,26 +180,30 @@ describe("event accumulation", () => {
 			cwd: "/cwd",
 		});
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
 			toolType: "write",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/a.ts",
 			rewrittenTo: "/b.ts",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
-		log.logRedirected({
+		log.logAccess({
 			ts: "t2",
 			toolType: "bash",
 			repo: "dotagents",
+			action: "correct",
 			givenPath: "/c",
-			rewrittenTo: "/d",
-			originalCmd: "mv c d",
+			parentModel: "m2",
+			thinkingLevel: "low",
 		});
 
 		const ev = readEvents(log.filePath);
 		expect(ev.length).toBe(2);
-		expect(ev[0].details.toolType).toBe("write");
-		expect(ev[1].details.toolType).toBe("bash");
+		expect(ev[0].details.action).toBe("redirected");
+		expect(ev[1].details.action).toBe("correct");
 	});
 });
 
@@ -225,12 +229,15 @@ describe("schema compliance", () => {
 			"details",
 		];
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
-			toolType: "write",
+			toolType: "edit",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/a",
 			rewrittenTo: "/b",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
 
 		for (const ev of readEvents(log.filePath)) {
@@ -248,13 +255,16 @@ describe("schema compliance", () => {
 			cwd: "/w",
 		});
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
 			toolType: "bash",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/a",
 			rewrittenTo: "/b",
 			originalCmd: "cmd",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
 
 		const ev = readEvents(log.filePath)[0];
@@ -273,25 +283,29 @@ describe("concurrent safety", () => {
 			cwd: "/cwd",
 		});
 
-		log.logRedirected({
+		log.logAccess({
 			ts: "t1",
 			toolType: "edit",
 			repo: "dotpi",
+			action: "redirected",
 			givenPath: "/a",
 			rewrittenTo: "/b",
+			parentModel: "m1",
+			thinkingLevel: "xhigh",
 		});
-		log.logRedirected({
+		log.logAccess({
 			ts: "t2",
 			toolType: "bash",
 			repo: "dotagents",
+			action: "correct",
 			givenPath: "/c",
-			rewrittenTo: "/d",
-			originalCmd: "cmd",
+			parentModel: "m2",
+			thinkingLevel: "low",
 		});
 
 		const ev = readEvents(log.filePath);
 		expect(ev.length).toBe(2);
-		expect(ev[0].details.toolType).toBe("edit");
-		expect(ev[1].details.toolType).toBe("bash");
+		expect(ev[0].details.action).toBe("redirected");
+		expect(ev[1].details.action).toBe("correct");
 	});
 });
