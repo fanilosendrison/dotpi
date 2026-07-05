@@ -21,8 +21,8 @@ import {
 	isReadToolResult,
 	isToolCallEventType,
 } from "@earendil-works/pi-coding-agent";
-import { createBlockedLog } from "./read-deduplicator-internals/blocked-log";
 import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
+import { createStatsLog } from "./read-deduplicator-internals/stats-log";
 
 // ── Fingerprint helpers ────────────────────────────────────────────────────
 
@@ -88,7 +88,7 @@ export default function (pi: ExtensionAPI) {
 		"pi",
 		"read-deduplicator",
 	);
-	const blockedLog = createBlockedLog({
+	const statsLog = createStatsLog({
 		statsDir,
 		sessionId,
 		cwd: process.cwd(),
@@ -111,7 +111,7 @@ export default function (pi: ExtensionAPI) {
 	// ── Session lifecycle ──────────────────────────────────────────────────
 
 	pi.on("session_start", () => {
-		// Stats dir already created by createBlockedLog
+		// Stats dir already created by createStatsLog
 	});
 
 	// ── Turn tracking ──────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ export default function (pi: ExtensionAPI) {
 
 		// Same fingerprint, still in context — block
 		if (entry.stillInContext) {
-			blockedLog.logFileAccess({
+			statsLog.logFileAccess({
 				...common,
 				action: "blocked",
 				blockedReason: `already in context (turn ${entry.turn})`,
@@ -213,7 +213,7 @@ export default function (pi: ExtensionAPI) {
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
 
-		blockedLog.logFileAccess({
+		statsLog.logFileAccess({
 			ts: new Date().toISOString(),
 			action: "read",
 			path,

@@ -3,20 +3,20 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { createBlockedLog } from "../read-deduplicator-internals/blocked-log";
+import { createStatsLog } from "../stats-log";
 
 let tmpDir: string;
 
 beforeEach(() => {
-	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "blocked-log-test-"));
+	tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stats-log-test-"));
 });
 
 afterEach(() => {
 	fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-function makeLog(): ReturnType<typeof createBlockedLog> {
-	return createBlockedLog({
+function makeLog(): ReturnType<typeof createStatsLog> {
+	return createStatsLog({
 		statsDir: path.join(tmpDir, "stats"),
 		cwd: "/Users/foo/dotpi",
 	});
@@ -54,7 +54,7 @@ describe("file creation", () => {
 	});
 
 	test("creates parent directory if missing", () => {
-		const log = createBlockedLog({
+		const log = createStatsLog({
 			statsDir: path.join(tmpDir, "a", "b"),
 			cwd: "/w",
 		});
@@ -150,7 +150,12 @@ describe("schema compliance", () => {
 describe("edge cases", () => {
 	test("handles multiple sessions with different paths", () => {
 		const log = makeLog();
-		log.logFileAccess({ ...BASE, action: "blocked", path: "/x.ts", blockedReason: "r" });
+		log.logFileAccess({
+			...BASE,
+			action: "blocked",
+			path: "/x.ts",
+			blockedReason: "r",
+		});
 		log.logFileAccess({ ...BASE, action: "read", path: "/y.ts" });
 
 		const ev = readEvents(log);

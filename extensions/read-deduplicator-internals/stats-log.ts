@@ -24,16 +24,16 @@ export interface FileAccessEntry {
 	blockedReason?: string;
 }
 
-export interface BlockedLogAPI {
+export interface StatsLogAPI {
 	filePath: string;
 	logFileAccess(entry: FileAccessEntry): void;
 }
 
-export function createBlockedLog(opts: {
+export function createStatsLog(opts: {
 	statsDir: string;
 	sessionId?: string;
 	cwd: string;
-}): BlockedLogAPI {
+}): StatsLogAPI {
 	const sessionId = opts.sessionId || crypto.randomUUID();
 	const filePath = join(opts.statsDir, "events.jsonl");
 	fs.mkdirSync(opts.statsDir, { recursive: true });
