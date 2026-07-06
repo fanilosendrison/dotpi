@@ -22,7 +22,7 @@ const CORE_PATH = join(
 );
 const { checkPath, rewriteBashCommand, extractBashPaths } = require(CORE_PATH);
 
-import { createStatsLog } from "./path-guard-internals/stats-log";
+import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ function extractRepo(p: string): string | null {
 	if (expanded.includes("/.pi/agent/")) return "dotpi";
 	if (expanded.includes("/.agents/")) return "dotagents";
 	// Generic gateway: ~/.<name>/ → dot<name>
-	const gateway = expanded.match(/\/\.([a-z]+)\/[^\/]/);
+	const gateway = expanded.match(/\/\.([a-z]+)\/[^/]/);
 	if (gateway) return "dot" + gateway[1];
 	return null;
 }
@@ -82,11 +82,41 @@ export default function (pi: ExtensionAPI) {
 		lastThinking = event.level;
 	});
 
-	const statsLog = createStatsLog({
+	const sink = createEventSink({
 		statsDir: join(homedir(), "neelopedia", "stats", "pi", "path-guard"),
+		agent: "pi",
+		namespace: "path-guard",
 		sessionId,
-		cwd: process.cwd(),
+		workspace: process.cwd(),
 	});
+
+	function buildDetails(entry: {
+		toolType: "write" | "edit" | "bash";
+		repo: string;
+		action: "redirected" | "correct";
+		givenPath: string;
+		rewrittenTo?: string;
+		originalCmd?: string;
+		parentModel: string;
+		thinkingLevel: string;
+	}): Record<string, unknown> {
+		const d: Record<string, unknown> = {
+			toolType: entry.toolType,
+			repo: entry.repo,
+			action: entry.action,
+			givenPath: entry.givenPath,
+			parentModel: entry.parentModel,
+			thinkingLevel: entry.thinkingLevel,
+		};
+		if (entry.rewrittenTo) d.rewrittenTo = entry.rewrittenTo;
+		if (entry.originalCmd) {
+			d.originalCmd =
+				entry.originalCmd.length <= 200
+					? entry.originalCmd
+					: entry.originalCmd.slice(0, 200) + "…";
+		}
+		return d;
+	}
 
 	// ── Guard Write and Edit ─────────────────────────────────────────────────
 
@@ -112,31 +142,39 @@ export default function (pi: ExtensionAPI) {
 		const repo = extractRepo(givenPath) || "unknown";
 
 		if (!result.allowed && result.rewrittenPath) {
-			statsLog.logAccess({
-				ts: new Date().toISOString(),
-				toolType,
-				repo,
-				action: "redirected",
-				givenPath,
-				rewrittenTo: result.rewrittenPath,
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"path_access",
+				buildDetails({
+					ts: new Date().toISOString(),
+					toolType,
+					repo,
+					action: "redirected",
+					givenPath,
+					rewrittenTo: result.rewrittenPath,
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				}),
+				{ timestamp: new Date().toISOString() },
+			);
 			if ("file_path" in event.input)
 				event.input.file_path = result.rewrittenPath;
 			if ("path" in event.input) event.input.path = result.rewrittenPath;
 			if ("TargetFile" in event.input)
 				event.input.TargetFile = result.rewrittenPath;
 		} else {
-			statsLog.logAccess({
-				ts: new Date().toISOString(),
-				toolType,
-				repo,
-				action: "correct",
-				givenPath,
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"path_access",
+				buildDetails({
+					ts: new Date().toISOString(),
+					toolType,
+					repo,
+					action: "correct",
+					givenPath,
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				}),
+				{ timestamp: new Date().toISOString() },
+			);
 		}
 	});
 
@@ -151,7 +189,9 @@ export default function (pi: ExtensionAPI) {
 		const paths = extractBashPaths(command);
 		const dotPaths = paths.filter((p) => targetsDotRepo(p));
 
-		const hasGateway = dotPaths.length > 0 || /\/\.(?:pi\/agent|agents|[a-z]+)(?:\/|\s|$)/.test(command);
+		const hasGateway =
+			dotPaths.length > 0 ||
+			/\/\.(?:pi\/agent|agents|[a-z]+)(?:\/|\s|$)/.test(command);
 		if (!hasGateway) return;
 
 		// Determine repo from extracted paths or fallback via gateway pattern
@@ -173,27 +213,35 @@ export default function (pi: ExtensionAPI) {
 
 		if (result.rewritten) {
 			event.input.command = result.newCommand;
-			statsLog.logAccess({
-				ts: new Date().toISOString(),
-				toolType: "bash",
-				repo,
-				action: "redirected",
-				givenPath,
-				rewrittenTo: result.newCommand,
-				originalCmd: command,
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"path_access",
+				buildDetails({
+					ts: new Date().toISOString(),
+					toolType: "bash",
+					repo,
+					action: "redirected",
+					givenPath,
+					rewrittenTo: result.newCommand,
+					originalCmd: command,
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				}),
+				{ timestamp: new Date().toISOString() },
+			);
 		} else {
-			statsLog.logAccess({
-				ts: new Date().toISOString(),
-				toolType: "bash",
-				repo,
-				action: "correct",
-				givenPath: dotPaths[0],
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"path_access",
+				buildDetails({
+					ts: new Date().toISOString(),
+					toolType: "bash",
+					repo,
+					action: "correct",
+					givenPath: dotPaths[0],
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				}),
+				{ timestamp: new Date().toISOString() },
+			);
 		}
 	});
 }
