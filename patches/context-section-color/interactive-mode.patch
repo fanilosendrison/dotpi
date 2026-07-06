@@ -1,7 +1,0 @@
---- a/dist/modes/interactive/interactive-mode.js
-+++ b/dist/modes/interactive/interactive-mode.js
-@@ -1053,3 +1053,3 @@
-                 const contextCompactList = formatCompactList(contextFiles.map((contextFile) => this.formatContextPath(contextFile.path)), { sort: false });
--                addLoadedSection("Context", contextCompactList, contextList);
-+                addLoadedSection("Context", contextCompactList, contextList, "warning"); // PATCHED by context-section-color — use Rose Pine yellow
-             }

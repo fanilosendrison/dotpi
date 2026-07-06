@@ -34,7 +34,6 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   ├── read-deduplicator-internals/
 │   │   ├── read-tracker.ts
 │   │   └── read-tracker.test.ts
-│   ├── secret-scanner.ts
 │   ├── zero-timeout-filter.ts
 │   └── __tests__/          ← tests d'intégration (bun test extensions/__tests__/)
 ├── sessions/               ← Pi's session history
@@ -50,8 +49,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   ├── managing-api-keys-in-pi.md                ← How you manage API keys
 │   ├── path-guard.md                             ← Blocks writes to dot* repos
 │   ├── post-write-linter.md                      ← Runs Biome after every write/edit
-│   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
-│   ├── secret-scanner.md                         ← Scans git diffs for secrets and blocks commits
+│   │   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
 │   └── zero-timeout-filter.md                    ← Strips external timeout from git-commits-push skill
 ├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
@@ -74,7 +72,6 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 | Understand the read deduplicator                 | `docs/read-deduplicator.md` (avoids re-injecting already-read files + blocked-reads log) |
 | Understand the global context extension          | `docs/extended-global-context.md` (How global context has been extended)                 |
 | Understand the post-write linter                 | `docs/post-write-linter.md` (Runs Biome after every write/edit)                          |
-| Understand the secret scanner                    | `docs/secret-scanner.md` (Scans git diffs for secrets and blocks commits)                |
 | Understand the zero-timeout filter               | `docs/zero-timeout-filter.md` (Strips external timeout from git-commits-push skill)      |
 | Run extension integration tests                  | `extensions/__tests__/` (`bun test extensions/__tests__/`)                               |
 | Run internals unit tests                         | `extensions/*-internals/__tests__/` (`bun test extensions/*-internals/__tests__/`)       |
