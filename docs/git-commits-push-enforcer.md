@@ -44,6 +44,4 @@ One event per trigger:
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/git-commits-push-enforcer.ts` | Pi extension | ✅ |
-| `dotpi/extensions/git-commits-push-enforcer-internals/stats-log.ts` | Stats logging module | ✅ |
 | `dotpi/extensions/__tests__/git-commits-push-enforcer.test.ts` | Extension tests | ✅ |
-| `dotpi/extensions/git-commits-push-enforcer-internals/__tests__/stats-log.test.ts` | Stats-log tests | ✅ |

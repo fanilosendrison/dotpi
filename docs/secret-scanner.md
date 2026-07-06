@@ -60,6 +60,4 @@ generic secrets).
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/secret-scanner.ts` | Pi extension | ✅ |
-| `dotpi/extensions/secret-scanner-internals/stats-log.ts` | Stats logging module | ✅ |
 | `dotpi/extensions/__tests__/secret-scanner.test.ts` | Extension tests | ✅ |
-| `dotpi/extensions/secret-scanner-internals/__tests__/stats-log.test.ts` | Stats-log tests | ✅ |

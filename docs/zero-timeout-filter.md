@@ -54,9 +54,7 @@ tool invocation. Join on it to compute the ratio.
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/zero-timeout-filter.ts` | Pi extension | ✅ |
-| `dotpi/extensions/zero-timeout-filter-internals/stats-log.ts` | Stats logging module | ✅ |
 | `dotpi/extensions/__tests__/zero-timeout-filter.test.ts` | Extension tests | ✅ |
-| `dotpi/extensions/zero-timeout-filter-internals/__tests__/stats-log.test.ts` | Stats-log tests | ✅ |
 
 ## Background
 
