@@ -53,3 +53,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 10. Zero-Timeout Filter
 - **Date** : 2026-07-05
 - **Doc** : [`zero-timeout-filter.md`](zero-timeout-filter.md)
+
+### 11. Secret Scanner
+- **Date** : 2026-07-05
+- **Doc** : [`secret-scanner.md`](secret-scanner.md)
