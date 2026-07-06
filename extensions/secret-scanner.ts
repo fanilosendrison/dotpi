@@ -22,7 +22,7 @@ const SCANNER_PATH = join(
 );
 const { scanDiff } = require(SCANNER_PATH);
 
-import { createStatsLog } from "./secret-scanner-internals/stats-log";
+import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 
 function readDefaultThinking(): string {
 	try {
@@ -50,10 +50,12 @@ export default function (pi: ExtensionAPI) {
 		lastThinking = event.level;
 	});
 
-	const statsLog = createStatsLog({
+	const sink = createEventSink({
 		statsDir: join(homedir(), "neelopedia", "stats", "pi", "secret-scanner"),
+		agent: "pi",
+		namespace: "secret-scanner",
 		sessionId,
-		cwd: process.cwd(),
+		workspace: process.cwd(),
 	});
 
 	// ── Scan staged diff on git commit ──────────────────────────────────────
@@ -71,34 +73,48 @@ export default function (pi: ExtensionAPI) {
 		try {
 			diff = execSync("git diff --cached", { encoding: "utf-8" });
 		} catch {
-			statsLog.logResult({
-				ts,
-				status: "clean",
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"scan_result",
+				{
+					status: "clean",
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				},
+				{ timestamp: ts },
+			);
 			return;
 		}
 
 		if (!diff.trim()) {
-			statsLog.logResult({
-				ts,
-				status: "clean",
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"scan_result",
+				{
+					status: "clean",
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				},
+				{ timestamp: ts },
+			);
 			return;
 		}
 
 		const result = scanDiff(diff);
 		if (!result.clean) {
-			statsLog.logResult({
-				ts,
+			const details: Record<string, unknown> = {
 				status: "blocked",
-				findings: result.findings,
 				parentModel: lastModel ?? "unknown",
 				thinkingLevel: lastThinking,
-			});
+			};
+			if (result.findings?.length) {
+				details.findingsCount = result.findings.length;
+				details.findings = result.findings.map(
+					(f: { name: string; line: string; lineNumber: number }) => ({
+						...f,
+						line: f.line.length <= 80 ? f.line : f.line.slice(0, 79) + "…",
+					}),
+				);
+			}
+			sink.append("scan_result", details, { timestamp: ts });
 
 			const list = result.findings.map(
 				(f) => `${f.name}: ${f.line.slice(0, 80)}`,
@@ -109,11 +125,14 @@ export default function (pi: ExtensionAPI) {
 			};
 		}
 
-		statsLog.logResult({
-			ts,
-			status: "clean",
-			parentModel: lastModel ?? "unknown",
-			thinkingLevel: lastThinking,
-		});
+		sink.append(
+			"scan_result",
+			{
+				status: "clean",
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
+			},
+			{ timestamp: ts },
+		);
 	});
 }
