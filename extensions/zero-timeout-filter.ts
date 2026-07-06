@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { createStatsLog } from "./zero-timeout-filter-internals/stats-log";
+import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 
 export default function (pi: ExtensionAPI) {
 	const sessionId = crypto.randomUUID();
@@ -33,16 +33,20 @@ export default function (pi: ExtensionAPI) {
 	})();
 	let lastModel: string | undefined;
 	let lastThinking: string | undefined = defaultThinking;
-	let statsLog: ReturnType<typeof createStatsLog> | undefined;
+	let sink: ReturnType<typeof createEventSink> | undefined;
 
-	function ensureStatsLog() {
-		if (!statsLog) {
+	function ensureSink() {
+		if (!sink) {
 			const dir =
 				process.env.ZERO_TIMEOUT_FILTER_STATS_DIR ??
 				join(homedir(), "neelopedia", "stats", "pi", "zero-timeout-filter");
-			statsLog = createStatsLog({ statsDir: dir });
+			sink = createEventSink({
+				statsDir: dir,
+				agent: "pi",
+				namespace: "zero-timeout-filter",
+			});
 		}
-		return statsLog;
+		return sink;
 	}
 
 	// ── Capture model + thinking level ──────────────────────────────────────
@@ -73,14 +77,19 @@ export default function (pi: ExtensionAPI) {
 		// Log only if there was actually a timeout to strip
 		if (originalTimeout === undefined) return;
 
-		ensureStatsLog().logTimeoutStripped({
-			ts: new Date().toISOString(),
-			originalTimeout,
-			parentModel: lastModel ?? "unknown",
-			thinkingLevel: lastThinking ?? "unknown",
-			sessionId,
-			workspace: process.cwd(),
-			toolCallId: event.toolCallId,
-		});
+		ensureSink().append(
+			"timeout_stripped",
+			{
+				originalTimeout,
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking ?? "unknown",
+				toolCallId: event.toolCallId,
+			},
+			{
+				timestamp: new Date().toISOString(),
+				sessionId,
+				workspace: process.cwd(),
+			},
+		);
 	});
 }
