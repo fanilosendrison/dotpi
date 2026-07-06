@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createStatsLog } from "./post-write-linter-internals/stats-log";
+import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 
 const HOME = process.env.HOME || homedir();
 const linterPath = join(
@@ -43,10 +43,12 @@ export default function (pi: ExtensionAPI) {
 		lastThinking = event.level;
 	});
 
-	const statsLog = createStatsLog({
+	const sink = createEventSink({
 		statsDir: join(HOME, "neelopedia", "stats", "pi", "post-write-linter"),
+		agent: "pi",
+		namespace: "post-write-linter",
 		sessionId,
-		cwd: process.cwd(),
+		workspace: process.cwd(),
 	});
 
 	// ── Lint after write/edit ───────────────────────────────────────────────
@@ -68,15 +70,22 @@ export default function (pi: ExtensionAPI) {
 		try {
 			const result = checkFile(filePath);
 			if (!result.success && result.output) {
-				statsLog.logResult({
-					ts,
-					filePath,
-					language,
-					status: "error",
-					output: result.output,
-					parentModel: lastModel ?? "unknown",
-					thinkingLevel: lastThinking,
-				});
+				const outputTruncated =
+					result.output.length <= 500
+						? result.output
+						: result.output.slice(0, 500) + "…";
+				sink.append(
+					"lint_result",
+					{
+						filePath,
+						language,
+						status: "error",
+						output: outputTruncated,
+						parentModel: lastModel ?? "unknown",
+						thinkingLevel: lastThinking,
+					},
+					{ timestamp: ts },
+				);
 				return {
 					isError: true,
 					content: [
@@ -87,14 +96,17 @@ export default function (pi: ExtensionAPI) {
 					],
 				};
 			}
-			statsLog.logResult({
-				ts,
-				filePath,
-				language,
-				status: "success",
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
-			});
+			sink.append(
+				"lint_result",
+				{
+					filePath,
+					language,
+					status: "success",
+					parentModel: lastModel ?? "unknown",
+					thinkingLevel: lastThinking,
+				},
+				{ timestamp: ts },
+			);
 		} catch {
 			return {
 				isError: true,
