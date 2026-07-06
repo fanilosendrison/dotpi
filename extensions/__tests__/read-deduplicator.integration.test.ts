@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	createReadTracker,
 	type TrackEntry,
-} from "../read-deduplicator-internals/lib/read-tracker";
+} from "../read-deduplicator-internals/read-tracker";
 
 /**
  * Integration tests for the read-deduplicator decision chain.

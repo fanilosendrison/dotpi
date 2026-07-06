@@ -21,8 +21,8 @@ import {
 	isReadToolResult,
 	isToolCallEventType,
 } from "@earendil-works/pi-coding-agent";
-import { createReadTracker } from "./read-deduplicator-internals/lib/read-tracker";
-import { createStatsLog } from "./read-deduplicator-internals/stats-log";
+import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
+import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
 
 // ── Fingerprint helpers ────────────────────────────────────────────────────
 
@@ -88,10 +88,10 @@ export default function (pi: ExtensionAPI) {
 		"pi",
 		"read-deduplicator",
 	);
-	const statsLog = createStatsLog({
+	const sink = createEventSink({
 		statsDir,
-		sessionId,
-		cwd: process.cwd(),
+		agent: "pi",
+		namespace: "read-deduplicator",
 	});
 
 	let currentTurn = 0;
@@ -111,7 +111,7 @@ export default function (pi: ExtensionAPI) {
 	// ── Session lifecycle ──────────────────────────────────────────────────
 
 	pi.on("session_start", () => {
-		// Stats dir already created by createStatsLog
+		// Stats dir already created by createEventSink
 	});
 
 	// ── Turn tracking ──────────────────────────────────────────────────────
@@ -174,11 +174,23 @@ export default function (pi: ExtensionAPI) {
 
 		// Same fingerprint, still in context — block
 		if (entry.stillInContext) {
-			statsLog.logFileAccess({
-				...common,
-				action: "blocked",
-				blockedReason: `already in context (turn ${entry.turn})`,
-			});
+			sink.append(
+				"file_access",
+				{
+					action: "blocked",
+					path: common.path,
+					sizeBytes: common.sizeBytes,
+					turnIndex: common.turnIndex,
+					parentModel: common.parentModel,
+					thinkingLevel: common.thinkingLevel,
+					blockedReason: `already in context (turn ${entry.turn})`,
+				},
+				{
+					timestamp: common.ts,
+					sessionId: common.sessionId,
+					workspace: common.workspace,
+				},
+			);
 			return {
 				block: true,
 				reason: `(already in context, turn ${entry.turn})`,
@@ -213,16 +225,21 @@ export default function (pi: ExtensionAPI) {
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
 
-		statsLog.logFileAccess({
-			ts: new Date().toISOString(),
-			action: "read",
-			path,
-			sizeBytes,
-			turnIndex: currentTurn,
-			parentModel: lastModel ?? "unknown",
-			thinkingLevel: lastThinking,
-			sessionId,
-			workspace: process.cwd(),
-		});
+		sink.append(
+			"file_access",
+			{
+				action: "read",
+				path,
+				sizeBytes,
+				turnIndex: currentTurn,
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
+			},
+			{
+				timestamp: new Date().toISOString(),
+				sessionId,
+				workspace: process.cwd(),
+			},
+		);
 	});
 }
