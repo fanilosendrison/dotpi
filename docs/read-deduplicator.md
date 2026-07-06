@@ -101,8 +101,5 @@ The extension shows the running block count in Pi's status bar via
 |------|---------|-----------|
 | `~/.pi/agent/extensions/read-deduplicator.ts` | Extension entry point | ✅ |
 | `~/.pi/agent/extensions/read-deduplicator-internals/read-tracker.ts` | In-memory file tracker | ✅ |
-| `~/.pi/agent/extensions/read-deduplicator-internals/blocked-log.ts` | JSONL event log writer | ✅ |
-| `~/.pi/agent/extensions/read-deduplicator-internals/atomic-writer.ts` | Atomic append utility | ✅ |
-| `~/.pi/agent/extensions/__tests__/blocked-log.test.ts` | Unit tests for event logging | ✅ |
 | `~/.pi/agent/extensions/__tests__/read-deduplicator.test.ts` | Unit tests for tracker | ✅ |
 | `~/.pi/agent/extensions/__tests__/read-deduplicator.integration.test.ts` | Integration tests | ✅ |

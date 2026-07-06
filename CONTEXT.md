@@ -25,7 +25,6 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 ├── specs/                  ← Design specs for future extensions
 ├── extensions/             ← Auto-discovered extensions
 │   ├── command-validator.ts
-│   ├── commit-validator.ts
 │   ├── enhanced-model-selector.ts
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
@@ -33,21 +32,15 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 │   ├── post-write-linter.ts
 │   ├── read-deduplicator.ts
 │   ├── read-deduplicator-internals/
-│   │   ├── lib/
-│   │   │   ├── atomic-writer.ts
-│   │   │   └── read-tracker.ts
-│   │   ├── stats-log.ts
-│   │   └── __tests__/
-│   │       ├── atomic-writer.test.ts
-│   │       ├── read-tracker.test.ts
-│   │       └── stats-log.test.ts
+│   │   ├── read-tracker.ts
+│   │   └── read-tracker.test.ts
 │   ├── secret-scanner.ts
+│   ├── zero-timeout-filter.ts
 │   └── __tests__/          ← tests d'intégration (bun test extensions/__tests__/)
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
 │   ├── command-validator.md                      ← Bash security rules
-│   ├── commit-validator.md                       ← How commits are validated
 │   ├── creating-extensions.md                    ← Conventions for new extensions
 │   ├── enhanced-model-selector.md                ← How model picker has been extended with costs
 │   ├── extended-global-context.md                ← How global context has been extended
@@ -69,22 +62,24 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 
 ## Quick Navigation
 
-| Want to...                                  | Go here                                                                                  |
-|---------------------------------------------|------------------------------------------------------------------------------------------|
-| Understand Pi's auth bridge                 | `docs/managing-api-keys-in-pi.md` (How you manage API keys)                              |
-| Understand the enhanced model selector      | `docs/enhanced-model-selector.md` (How model picker has been extended with costs)        |
-| Understand the commit validation extensions | `docs/commit-validator.md` (How commits are validated)                                   |
-| Understand the git push enforcer            | `docs/git-commits-push-enforcer.md` (How to commit & push)                               |
-| Understand the command validator            | `docs/command-validator.md` (Bash security rules)                                        |
-| Understand the path guard                   | `docs/path-guard.md` (blocks writes to dot* repos)                                       |
-| Understand the read deduplicator            | `docs/read-deduplicator.md` (avoids re-injecting already-read files + blocked-reads log) |
-| Understand the global context extension     | `docs/extended-global-context.md` (How global context has been extended)                 |
-| Understand the post-write linter            | `docs/post-write-linter.md` (Runs Biome after every write/edit)                          |
-| Run extension integration tests             | `extensions/__tests__/` (`bun test extensions/__tests__/`)                                |
-| Run internals unit tests                     | `extensions/*-internals/__tests__/` (`bun test extensions/*-internals/__tests__/`)        |
-| Reapply patches after pi update             | `patches/enhanced-model-selector/apply.sh`                                               |
-| Conventions for new extensions              | `docs/creating-extensions.md` (Conventions for new extensions)                           |
-| See all harness modifications               | `docs/CONTEXT.md`                                                                        |
+| Want to...                                       | Go here                                                                                  |
+|--------------------------------------------------|------------------------------------------------------------------------------------------|
+| Understand Pi's auth bridge                      | `docs/managing-api-keys-in-pi.md` (How you manage API keys)                              |
+| Understand the enhanced model selector           | `docs/enhanced-model-selector.md` (How model picker has been extended with costs)        |
+| Understand the git push enforcer                 | `docs/git-commits-push-enforcer.md` (How to commit & push)                               |
+| Understand the retry mechanism                   | `docs/git-commits-push-skill-retry-overhaul.md` (Unified retry on all catches)           |
+| Understand the command validator                 | `docs/command-validator.md` (Bash security rules)                                        |
+| Understand the path guard                        | `docs/path-guard.md` (blocks writes to dot* repos)                                       |
+| Understand the read deduplicator                 | `docs/read-deduplicator.md` (avoids re-injecting already-read files + blocked-reads log) |
+| Understand the global context extension          | `docs/extended-global-context.md` (How global context has been extended)                 |
+| Understand the post-write linter                 | `docs/post-write-linter.md` (Runs Biome after every write/edit)                          |
+| Understand the secret scanner                    | `docs/secret-scanner.md` (Scans git diffs for secrets and blocks commits)                |
+| Understand the zero-timeout filter               | `docs/zero-timeout-filter.md` (Strips external timeout from git-commits-push skill)      |
+| Run extension integration tests                  | `extensions/__tests__/` (`bun test extensions/__tests__/`)                               |
+| Run internals unit tests                         | `extensions/*-internals/__tests__/` (`bun test extensions/*-internals/__tests__/`)       |
+| Reapply patches after pi update                  | `patches/enhanced-model-selector/apply.sh`                                               |
+| Conventions for new extensions                   | `docs/creating-extensions.md` (Conventions for new extensions)                           |
+| See all harness modifications                    | `docs/CONTEXT.md`                                                                        |
 
 ## Transversal Skills
 
@@ -93,9 +88,3 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 | Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
 | Enforce conventional commits and push               | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
-
-
-| Understand the retry mechanism in git-commits-push | `docs/git-commits-push-skill-retry-overhaul.md` (Unified retry on all catches) |
-
-| Understand the secret scanner | `docs/secret-scanner.md` (Scans git diffs for secrets and blocks commits) |
-| Understand the zero-timeout filter | `docs/zero-timeout-filter.md` (Strips external timeout from git-commits-push skill) |
