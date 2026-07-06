@@ -14,7 +14,7 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 
-import { createStatsLog } from "./git-commits-push-enforcer-internals/stats-log";
+import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 
 const GIT_COMMIT = /git\s+commit\b/;
 
@@ -55,10 +55,12 @@ export default function (pi: ExtensionAPI) {
 	let lastModel: string | undefined;
 	let lastThinking: string = readDefaultThinking();
 
-	const statsLog = createStatsLog({
+	const sink = createEventSink({
 		statsDir,
+		agent: "pi",
+		namespace: "git-commits-push-enforcer",
 		sessionId,
-		cwd: process.cwd(),
+		workspace: process.cwd(),
 	});
 
 	// ── Capture model + thinking level ──────────────────────────────────────
@@ -90,13 +92,16 @@ export default function (pi: ExtensionAPI) {
 		process.env.PI_PARENT_MODEL = lastModel ?? "unknown";
 		process.env.PI_SESSION_ID = sessionId;
 
-		statsLog.logTriggered({
-			ts: new Date().toISOString(),
-			rawCommand: cmd,
-			detectedBy,
-			toolCallId: event.toolCallId,
-			parentModel: lastModel ?? "unknown",
-			thinkingLevel: lastThinking,
-		});
+		sink.append(
+			"enforcer_triggered",
+			{
+				rawCommand: cmd,
+				detectedBy,
+				toolCallId: event.toolCallId,
+				parentModel: lastModel ?? "unknown",
+				thinkingLevel: lastThinking,
+			},
+			{ timestamp: new Date().toISOString() },
+		);
 	});
 }
