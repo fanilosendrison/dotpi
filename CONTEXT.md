@@ -41,6 +41,7 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
 │   ├── command-validator.md                      ← Bash security rules
+│   ├── context-section-color.md                  ← Rose Pine yellow [Context] header
 │   ├── creating-extensions.md                    ← Conventions for new extensions
 │   ├── enhanced-model-selector.md                ← How model picker has been extended with costs
 │   ├── extended-global-context.md                ← How global context has been extended
@@ -88,3 +89,5 @@ Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits a
 | Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
 | Enforce conventional commits and push               | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
+
+| Understand the [Context] header color change | `docs/context-section-color.md` (Rose Pine yellow [Context] header) |
