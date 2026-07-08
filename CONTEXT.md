@@ -2,7 +2,7 @@
 
 This file is the map to `~/.pi/agent/` — every customization made to your Pi harness and the workflows for making them. You loaded it because the user asked about modifying you or your own harness.
 
-Every customization has its own topic folder under `docs/`, each with a `CONTEXT.md` that explains what was done and how it works. Use the Quick Navigation table below to find the right one, drop into its `CONTEXT.md`, and follow the instructions.
+Every customization has its own topic folder under `docs/` that explains what was done and how it works. Use the Quick Navigation table below to find the right one and follow the instructions.
 
 Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`
 
