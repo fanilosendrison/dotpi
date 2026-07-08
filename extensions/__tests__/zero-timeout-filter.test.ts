@@ -1,26 +1,24 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
+import { describe, expect, test, mock, beforeEach } from "bun:test";
+
+const appendMock = mock();
+mock.module(
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts",
+	() => ({
+		createPiTelemetry: () => ({
+			sink: { append: appendMock },
+			model: "m-filter",
+			thinking: "high",
+			sessionId: "test-session-uuid-filter",
+		}),
+	}),
+);
+
 import zeroTimeoutFilter from "../zero-timeout-filter";
 
 const SKILL_CMD =
 	"cd /Users/famillesendrison/.agents/skills/git-commits-push && bun run start";
 
-const TEST_STATS_DIR = path.join(os.tmpdir(), "ztf-test-" + Date.now());
-beforeEach(() => {
-	process.env.ZERO_TIMEOUT_FILTER_STATS_DIR = TEST_STATS_DIR;
-	fs.mkdirSync(TEST_STATS_DIR, { recursive: true });
-});
-afterEach(() => {
-	delete process.env.ZERO_TIMEOUT_FILTER_STATS_DIR;
-	if (fs.existsSync(TEST_STATS_DIR))
-		fs.rmSync(TEST_STATS_DIR, { recursive: true, force: true });
-});
-
 describe("zero-timeout-filter", () => {
-	// Reset cached statsLog between runs by re-creating the extension
-	// via a fresh zeroTimeoutFilter call
 	const handlers: Record<string, Function> = {};
 
 	const piMock = {
@@ -31,14 +29,14 @@ describe("zero-timeout-filter", () => {
 
 	zeroTimeoutFilter(piMock as any);
 
+	beforeEach(() => {
+		appendMock.mockClear();
+	});
+
 	// ── Handler registration ───────────────────────────────────────────────
 
 	test("registers tool_call handler", () => {
 		expect(handlers["tool_call"]).toBeDefined();
-	});
-
-	test("registers before_provider_request handler", () => {
-		expect(handlers["before_provider_request"]).toBeDefined();
 	});
 
 	// ── Does nothing on non-matching commands ───────────────────────────────
@@ -47,12 +45,14 @@ describe("zero-timeout-filter", () => {
 		const input = { command: SKILL_CMD, timeout: 30 };
 		await handlers["tool_call"]({ toolName: "write", input }, {});
 		expect(input.timeout).toBe(30);
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 
 	test("ignores bash commands that are not the skill", async () => {
 		const input = { command: "echo hello", timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 
 	test("ignores git commit commands", async () => {
@@ -62,32 +62,51 @@ describe("zero-timeout-filter", () => {
 		};
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 
 	test("ignores /git-commits-push command", async () => {
 		const input = { command: "/git-commits-push", timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 
 	// ── Strips timeout from skill invocation ────────────────────────────────
 
-	test("deletes timeout for the exact skill command", async () => {
+	test("deletes timeout for the exact skill command and logs telemetry", async () => {
 		const input = { command: SKILL_CMD, timeout: 60 };
-		await handlers["tool_call"]({ toolName: "bash", input }, {});
+		await handlers["tool_call"](
+			{ toolName: "bash", input, toolCallId: "tc-1" },
+			{},
+		);
 		expect(input.timeout).toBeUndefined();
+		expect(appendMock).toHaveBeenCalledTimes(1);
+		expect(appendMock.mock.calls[0][0]).toBe("timeout_stripped");
+		expect(appendMock.mock.calls[0][1]).toMatchObject({
+			originalTimeout: 60,
+			parentModel: "m-filter",
+			thinkingLevel: "high",
+			toolCallId: "tc-1",
+		});
 	});
 
-	test("works without timeout set (no-op delete)", async () => {
-		const input = { command: SKILL_CMD };
+	test("works without timeout set (no-op delete) and does not log telemetry", async () => {
+		const input: Record<string, any> = { command: SKILL_CMD };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBeUndefined();
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 
-	test("works with zero timeout", async () => {
+	test("works with zero timeout and logs telemetry", async () => {
 		const input = { command: SKILL_CMD, timeout: 0 };
-		await handlers["tool_call"]({ toolName: "bash", input }, {});
+		await handlers["tool_call"](
+			{ toolName: "bash", input, toolCallId: "tc-2" },
+			{},
+		);
 		expect(input.timeout).toBeUndefined();
+		expect(appendMock).toHaveBeenCalledTimes(1);
+		expect(appendMock.mock.calls[0][1].originalTimeout).toBe(0);
 	});
 
 	test("matches when command starts with cd ~/", async () => {
@@ -97,6 +116,7 @@ describe("zero-timeout-filter", () => {
 		};
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBeUndefined();
+		expect(appendMock).toHaveBeenCalledTimes(1);
 	});
 
 	test("does not mutate other input fields", async () => {
@@ -111,33 +131,20 @@ describe("zero-timeout-filter", () => {
 		expect(input.extra).toBe("preserved");
 	});
 
-	// ── Captures model and thinking ─────────────────────────────────────────
-
-	test("captures model from before_provider_request", async () => {
-		await handlers["before_provider_request"](
-			{ payload: { model: "deepseek-v4-pro" } },
-			{},
-		);
-	});
-
-	test("captures thinking level from thinking_level_select", async () => {
-		await handlers["thinking_level_select"](
-			{ level: "xhigh", previousLevel: undefined },
-			{},
-		);
-	});
-
 	// ── Edge cases ─────────────────────────────────────────────────────────
 
 	test("handles undefined command gracefully", async () => {
 		const input = { timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 
 	test("handles null command gracefully", async () => {
 		const input = { command: null, timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
+		expect(appendMock).not.toHaveBeenCalled();
 	});
 });
+
