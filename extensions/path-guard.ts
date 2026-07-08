@@ -9,20 +9,17 @@
  * in ~/neelopedia/stats/pi/path-guard/events.jsonl.
  */
 
-import * as crypto from "node:crypto";
-import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
+import { createPiTelemetry } from "./shared/pi-telemetry";
 
 const CORE_PATH = join(
 	homedir(),
 	".agents/agent-enforcers/path-guard/src/core/path-guard",
 );
 const { checkPath, rewriteBashCommand, extractBashPaths } = require(CORE_PATH);
-
-import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,39 +53,8 @@ function extractRepo(p: string): string | null {
 	return null;
 }
 
-function readDefaultThinking(): string {
-	try {
-		const p = join(homedir(), ".pi", "agent", "settings.json");
-		if (fs.existsSync(p)) {
-			return (
-				JSON.parse(fs.readFileSync(p, "utf-8")).defaultThinkingLevel ??
-				"unknown"
-			);
-		}
-	} catch {}
-	return "unknown";
-}
-
 export default function (pi: ExtensionAPI) {
-	const sessionId = crypto.randomUUID();
-	let lastModel: string | undefined;
-	let lastThinking: string = readDefaultThinking();
-
-	pi.on("before_provider_request", async (event) => {
-		lastModel = (event.payload as any)?.model;
-	});
-
-	pi.on("thinking_level_select", async (event) => {
-		lastThinking = event.level;
-	});
-
-	const sink = createEventSink({
-		statsDir: join(homedir(), "neelopedia", "stats", "pi", "path-guard"),
-		agent: "pi",
-		namespace: "path-guard",
-		sessionId,
-		workspace: process.cwd(),
-	});
+	const telemetry = createPiTelemetry(pi, "path-guard");
 
 	function buildDetails(entry: {
 		toolType: "write" | "edit" | "bash";
@@ -128,8 +94,9 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
+		const inputAny = event.input as Record<string, any>;
 		const givenPath =
-			event.input.file_path ?? event.input.path ?? event.input.TargetFile;
+			inputAny.file_path ?? inputAny.path ?? inputAny.TargetFile;
 		if (!givenPath || typeof givenPath !== "string") return;
 
 		const isDot = targetsDotRepo(givenPath);
@@ -142,36 +109,34 @@ export default function (pi: ExtensionAPI) {
 		const repo = extractRepo(givenPath) || "unknown";
 
 		if (!result.allowed && result.rewrittenPath) {
-			sink.append(
+			telemetry.sink.append(
 				"path_access",
 				buildDetails({
-					ts: new Date().toISOString(),
 					toolType,
 					repo,
 					action: "redirected",
 					givenPath,
 					rewrittenTo: result.rewrittenPath,
-					parentModel: lastModel ?? "unknown",
-					thinkingLevel: lastThinking,
+					parentModel: telemetry.model,
+					thinkingLevel: telemetry.thinking,
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
 			if ("file_path" in event.input)
-				event.input.file_path = result.rewrittenPath;
-			if ("path" in event.input) event.input.path = result.rewrittenPath;
+				inputAny.file_path = result.rewrittenPath;
+			if ("path" in event.input) inputAny.path = result.rewrittenPath;
 			if ("TargetFile" in event.input)
-				event.input.TargetFile = result.rewrittenPath;
+				inputAny.TargetFile = result.rewrittenPath;
 		} else {
-			sink.append(
+			telemetry.sink.append(
 				"path_access",
 				buildDetails({
-					ts: new Date().toISOString(),
 					toolType,
 					repo,
 					action: "correct",
 					givenPath,
-					parentModel: lastModel ?? "unknown",
-					thinkingLevel: lastThinking,
+					parentModel: telemetry.model,
+					thinkingLevel: telemetry.thinking,
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
@@ -187,7 +152,7 @@ export default function (pi: ExtensionAPI) {
 		if (!command || typeof command !== "string") return;
 
 		const paths = extractBashPaths(command);
-		const dotPaths = paths.filter((p) => targetsDotRepo(p));
+		const dotPaths = paths.filter((p: string) => targetsDotRepo(p));
 
 		const hasGateway =
 			dotPaths.length > 0 ||
@@ -213,32 +178,30 @@ export default function (pi: ExtensionAPI) {
 
 		if (result.rewritten) {
 			event.input.command = result.newCommand;
-			sink.append(
+			telemetry.sink.append(
 				"path_access",
 				buildDetails({
-					ts: new Date().toISOString(),
 					toolType: "bash",
 					repo,
 					action: "redirected",
 					givenPath,
 					rewrittenTo: result.newCommand,
 					originalCmd: command,
-					parentModel: lastModel ?? "unknown",
-					thinkingLevel: lastThinking,
+					parentModel: telemetry.model,
+					thinkingLevel: telemetry.thinking,
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
 		} else {
-			sink.append(
+			telemetry.sink.append(
 				"path_access",
 				buildDetails({
-					ts: new Date().toISOString(),
 					toolType: "bash",
 					repo,
 					action: "correct",
 					givenPath: dotPaths[0],
-					parentModel: lastModel ?? "unknown",
-					thinkingLevel: lastThinking,
+					parentModel: telemetry.model,
+					thinkingLevel: telemetry.thinking,
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
