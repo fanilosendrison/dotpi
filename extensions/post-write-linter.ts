@@ -1,9 +1,7 @@
-import * as crypto from "node:crypto";
-import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
+import { createPiTelemetry } from "./shared/pi-telemetry";
 
 const HOME = process.env.HOME || homedir();
 const linterPath = join(
@@ -17,39 +15,8 @@ function extractLanguage(filePath: string): string {
 	return ext;
 }
 
-function readDefaultThinking(): string {
-	try {
-		const p = join(homedir(), ".pi", "agent", "settings.json");
-		if (fs.existsSync(p)) {
-			return (
-				JSON.parse(fs.readFileSync(p, "utf-8")).defaultThinkingLevel ??
-				"unknown"
-			);
-		}
-	} catch {}
-	return "unknown";
-}
-
 export default function (pi: ExtensionAPI) {
-	const sessionId = crypto.randomUUID();
-	let lastModel: string | undefined;
-	let lastThinking: string = readDefaultThinking();
-
-	pi.on("before_provider_request", async (event) => {
-		lastModel = (event.payload as any)?.model;
-	});
-
-	pi.on("thinking_level_select", async (event) => {
-		lastThinking = event.level;
-	});
-
-	const sink = createEventSink({
-		statsDir: join(HOME, "neelopedia", "stats", "pi", "post-write-linter"),
-		agent: "pi",
-		namespace: "post-write-linter",
-		sessionId,
-		workspace: process.cwd(),
-	});
+	const telemetry = createPiTelemetry(pi, "post-write-linter");
 
 	// ── Lint after write/edit ───────────────────────────────────────────────
 
@@ -74,15 +41,15 @@ export default function (pi: ExtensionAPI) {
 					result.output.length <= 500
 						? result.output
 						: result.output.slice(0, 500) + "…";
-				sink.append(
+				telemetry.sink.append(
 					"lint_result",
 					{
 						filePath,
 						language,
 						status: "error",
 						output: outputTruncated,
-						parentModel: lastModel ?? "unknown",
-						thinkingLevel: lastThinking,
+						parentModel: telemetry.model,
+						thinkingLevel: telemetry.thinking,
 					},
 					{ timestamp: ts },
 				);
@@ -96,14 +63,14 @@ export default function (pi: ExtensionAPI) {
 					],
 				};
 			}
-			sink.append(
+			telemetry.sink.append(
 				"lint_result",
 				{
 					filePath,
 					language,
 					status: "success",
-					parentModel: lastModel ?? "unknown",
-					thinkingLevel: lastThinking,
+					parentModel: telemetry.model,
+					thinkingLevel: telemetry.thinking,
 				},
 				{ timestamp: ts },
 			);
@@ -120,3 +87,4 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 }
+
