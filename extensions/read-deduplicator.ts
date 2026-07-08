@@ -21,7 +21,7 @@ import {
 	isReadToolResult,
 	isToolCallEventType,
 } from "@earendil-works/pi-coding-agent";
-import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
+import { createPiTelemetry } from "./shared/pi-telemetry";
 import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
 
 // ── Fingerprint helpers ────────────────────────────────────────────────────
@@ -65,48 +65,13 @@ function computeFingerprint(
 	};
 }
 
-function readDefaultThinking(): string {
-	try {
-		const p = join(homedir(), ".pi", "agent", "settings.json");
-		const { existsSync, readFileSync } = require("node:fs");
-		if (existsSync(p)) {
-			return (
-				JSON.parse(readFileSync(p, "utf-8")).defaultThinkingLevel ?? "unknown"
-			);
-		}
-	} catch {}
-	return "unknown";
-}
+
 
 export default function (pi: ExtensionAPI) {
-	const sessionId = crypto.randomUUID();
+	const telemetry = createPiTelemetry(pi, "read-deduplicator");
 	const tracker = createReadTracker();
-	const statsDir = join(
-		homedir(),
-		"neelopedia",
-		"stats",
-		"pi",
-		"read-deduplicator",
-	);
-	const sink = createEventSink({
-		statsDir,
-		agent: "pi",
-		namespace: "read-deduplicator",
-	});
 
 	let currentTurn = 0;
-	let lastModel: string | undefined;
-	let lastThinking: string = readDefaultThinking();
-
-	// ── Capture model + thinking level ──────────────────────────────────────
-
-	pi.on("before_provider_request", async (event) => {
-		lastModel = (event.payload as any)?.model;
-	});
-
-	pi.on("thinking_level_select", async (event) => {
-		lastThinking = event.level;
-	});
 
 	// ── Session lifecycle ──────────────────────────────────────────────────
 
@@ -160,9 +125,9 @@ export default function (pi: ExtensionAPI) {
 			path,
 			sizeBytes,
 			turnIndex: currentTurn,
-			parentModel: lastModel ?? "unknown",
-			thinkingLevel: lastThinking,
-			sessionId,
+			parentModel: telemetry.model,
+			thinkingLevel: telemetry.thinking,
+			sessionId: telemetry.sessionId,
 			workspace: process.cwd(),
 		};
 
@@ -174,7 +139,7 @@ export default function (pi: ExtensionAPI) {
 
 		// Same fingerprint, still in context — block
 		if (entry.stillInContext) {
-			sink.append(
+			telemetry.sink.append(
 				"file_access",
 				{
 					action: "blocked",
@@ -225,19 +190,19 @@ export default function (pi: ExtensionAPI) {
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
 
-		sink.append(
+		telemetry.sink.append(
 			"file_access",
 			{
 				action: "read",
 				path,
 				sizeBytes,
 				turnIndex: currentTurn,
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
+				parentModel: telemetry.model,
+				thinkingLevel: telemetry.thinking,
 			},
 			{
 				timestamp: new Date().toISOString(),
-				sessionId,
+				sessionId: telemetry.sessionId,
 				workspace: process.cwd(),
 			},
 		);

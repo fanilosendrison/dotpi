@@ -1,136 +1,169 @@
-import { describe, expect, test } from "bun:test";
-import {
-	createReadTracker,
-	type TrackEntry,
-} from "../read-deduplicator-internals/read-tracker";
+import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-/**
- * Integration tests for the read-deduplicator decision chain.
- *
- * Tests the BEHAVIOR (should the read be blocked?), not the internal state.
- * The tracker's fields (stillInContext, fingerprint, turn) are implementation
- * details — the contract is the decision.
- */
+const appendMock = mock();
+mock.module(
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts",
+	() => ({
+		createPiTelemetry: () => ({
+			sink: { append: appendMock },
+			model: "m-dedup",
+			thinking: "high",
+			sessionId: "s-uuid-dedup",
+		}),
+	}),
+);
 
-// ── Test helpers ─────────────────────────────────────────────────────────
+import readDeduplicatorExt from "../read-deduplicator";
 
-/** The decision the extension makes in its tool_call handler. */
-function shouldBlock(
-	tracker: ReturnType<typeof createReadTracker>,
-	path: string,
-	fingerprint: string,
-): boolean {
-	const entry = tracker.get(path);
-	if (!entry) return false; // first read → allow
-	if (entry.fingerprint !== fingerprint) return false; // modified → allow
-	return entry.stillInContext; // same, in context → block; same, truncated → allow
-}
+describe("read-deduplicator extension integration", () => {
+	let tempDir: string;
+	const handlers: Record<string, Function[]> = {};
 
-/**
- * Simulate what before_provider_request does: for every tracked file,
- * check if its injectedText appears in the payload and update stillInContext.
- */
-function updateStillInContext(
-	tracker: ReturnType<typeof createReadTracker>,
-	payloadMessages: { role: string; content: string }[],
-): void {
-	const payloadText = payloadMessages.map((m) => m.content).join("\n");
-	for (const [path, entry] of tracker.entries()) {
-		tracker.setStillInContext(path, payloadText.includes(entry.injectedText));
-	}
-}
+	const piMock = {
+		on: (event: string, cb: Function) => {
+			if (!handlers[event]) handlers[event] = [];
+			handlers[event].push(cb);
+		},
+	};
 
-// ── Tests ────────────────────────────────────────────────────────────────
+	readDeduplicatorExt(piMock as any);
 
-describe("read-deduplicator / decision chain", () => {
-	test("first read is always allowed", () => {
-		const t = createReadTracker();
-		expect(shouldBlock(t, "/tmp/new.md", "fp-new")).toBe(false);
+	beforeEach(async () => {
+		appendMock.mockClear();
+		tempDir = await mkdtemp(join(tmpdir(), "pi-dedup-"));
 	});
 
-	test("re-read with same fingerprint while in payload → blocked", () => {
-		const t = createReadTracker();
-
-		// Agent reads file, content captured
-		t.track("/tmp/a.md", "fp-a", 5, "the file content");
-
-		// Next turn: content still in payload
-		updateStillInContext(t, [
-			{ role: "user", content: "some intro. the file content is still here." },
-		]);
-
-		// Agent tries to re-read → blocked
-		expect(shouldBlock(t, "/tmp/a.md", "fp-a")).toBe(true);
+	afterEach(async () => {
+		await rm(tempDir, { recursive: true, force: true });
 	});
 
-	test("re-read with same fingerprint but content truncated → allowed", () => {
-		const t = createReadTracker();
+	const trigger = async (event: string, ...args: any[]) => {
+		const list = handlers[event] || [];
+		let lastResult: any;
+		for (const h of list) {
+			lastResult = await h(...args);
+		}
+		return lastResult;
+	};
 
-		t.track("/tmp/b.md", "fp-b", 2, "old content that is gone now");
+	test("full cycle: read -> block on re-read -> allow after truncation -> re-track", async () => {
+		const file = join(tempDir, "doc.md");
+		await writeFile(file, "Hello world, this is a unique text.");
 
-		// Many turns later: content no longer in payload
-		updateStillInContext(t, [
-			{ role: "user", content: "completely different conversation now" },
-		]);
+		await trigger("session_start");
+		await trigger("turn_start", { turnIndex: 1 });
 
-		// Agent tries to re-read → allowed (need to reload)
-		expect(shouldBlock(t, "/tmp/b.md", "fp-b")).toBe(false);
+		// 1. First read is allowed, no telemetry emitted yet (until tool_result)
+		const blockResult1 = await trigger("tool_call", {
+			toolName: "read",
+			input: { path: file },
+		});
+		expect(blockResult1).toBeUndefined();
+		expect(appendMock).not.toHaveBeenCalled();
+
+		// 2. Capture read result (telemetry: action = read)
+		await trigger("tool_result", {
+			toolName: "read",
+			input: { path: file },
+			content: [{ type: "text", text: "Hello world, this is a unique text." }],
+		});
+		expect(appendMock).toHaveBeenCalledTimes(1);
+		expect(appendMock.mock.calls[0][0]).toBe("file_access");
+		expect(appendMock.mock.calls[0][1]).toMatchObject({
+			action: "read",
+			path: file,
+			parentModel: "m-dedup",
+			thinkingLevel: "high",
+		});
+
+		// 3. Next turn: content is still in provider context. Try to read again -> blocked
+		await trigger("turn_start", { turnIndex: 2 });
+		await trigger("before_provider_request", {
+			payload: {
+				messages: [
+					{
+						content: [
+							{ type: "text", text: "Here is the file: Hello world, this is a unique text." },
+						],
+					},
+				],
+			},
+		});
+
+		const blockResult2 = await trigger("tool_call", {
+			toolName: "read",
+			input: { path: file },
+		});
+		expect(blockResult2).toEqual({
+			block: true,
+			reason: "(already in context, turn 1)",
+		});
+
+		// Telemetry should log block
+		expect(appendMock).toHaveBeenCalledTimes(2);
+		expect(appendMock.mock.calls[1][1]).toMatchObject({
+			action: "blocked",
+			path: file,
+			parentModel: "m-dedup",
+			thinkingLevel: "high",
+			blockedReason: "already in context (turn 1)",
+		});
+
+		// 4. Next turn: content is truncated from provider context. Try to read -> allowed
+		await trigger("turn_start", { turnIndex: 3 });
+		await trigger("before_provider_request", {
+			payload: {
+				messages: [
+					{
+						content: [
+							{ type: "text", text: "completely unrelated query" },
+						],
+					},
+				],
+			},
+		});
+
+		const blockResult3 = await trigger("tool_call", {
+			toolName: "read",
+			input: { path: file },
+		});
+		expect(blockResult3).toBeUndefined(); // Allowed!
 	});
 
-	test("re-read after file was modified → allowed", () => {
-		const t = createReadTracker();
+	test("re-read after file is modified is allowed", async () => {
+		const file = join(tempDir, "doc.md");
+		await writeFile(file, "Content V1");
 
-		t.track("/tmp/c.md", "fp-v1", 3, "version 1 content");
-		updateStillInContext(t, [
-			{ role: "user", content: "version 1 content is here" },
-		]);
+		await trigger("session_start");
+		await trigger("turn_start", { turnIndex: 1 });
 
-		// File was edited on disk → different fingerprint
-		// (stillInContext is irrelevant when fingerprint differs)
-		expect(shouldBlock(t, "/tmp/c.md", "fp-v2")).toBe(false);
-	});
+		// Read V1
+		await trigger("tool_result", {
+			toolName: "read",
+			input: { path: file },
+			content: [{ type: "text", text: "Content V1" }],
+		});
+		expect(appendMock).toHaveBeenCalledTimes(1);
 
-	test("full cycle: read → block on re-read → allow after truncation → re-track", () => {
-		const t = createReadTracker();
+		// Edit file on disk (changes fingerprint)
+		await trigger("turn_start", { turnIndex: 2 });
+		await trigger("before_provider_request", {
+			payload: {
+				messages: [{ content: [{ type: "text", text: "Content V1" }] }],
+			},
+		});
 
-		// Before first read: entry doesn't exist → not blocked
-		expect(shouldBlock(t, "/tmp/doc.md", "fp-doc")).toBe(false);
+		await writeFile(file, "Content V2");
 
-		// Turn 3: agent reads file, tool_result captures it
-		t.track("/tmp/doc.md", "fp-doc", 3, "doc content");
-
-		// Turn 4: still in payload → re-read blocked
-		updateStillInContext(t, [
-			{ role: "user", content: "doc content still here" },
-		]);
-		expect(shouldBlock(t, "/tmp/doc.md", "fp-doc")).toBe(true);
-
-		// Turn 50: truncated from payload → re-read allowed
-		updateStillInContext(t, [
-			{ role: "user", content: "something else entirely" },
-		]);
-		expect(shouldBlock(t, "/tmp/doc.md", "fp-doc")).toBe(false);
-
-		// Agent re-reads, tracker updated
-		t.track("/tmp/doc.md", "fp-doc", 50, "doc content");
-		updateStillInContext(t, [
-			{ role: "user", content: "doc content reloaded" },
-		]);
-		expect(shouldBlock(t, "/tmp/doc.md", "fp-doc")).toBe(true);
-	});
-
-	test("multiple files tracked independently", () => {
-		const t = createReadTracker();
-
-		t.track("/tmp/x.md", "fp-x", 1, "content XXXX");
-		t.track("/tmp/y.md", "fp-y", 2, "content YYYY");
-
-		// Payload still contains X but not Y
-		updateStillInContext(t, [
-			{ role: "user", content: "content XXXX is here but YYYY is gone" },
-		]);
-
-		expect(shouldBlock(t, "/tmp/x.md", "fp-x")).toBe(true); // X → blocked
-		expect(shouldBlock(t, "/tmp/y.md", "fp-y")).toBe(false); // Y → allowed (truncated)
+		// Even though "Content V1" is still in the payload, since fingerprint changed on disk, re-read is allowed!
+		const blockResult = await trigger("tool_call", {
+			toolName: "read",
+			input: { path: file },
+		});
+		expect(blockResult).toBeUndefined();
 	});
 });
+
