@@ -6,10 +6,18 @@ Every customization has its own topic folder under `docs/` that explains what wa
 
 Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`
 
-## Symlink Structure
+## Gateway Folder — CRITICAL
 
-`~/.pi/agent/` is a directory of symlinks pointing into `~/Developper/Projects/dotpi/`.
-Always write through `~/.pi/agent/`, never directly into `dotpi/`. Git commits and pushes go to the dotpi repo.
+`~/.pi/agent/` acts as a symlink gateway to its git repo. It is a physical folder that *contains* symlinks to the repo.
+
+> ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repo (`~/Developper/Projects/dotpi`). If you attempt to write there, the `path-guard` enforcer will intentionally intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.pi/agent/` gateway. **This is normal and expected behavior.** Do not try to bypass or hack around this restriction; simply follow the rules and use the `~/.pi/agent/` gateway.
+
+**You must edit directly** through the `~/.pi/agent/` paths. 
+**Before you commit**, you must resolve a symlink to reach the physical git repo:
+
+```bash
+cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push
+```
 
 ## Folder Structure
 
