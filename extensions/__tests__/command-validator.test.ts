@@ -29,7 +29,7 @@ describe("command-validator Pi extension integration", () => {
 		);
 		expect(prohibitedResult).toEqual({
 			block: true,
-			reason: "rm -rf is forbidden - use trash instead",
+			reason: "❌ rm -rf is forbidden - use trash instead",
 		});
 
 		// 3. Destructive command pattern (e.g. write to /dev/sda)
