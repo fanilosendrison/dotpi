@@ -1,4 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, mock, beforeEach } from "bun:test";
+
+const appendMock = mock();
+mock.module(
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts",
+	() => ({
+		createPiTelemetry: () => ({
+			sink: { append: appendMock },
+			model: "test-model-enforcer",
+			thinking: "low",
+			sessionId: "test-session-uuid-enforcer",
+		}),
+	}),
+);
+
 import pushEnforcerExt from "../git-commits-push-enforcer";
 
 describe("git-commits-push-enforcer Pi extension", () => {
@@ -12,18 +26,14 @@ describe("git-commits-push-enforcer Pi extension", () => {
 
 	pushEnforcerExt(piMock as any);
 
+	beforeEach(() => {
+		appendMock.mockClear();
+	});
+
 	// ── Handler registration ───────────────────────────────────────────────
 
 	test("registers tool_call handler", () => {
 		expect(handlers["tool_call"]).toBeDefined();
-	});
-
-	test("registers before_provider_request handler", () => {
-		expect(handlers["before_provider_request"]).toBeDefined();
-	});
-
-	test("registers thinking_level_select handler", () => {
-		expect(handlers["thinking_level_select"]).toBeDefined();
 	});
 
 	// ── tool_call ──────────────────────────────────────────────────────────
@@ -37,6 +47,7 @@ describe("git-commits-push-enforcer Pi extension", () => {
 				{},
 			);
 			expect(result).toBeUndefined();
+			expect(appendMock).not.toHaveBeenCalled();
 		});
 
 		test("ignores non-commit bash commands", async () => {
@@ -45,6 +56,7 @@ describe("git-commits-push-enforcer Pi extension", () => {
 				{},
 			);
 			expect(result).toBeUndefined();
+			expect(appendMock).not.toHaveBeenCalled();
 		});
 
 		test("processes git commit commands", async () => {
@@ -56,6 +68,14 @@ describe("git-commits-push-enforcer Pi extension", () => {
 				{},
 			);
 			expect(result).toBeUndefined();
+			expect(appendMock).toHaveBeenCalledTimes(1);
+			expect(appendMock.mock.calls[0][0]).toBe("enforcer_triggered");
+			expect(appendMock.mock.calls[0][1]).toMatchObject({
+				rawCommand: "git commit -m 'feat: add x' && git push",
+				detectedBy: "git-commit",
+				parentModel: "test-model-enforcer",
+				thinkingLevel: "low",
+			});
 		});
 
 		test("processes /git-commits-push commands", async () => {
@@ -67,6 +87,13 @@ describe("git-commits-push-enforcer Pi extension", () => {
 				{},
 			);
 			expect(result).toBeUndefined();
+			expect(appendMock).toHaveBeenCalledTimes(1);
+			expect(appendMock.mock.calls[0][1]).toMatchObject({
+				rawCommand: "/git-commits-push",
+				detectedBy: "git-commits-push",
+				parentModel: "test-model-enforcer",
+				thinkingLevel: "low",
+			});
 		});
 
 		test("processes skill launch command", async () => {
@@ -81,6 +108,8 @@ describe("git-commits-push-enforcer Pi extension", () => {
 				{},
 			);
 			expect(result).toBeUndefined();
+			expect(appendMock).toHaveBeenCalledTimes(1);
+			expect(appendMock.mock.calls[0][1].detectedBy).toBe("git-commits-push");
 		});
 
 		test("ignores commands containing git-commits-push-enforcer path", async () => {
@@ -94,6 +123,8 @@ describe("git-commits-push-enforcer Pi extension", () => {
 				{},
 			);
 			expect(result).toBeUndefined();
+			expect(appendMock).not.toHaveBeenCalled();
 		});
 	});
 });
+

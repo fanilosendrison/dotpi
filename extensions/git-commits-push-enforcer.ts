@@ -7,14 +7,10 @@
  * Stats in ~/neelopedia/stats/pi/git-commits-push-enforcer/events.jsonl.
  */
 
-import * as crypto from "node:crypto";
-import * as fs from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-
-import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
+import { createPiTelemetry } from "./shared/pi-telemetry";
 
 const GIT_COMMIT = /git\s+commit\b/;
 
@@ -30,48 +26,8 @@ function isCommitIntent(cmd: string): boolean {
 	return GIT_COMMIT.test(cmd) || isSkillCmd(cmd);
 }
 
-function readDefaultThinking(): string {
-	try {
-		const path = join(homedir(), ".pi", "agent", "settings.json");
-		if (fs.existsSync(path)) {
-			return (
-				JSON.parse(fs.readFileSync(path, "utf-8")).defaultThinkingLevel ??
-				"unknown"
-			);
-		}
-	} catch {}
-	return "unknown";
-}
-
 export default function (pi: ExtensionAPI) {
-	const sessionId = crypto.randomUUID();
-	const statsDir = join(
-		homedir(),
-		"neelopedia",
-		"stats",
-		"pi",
-		"git-commits-push-enforcer",
-	);
-	let lastModel: string | undefined;
-	let lastThinking: string = readDefaultThinking();
-
-	const sink = createEventSink({
-		statsDir,
-		agent: "pi",
-		namespace: "git-commits-push-enforcer",
-		sessionId,
-		workspace: process.cwd(),
-	});
-
-	// ── Capture model + thinking level ──────────────────────────────────────
-
-	pi.on("before_provider_request", async (event) => {
-		lastModel = (event.payload as any)?.model;
-	});
-
-	pi.on("thinking_level_select", async (event) => {
-		lastThinking = event.level;
-	});
+	const telemetry = createPiTelemetry(pi, "git-commits-push-enforcer");
 
 	// ── Intercept commit intent and log ─────────────────────────────────────
 	//
@@ -89,19 +45,20 @@ export default function (pi: ExtensionAPI) {
 		const detectedBy = isSkillCmd(cmd) ? "git-commits-push" : "git-commit";
 
 		// Pass parent model/session to the skill via env vars
-		process.env.PI_PARENT_MODEL = lastModel ?? "unknown";
-		process.env.PI_SESSION_ID = sessionId;
+		process.env.PI_PARENT_MODEL = telemetry.model;
+		process.env.PI_SESSION_ID = telemetry.sessionId;
 
-		sink.append(
+		telemetry.sink.append(
 			"enforcer_triggered",
 			{
 				rawCommand: cmd,
 				detectedBy,
 				toolCallId: event.toolCallId,
-				parentModel: lastModel ?? "unknown",
-				thinkingLevel: lastThinking,
+				parentModel: telemetry.model,
+				thinkingLevel: telemetry.thinking,
 			},
 			{ timestamp: new Date().toISOString() },
 		);
 	});
 }
+
