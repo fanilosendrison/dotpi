@@ -1,15 +1,19 @@
 import { describe, expect, test, mock, beforeEach } from "bun:test";
 
 const appendMock = mock();
-mock.module("/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts", () => {
-	return {
-		createEventSink: () => ({
-			append: appendMock,
+mock.module(
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts",
+	() => ({
+		createPiTelemetry: () => ({
+			sink: { append: appendMock },
+			model: "test-model-v1",
+			thinking: "high",
+			sessionId: "test-session-uuid-1234",
 		}),
-	};
-});
+	}),
+);
 
-// We must import the extension AFTER mocking the module
+// Import AFTER mocking
 import commandValidatorExt from "../command-validator";
 
 describe("command-validator Pi extension integration", () => {
@@ -19,25 +23,15 @@ describe("command-validator Pi extension integration", () => {
 
 	test("registers tool_call handler and handles safe/unsafe/dangerous commands with telemetry", async () => {
 		let handler: Function | null = null;
-		let beforeProviderHandler: Function | null = null;
-		let thinkingLevelHandler: Function | null = null;
 
 		const piMock = {
 			on: (event: string, cb: Function) => {
 				if (event === "tool_call") handler = cb;
-				if (event === "before_provider_request") beforeProviderHandler = cb;
-				if (event === "thinking_level_select") thinkingLevelHandler = cb;
 			},
 		};
 
 		commandValidatorExt(piMock as any);
 		expect(handler).not.toBeNull();
-		expect(beforeProviderHandler).not.toBeNull();
-		expect(thinkingLevelHandler).not.toBeNull();
-
-		// Simulate LLM context
-		await beforeProviderHandler!({ payload: { model: "test-model-v1" } });
-		await thinkingLevelHandler!({ level: "high" });
 
 		// 1. Safe command
 		const safeResult = await handler!(
@@ -108,6 +102,20 @@ describe("command-validator Pi extension integration", () => {
 			action: "ask_approved",
 			userResponse: "yes",
 			rawCommand: "sudo ls",
+		});
+		// 6. Restricted tool without /go permission (should block)
+		const restrictedResult = await handler!(
+			{ toolName: "write_to_file", input: { TargetFile: "/tmp/test" } },
+			{},
+		);
+		expect(restrictedResult).toEqual({
+			block: true,
+			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
+		});
+		expect(appendMock).toHaveBeenCalledTimes(6);
+		expect(appendMock.mock.calls[5][1]).toMatchObject({
+			action: "deny",
+			toolName: "write_to_file",
 		});
 	});
 });
