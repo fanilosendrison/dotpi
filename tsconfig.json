@@ -17,6 +17,7 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noEmit": true,
+		"allowImportingTsExtensions": true,
 		"esModuleInterop": true,
 		"types": ["bun"],
 		"typeRoots": [
