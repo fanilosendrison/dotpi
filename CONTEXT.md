@@ -92,7 +92,7 @@ cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push
 | Want to...                                          | Use this skill                    |
 |-----------------------------------------------------|-----------------------------------|
 | Safely create symlinks for dot-folders              | `/create-symlink-for-dot-folders` |
-| Enforce conventional commits and push               | `/git-commits-push`               |
+| Make a commit                                       | `/git-commits-push`               |
 | Create or update a new skill                        | `/skill-creator`                  |
 
 | Understand the [Context] header color change | `docs/context-section-color.md` (Rose Pine yellow [Context] header) |
