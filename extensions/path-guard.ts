@@ -10,16 +10,10 @@
  */
 
 import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-
-const CORE_PATH = join(
-	homedir(),
-	".agents/agent-enforcers/path-guard/src/core/path-guard",
-);
-const { checkPath, rewriteBashCommand, extractBashPaths } = require(CORE_PATH);
+import { checkPath, rewriteBashCommand, extractBashPaths } from "../../dotagents/agent-enforcers/path-guard/src/core/path-guard";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

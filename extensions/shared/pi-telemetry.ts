@@ -12,8 +12,8 @@ import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
-import type { EventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
+import { createEventSink } from "../../../telemetry-tools/event-sink/src/index.ts";
+import type { EventSink } from "../../../telemetry-tools/event-sink/src/index.ts";
 
 export interface PiTelemetry {
 	/** The underlying EventSink — call sink.append() directly. */

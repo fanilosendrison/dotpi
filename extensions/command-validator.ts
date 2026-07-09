@@ -4,23 +4,11 @@
  * Imports the shared validator from ~/.agents/agent-enforcers/command-validator/.
  * No duplicated logic — all harnesses share the same rules.
  */
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-
-const VALIDATOR_PATH = join(
-	homedir(),
-	".agents/agent-enforcers/command-validator/src/core/validator",
-);
-const { CommandValidator } = require(VALIDATOR_PATH);
-
-const RULES_PATH = join(
-	homedir(),
-	".agents/agent-enforcers/command-validator/src/core/tool-rules",
-);
-const { RESTRICTED_TOOLS } = require(RULES_PATH);
+import { CommandValidator } from "../../dotagents/agent-enforcers/command-validator/src/core/validator.ts";
+import { RESTRICTED_TOOLS } from "../../dotagents/agent-enforcers/command-validator/src/core/tool-rules.ts";
 
 export default function (pi: ExtensionAPI) {
 	const validator = new CommandValidator();

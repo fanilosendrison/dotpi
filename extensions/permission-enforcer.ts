@@ -3,23 +3,11 @@
  *
  * Command validation consumes the state; this extension owns the prompt lifecycle.
  */
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
+import { detectPermissionGrantSource, updatePermissionState } from "../../dotagents/agent-enforcers/permission-enforcer/src/core/state";
 
 type PermissionGrantSource = "slash" | "skill-tag" | "none";
-
-const STATE_PATH = join(
-	homedir(),
-	".agents/agent-enforcers/permission-enforcer/src/core/state",
-);
-const { detectPermissionGrantSource, updatePermissionState } = require(
-	STATE_PATH,
-) as {
-	detectPermissionGrantSource(promptText: string): PermissionGrantSource;
-	updatePermissionState(promptText: string): boolean;
-};
 
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "permission-enforcer");

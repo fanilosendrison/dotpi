@@ -1,14 +1,6 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-
-const HOME = process.env.HOME || homedir();
-const linterPath = join(
-	HOME,
-	".agents/agent-enforcers/post-write-linter/src/core/linter",
-);
-const { checkFile } = require(linterPath);
+import { checkFile } from "../../dotagents/agent-enforcers/post-write-linter/src/core/linter";
 
 function extractLanguage(filePath: string): string {
 	const ext = filePath.split(".").pop()?.toLowerCase() || "";

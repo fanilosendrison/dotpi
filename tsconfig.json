@@ -12,6 +12,12 @@
 			],
 			"@earendil-works/pi-tui": [
 				"/Users/famillesendrison/.nvm/versions/node/v22.22.2/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui"
+			],
+			"../../dotagents/*": [
+				"/Users/famillesendrison/Developper/Projects/dotagents/*"
+			],
+			"../../../telemetry-tools/*": [
+				"/Users/famillesendrison/Developper/Projects/telemetry-tools/*"
 			]
 		},
 		"strict": true,
