@@ -1,4 +1,12 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	test,
+} from "bun:test";
 
 const appendMock = mock();
 mock.module(
@@ -15,9 +23,25 @@ mock.module(
 // @ts-ignore: ?real is a Bun feature to bypass module mocks, which TS doesn't recognize
 import { createPiTelemetry } from "../shared/pi-telemetry?real";
 
+afterAll(() => {
+	mock.restore();
+});
+
 describe("createPiTelemetry", () => {
+	let originalTelemetryBaseDir: string | undefined;
+
 	beforeEach(() => {
 		appendMock.mockClear();
+		originalTelemetryBaseDir = process.env.PI_TELEMETRY_BASE_DIR;
+		delete process.env.PI_TELEMETRY_BASE_DIR;
+	});
+
+	afterEach(() => {
+		if (originalTelemetryBaseDir === undefined) {
+			delete process.env.PI_TELEMETRY_BASE_DIR;
+		} else {
+			process.env.PI_TELEMETRY_BASE_DIR = originalTelemetryBaseDir;
+		}
 	});
 
 	test("registers before_provider_request and thinking_level_select hooks", () => {
@@ -98,6 +122,16 @@ describe("createPiTelemetry", () => {
 		});
 
 		expect((appendMock as any)._sinkOpts.statsDir).toBe("/custom/path");
+	});
+
+	test("PI_TELEMETRY_BASE_DIR override is respected", () => {
+		process.env.PI_TELEMETRY_BASE_DIR = "/tmp/pi-telemetry-test";
+		const piMock = { on: () => {} };
+		createPiTelemetry(piMock as any, "test-ext");
+
+		expect((appendMock as any)._sinkOpts.statsDir).toBe(
+			"/tmp/pi-telemetry-test/test-ext",
+		);
 	});
 
 	test("sink.append works through the telemetry object", () => {

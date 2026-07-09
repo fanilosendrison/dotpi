@@ -66,7 +66,9 @@ export function createPiTelemetry(
 
 	const statsDir =
 		options?.statsDir ??
-		join(homedir(), "neelopedia", "stats", "pi", namespace);
+		(process.env.PI_TELEMETRY_BASE_DIR
+			? join(process.env.PI_TELEMETRY_BASE_DIR, namespace)
+			: join(homedir(), "neelopedia", "stats", "pi", namespace));
 
 	const sink = createEventSink({
 		statsDir,
