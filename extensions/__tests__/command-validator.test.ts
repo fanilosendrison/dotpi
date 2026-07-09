@@ -1,4 +1,5 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test";
+import { existsSync, unlinkSync } from "node:fs";
 
 const appendMock = mock();
 mock.module(
@@ -17,16 +18,31 @@ mock.module(
 import commandValidatorExt from "../command-validator";
 
 describe("command-validator Pi extension integration", () => {
+	const TEST_STATE_PATH = "/tmp/cv-integration-test-state.json";
+
 	beforeEach(() => {
 		appendMock.mockClear();
+		process.env.PERMISSION_STATE_PATH = TEST_STATE_PATH;
+		if (existsSync(TEST_STATE_PATH)) {
+			unlinkSync(TEST_STATE_PATH);
+		}
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_STATE_PATH)) {
+			unlinkSync(TEST_STATE_PATH);
+		}
+		delete process.env.PERMISSION_STATE_PATH;
 	});
 
 	test("registers tool_call handler and handles safe/unsafe/dangerous commands with telemetry", async () => {
 		let handler: Function | null = null;
+		let beforeAgentStartHandler: Function | null = null;
 
 		const piMock = {
 			on: (event: string, cb: Function) => {
 				if (event === "tool_call") handler = cb;
+				if (event === "before_agent_start") beforeAgentStartHandler = cb;
 			},
 		};
 
@@ -116,6 +132,28 @@ describe("command-validator Pi extension integration", () => {
 		expect(appendMock.mock.calls[5][1]).toMatchObject({
 			action: "deny",
 			toolName: "write_to_file",
+		});
+
+		// 7. Fire before_agent_start with /go -> should grant permission
+		expect(beforeAgentStartHandler).not.toBeNull();
+		await beforeAgentStartHandler!({ prompt: "please /go ahead" });
+
+		// 8. Restricted tool with /go permission (should allow/be undefined)
+		const restrictedResultAllowed = await handler!(
+			{ toolName: "write_to_file", input: { TargetFile: "/tmp/test" } },
+			{},
+		);
+		expect(restrictedResultAllowed).toBeUndefined();
+
+		// 9. Fire before_agent_start without /go -> should revoke permission
+		await beforeAgentStartHandler!({ prompt: "done now" });
+		const restrictedResultBlockedAgain = await handler!(
+			{ toolName: "write_to_file", input: { TargetFile: "/tmp/test" } },
+			{},
+		);
+		expect(restrictedResultBlockedAgain).toEqual({
+			block: true,
+			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
 		});
 	});
 });
