@@ -1,4 +1,12 @@
-import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	test,
+} from "bun:test";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,6 +25,10 @@ mock.module(
 );
 
 import readDeduplicatorExt from "../read-deduplicator";
+
+afterAll(() => {
+	mock.restore();
+});
 
 describe("read-deduplicator extension integration", () => {
 	let tempDir: string;
@@ -166,4 +178,3 @@ describe("read-deduplicator extension integration", () => {
 		expect(blockResult).toBeUndefined();
 	});
 });
-
