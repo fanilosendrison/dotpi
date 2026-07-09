@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 
 const appendMock = mock();
 mock.module(
@@ -17,6 +17,10 @@ import postWriteLinter from "../post-write-linter";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+afterAll(() => {
+	mock.restore();
+});
 
 describe("post-write-linter Pi extension", () => {
 	beforeEach(() => {
@@ -91,4 +95,3 @@ describe("post-write-linter Pi extension", () => {
 		expect(appendMock.mock.calls[1][1].output).toContain("error");
 	});
 });
-

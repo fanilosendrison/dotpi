@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 
 const appendMock = mock();
 mock.module(
@@ -14,6 +14,10 @@ mock.module(
 );
 
 import pushEnforcerExt from "../git-commits-push-enforcer";
+
+afterAll(() => {
+	mock.restore();
+});
 
 describe("git-commits-push-enforcer Pi extension", () => {
 	const handlers: Record<string, Function> = {};
@@ -127,4 +131,3 @@ describe("git-commits-push-enforcer Pi extension", () => {
 		});
 	});
 });
-

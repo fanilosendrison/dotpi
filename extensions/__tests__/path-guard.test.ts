@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 
 const appendMock = mock();
 mock.module(
@@ -14,6 +14,10 @@ mock.module(
 );
 
 import pathGuardExt from "../path-guard";
+
+afterAll(() => {
+	mock.restore();
+});
 
 describe("path-guard Pi extension integration", () => {
 	beforeEach(() => {
@@ -103,4 +107,3 @@ describe("path-guard Pi extension integration", () => {
 		});
 	});
 });
-

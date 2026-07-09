@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 
 const appendMock = mock();
 mock.module(
@@ -14,6 +14,10 @@ mock.module(
 );
 
 import zeroTimeoutFilter from "../zero-timeout-filter";
+
+afterAll(() => {
+	mock.restore();
+});
 
 const SKILL_CMD =
 	"cd /Users/famillesendrison/.agents/skills/git-commits-push && bun run start";
@@ -147,4 +151,3 @@ describe("zero-timeout-filter", () => {
 		expect(appendMock).not.toHaveBeenCalled();
 	});
 });
-
