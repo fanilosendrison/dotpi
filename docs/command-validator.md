@@ -1,34 +1,72 @@
 # Command Validator
 
 - **Date**: 2026-06-28
-- **Type**: Extension (no patch needed)
+- **Updated**: 2026-07-09
+- **Type**: Extension
 - **File**: `~/.pi/agent/extensions/command-validator.ts`
 
 ## What
 
-Security guard for bash commands. Intercepts every `bash` tool call and blocks
-or confirms dangerous operations.
+Validates Pi tool calls against the shared command-validator rules.
+
+The extension blocks forbidden bash commands, asks for confirmation on dangerous
+bash commands, and consumes `/go` permission state for restricted modifying
+tools.
 
 ## How It Works
 
-Listens to `tool_call` → `bash`:
+The extension listens to `tool_call`.
+
+For bash calls, it validates the command string through:
+
+```text
+~/.agents/agent-enforcers/command-validator/src/core/validator.ts
+```
+
+For restricted modifying tools, the shared validator delegates to:
+
+```text
+~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts
+```
+
+That validator calls `isPermissionGranted()` from:
+
+```text
+~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts
+```
+
+The command-validator extension no longer updates permission state. Prompt
+lifecycle is owned by `~/.pi/agent/extensions/permission-enforcer.ts`.
+
+## Decisions
 
 | Level | Behavior |
-|-------|----------|
-| `rm -rf` | Blocked unconditionally |
-| Destructive patterns (`dd of=/dev/`, `curl \| sh`, fork bomb, `cat /etc/passwd`, etc.) | Blocked unconditionally |
-| Dangerous commands (`sudo`, `kill`, `chmod`, `nc`, `mount`, etc.) | User confirmation required |
-| `chmod +x` | Allowed (making scripts executable) |
-| Everything else | Silently allowed |
+|-----|--------|
+| `rm -rf` | Blocked unconditionally. |
+| Destructive patterns | Blocked unconditionally. |
+| Dangerous commands | User confirmation required. |
+| `chmod +x` | Allowed. |
+| Safe bash commands | Allowed silently. |
+| Restricted tool without `/go` | Blocked with the permission authorization message. |
+| Restricted tool with `/go` | Allowed. |
 
-## Shared Logic
+## Telemetry
 
-Mirrors `~/.agents/agent-enforcers/command-validator/src/core/validator.ts`.
-The dangerous commands list and destructive patterns are kept in sync.
+Events are written to:
+
+```text
+~/neelopedia/stats/pi/command-validator/events.jsonl
+```
+
+Event type:
+
+```text
+validation_result
+```
 
 ## Relevant Files
 
-| File | Purpose | Versioned |
-|------|---------|-----------|
-| `dotpi/extensions/command-validator.ts` | Pi extension | ✅ |
-| `dotagents/agent-enforcers/command-validator/` | Shared security rules | ✅ |
+- `~/.pi/agent/extensions/command-validator.ts`
+- `~/.pi/agent/extensions/permission-enforcer.ts`
+- `~/.agents/agent-enforcers/command-validator/`
+- `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`

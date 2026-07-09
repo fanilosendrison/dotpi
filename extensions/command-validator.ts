@@ -22,23 +22,9 @@ const RULES_PATH = join(
 );
 const { RESTRICTED_TOOLS } = require(RULES_PATH);
 
-const STATE_PATH = join(
-	homedir(),
-	".agents/agent-enforcers/permission-enforcer/src/core/state",
-);
-const { updatePermissionState } = require(STATE_PATH);
-
 export default function (pi: ExtensionAPI) {
 	const validator = new CommandValidator();
 	const telemetry = createPiTelemetry(pi, "command-validator");
-
-	// ── Update permission state on new prompt ─────────────────────────────────
-
-	pi.on("before_agent_start", async (event) => {
-		if (event.prompt && typeof event.prompt === "string") {
-			updatePermissionState(event.prompt);
-		}
-	});
 
 	// ── Validate bash commands ───────────────────────────────────────────────
 
@@ -95,4 +81,3 @@ export default function (pi: ExtensionAPI) {
 		telemetry.sink.append("validation_result", telemetryData, { timestamp: new Date().toISOString() });
 	});
 }
-
