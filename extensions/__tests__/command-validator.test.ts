@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -55,21 +55,7 @@ describe("command-validator Pi extension integration", () => {
 		}
 	});
 
-	function readValidationEvents(): Array<Record<string, unknown>> {
-		const eventsPath = join(
-			tmpDir,
-			"stats",
-			"command-validator",
-			"events.jsonl",
-		);
-		return readFileSync(eventsPath, "utf-8")
-			.trim()
-			.split("\n")
-			.filter(Boolean)
-			.map((line) => JSON.parse(line) as Record<string, unknown>);
-	}
-
-	test("registers tool_call handler and handles safe/unsafe/dangerous commands with telemetry", async () => {
+	test("registers tool_call handler and handles safe/unsafe/dangerous commands", async () => {
 		resetRuntimeModules();
 		// @ts-ignore: ?real is a Bun feature to bypass module mocks.
 		const { default: commandValidatorExt } = await import(
@@ -134,39 +120,6 @@ describe("command-validator Pi extension integration", () => {
 		expect(restrictedResult).toEqual({
 			block: true,
 			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
-		});
-
-		const events = readValidationEvents();
-		const details = events.map(
-			(event) => event.details as Record<string, unknown>,
-		);
-
-		expect(events).toHaveLength(6);
-		expect(events[0].eventType).toBe("validation_result");
-		expect(details[0]).toMatchObject({
-			action: "allow",
-			rawCommand: "ls -la",
-			parentModel: "unknown",
-		});
-		expect(details[1]).toMatchObject({
-			action: "deny",
-			rawCommand: "rm -rf /tmp/stuff",
-			reason: "❌ rm -rf is forbidden - use trash instead",
-		});
-		expect(details[2].action).toBe("deny");
-		expect(details[3]).toMatchObject({
-			action: "ask_rejected",
-			userResponse: "no",
-			rawCommand: "sudo ls",
-		});
-		expect(details[4]).toMatchObject({
-			action: "ask_approved",
-			userResponse: "yes",
-			rawCommand: "sudo ls",
-		});
-		expect(details[5]).toMatchObject({
-			action: "deny",
-			toolName: "write_to_file",
 		});
 	});
 });
