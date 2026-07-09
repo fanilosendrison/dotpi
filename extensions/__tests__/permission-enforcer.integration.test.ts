@@ -15,6 +15,18 @@ type ExtensionHandler = (
 ) => Promise<unknown> | unknown;
 type HandlerRegistry = Record<string, ExtensionHandler[]>;
 
+const EXTENSION_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/permission-enforcer.ts";
+const TELEMETRY_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts";
+
+function resetRuntimeModules() {
+	mock.restore();
+	for (const path of [EXTENSION_PATH, TELEMETRY_PATH]) {
+		delete require.cache[require.resolve(path)];
+	}
+}
+
 describe("permission-enforcer Pi extension integration", () => {
 	let tmpDir: string;
 	let originalTelemetryBaseDir: string | undefined;
@@ -39,7 +51,7 @@ describe("permission-enforcer Pi extension integration", () => {
 	});
 
 	async function registerExtension(): Promise<HandlerRegistry> {
-		mock.restore();
+		resetRuntimeModules();
 		// @ts-ignore: ?real is a Bun feature to bypass module mocks.
 		const { default: permissionEnforcerExt } = await import(
 			"../permission-enforcer?real"

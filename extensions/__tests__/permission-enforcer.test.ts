@@ -1,15 +1,26 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isPermissionGranted } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
-import permissionEnforcerExt from "../permission-enforcer";
 
 type ExtensionHandler = (
 	event: Record<string, unknown>,
 ) => Promise<unknown> | unknown;
 type HandlerRegistry = Record<string, ExtensionHandler[]>;
+
+const EXTENSION_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/permission-enforcer.ts";
+const TELEMETRY_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts";
+
+function resetRuntimeModules() {
+	mock.restore();
+	for (const path of [EXTENSION_PATH, TELEMETRY_PATH]) {
+		delete require.cache[require.resolve(path)];
+	}
+}
 
 describe("permission-enforcer Pi extension", () => {
 	let tmpDir: string;
@@ -34,7 +45,12 @@ describe("permission-enforcer Pi extension", () => {
 		}
 	});
 
-	function registerExtension(): HandlerRegistry {
+	async function registerExtension(): Promise<HandlerRegistry> {
+		resetRuntimeModules();
+		// @ts-ignore: ?real is a Bun feature to bypass module mocks.
+		const { default: permissionEnforcerExt } = await import(
+			"../permission-enforcer?real"
+		);
 		const handlers: HandlerRegistry = {};
 		const piMock = {
 			on: (event: string, cb: ExtensionHandler) => {
@@ -60,14 +76,14 @@ describe("permission-enforcer Pi extension", () => {
 			.map((line) => JSON.parse(line) as Record<string, unknown>);
 	}
 
-	test("registers a before_agent_start handler", () => {
-		const handlers = registerExtension();
+	test("registers a before_agent_start handler", async () => {
+		const handlers = await registerExtension();
 
 		expect(handlers.before_agent_start).toHaveLength(1);
 	});
 
 	test("grants permission and logs slash /go prompts", async () => {
-		const handlers = registerExtension();
+		const handlers = await registerExtension();
 
 		await handlers.before_agent_start[0]({ prompt: "please /go ahead" });
 
@@ -84,7 +100,7 @@ describe("permission-enforcer Pi extension", () => {
 	});
 
 	test("grants permission and logs expanded skill prompts", async () => {
-		const handlers = registerExtension();
+		const handlers = await registerExtension();
 
 		const prompt = '<skill name="go">implementation rules</skill>';
 		await handlers.before_agent_start[0]({ prompt });
@@ -99,7 +115,7 @@ describe("permission-enforcer Pi extension", () => {
 	});
 
 	test("revokes permission and logs prompts without /go", async () => {
-		const handlers = registerExtension();
+		const handlers = await registerExtension();
 
 		await handlers.before_agent_start[0]({ prompt: "please /go ahead" });
 		expect(isPermissionGranted()).toBe(true);

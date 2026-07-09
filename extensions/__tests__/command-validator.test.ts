@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import commandValidatorExt from "../command-validator";
 
 interface HookResult {
 	block?: boolean;
@@ -20,6 +19,18 @@ type CommandValidatorHandler = (
 	event: Record<string, unknown>,
 	context: ConfirmContext,
 ) => Promise<HookResult | void> | HookResult | void;
+
+const EXTENSION_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/command-validator.ts";
+const TELEMETRY_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts";
+
+function resetRuntimeModules() {
+	mock.restore();
+	for (const path of [EXTENSION_PATH, TELEMETRY_PATH]) {
+		delete require.cache[require.resolve(path)];
+	}
+}
 
 describe("command-validator Pi extension integration", () => {
 	let tmpDir: string;
@@ -59,6 +70,11 @@ describe("command-validator Pi extension integration", () => {
 	}
 
 	test("registers tool_call handler and handles safe/unsafe/dangerous commands with telemetry", async () => {
+		resetRuntimeModules();
+		// @ts-ignore: ?real is a Bun feature to bypass module mocks.
+		const { default: commandValidatorExt } = await import(
+			"../command-validator?real"
+		);
 		let handler: CommandValidatorHandler | null = null;
 		const registeredEvents: string[] = [];
 

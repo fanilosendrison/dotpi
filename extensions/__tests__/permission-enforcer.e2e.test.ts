@@ -21,6 +21,24 @@ type ExtensionHandler = (
 ) => Promise<HookResult | void> | HookResult | void;
 type HandlerRegistry = Record<string, ExtensionHandler[]>;
 
+const PERMISSION_EXTENSION_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/permission-enforcer.ts";
+const COMMAND_VALIDATOR_EXTENSION_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/command-validator.ts";
+const TELEMETRY_PATH =
+	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts";
+
+function resetRuntimeModules() {
+	mock.restore();
+	for (const path of [
+		PERMISSION_EXTENSION_PATH,
+		COMMAND_VALIDATOR_EXTENSION_PATH,
+		TELEMETRY_PATH,
+	]) {
+		delete require.cache[require.resolve(path)];
+	}
+}
+
 describe("permission-enforcer and command-validator E2E", () => {
 	let tmpDir: string;
 	let originalTelemetryBaseDir: string | undefined;
@@ -45,7 +63,7 @@ describe("permission-enforcer and command-validator E2E", () => {
 	});
 
 	async function registerExtensions(): Promise<HandlerRegistry> {
-		mock.restore();
+		resetRuntimeModules();
 		const [
 			// @ts-ignore: ?real is a Bun feature to bypass module mocks.
 			{ default: permissionEnforcerExt },
