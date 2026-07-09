@@ -13,10 +13,10 @@ Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/
 > ⚠️ **PATH-GUARD WARNING**: You must **NEVER** write directly to the physical git repo (`~/Developper/Projects/dotpi`). If you attempt to write there, the `path-guard` enforcer will intentionally intercept your action. Your command will be either **strictly blocked** or **silently redirected** to the `~/.pi/agent/` gateway. **This is normal and expected behavior.** Do not try to bypass or hack around this restriction; simply follow the rules and use the `~/.pi/agent/` gateway.
 
 **You must edit directly** through the `~/.pi/agent/` paths. 
-**Before you commit**, you must resolve a symlink to reach the physical git repo:
+**To commit your changes**, simply run the commit orchestrator which will auto-discover modified repos:
 
 ```bash
-cd $(dirname "$(readlink ~/.pi/agent/AGENTS.md)") && /git-commits-push
+cd ~/.agents/skills/git-commits-push && bun run start
 ```
 
 ## Folder Structure
