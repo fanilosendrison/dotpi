@@ -57,3 +57,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 11. Context Section Color
 - **Date** : 2026-07-06
 - **Doc** : [`context-section-color.md`](context-section-color.md)
+
+### 12. Permission Enforcer
+- **Date** : 2026-07-09
+- **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
