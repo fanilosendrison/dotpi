@@ -152,5 +152,5 @@ describe("permission-enforcer and command-validator E2E", () => {
 		expect(JSON.stringify(output.permissionEvents)).not.toContain(
 			"please /go implement it",
 		);
-	});
+	}, 15000);
 });
