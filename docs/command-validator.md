@@ -13,6 +13,12 @@ The extension blocks forbidden bash commands, asks for confirmation on dangerous
 bash commands, and consumes `/go` permission state for restricted modifying
 tools.
 
+Its runtime-facing contract is shared with the Codex hook through:
+
+```text
+~/.agents/agent-enforcers/command-validator/src/core/runtime-contract.ts
+```
+
 ## How It Works
 
 The extension listens to `tool_call`.
@@ -37,6 +43,11 @@ That validator calls `isPermissionGranted()` from:
 
 The command-validator extension no longer updates permission state. Prompt
 lifecycle is owned by `~/.pi/agent/extensions/permission-enforcer.ts`.
+
+Telemetry details, reason formatting, command truncation, severity inclusion, and
+restricted-tool target detection are normalized by the shared runtime contract.
+Pi remains responsible for its platform-specific approval UI through
+`ctx.ui.confirm`.
 
 ## Decisions
 
