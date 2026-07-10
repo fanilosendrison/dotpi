@@ -12,9 +12,11 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
 import {
+	buildDirectGitDeniedReason,
 	detectCommitIntent,
 	detectRawGitMutation,
 	evaluateEnforcement,
+	isGitCommitsPushSkillCommand,
 	TRUSTED_MARKER_ENV,
 	TRUSTED_MARKER_VALUE,
 	type CommitIntentDetection,
@@ -22,7 +24,12 @@ import {
 } from "../../dotagents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
 
 export type { CommitIntentDetection, RawGitMutation };
-export { detectRawGitMutation, detectCommitIntent };
+export {
+	buildDirectGitDeniedReason,
+	detectRawGitMutation,
+	detectCommitIntent,
+	isGitCommitsPushSkillCommand,
+};
 
 // Compatibility aliases for existing tests that import these names.
 /** @deprecated Use detectCommitIntent instead. */
@@ -31,8 +38,7 @@ export function isCommitIntent(cmd: string): boolean {
 }
 /** @deprecated Use isGitCommitsPushSkillCommand from the shared core instead. */
 export function isSkillCmd(cmd: string): boolean {
-	return /\/git-commits-push(?:\s|$)/.test(cmd) ||
-		/\.agents\/skills\/git-commits-push(?:\s|\/|$)/.test(cmd);
+	return isGitCommitsPushSkillCommand(cmd);
 }
 
 export default function (pi: ExtensionAPI) {
@@ -104,14 +110,4 @@ export default function (pi: ExtensionAPI) {
 			reason: result.deniedReason ?? buildDirectGitDeniedReason(cmd),
 		};
 	});
-}
-
-// Re-export for backward compat (used by commit-msg-validator tests)
-function buildDirectGitDeniedReason(command: string): string {
-	const truncated = command.length <= 80 ? command : `${command.slice(0, 80)}...`;
-	return [
-		"Direct git commits are blocked. Use /git-commits-push instead.",
-		"",
-		`Got: "${truncated}"`,
-	].join("\n");
 }
