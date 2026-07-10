@@ -27,7 +27,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 - **Doc** : [`extended-global-context.md`](extended-global-context.md)
 
 ### 4. Git Commits Push Enforcer
-- **Date** : 2026-06-28
+- **Date** : 2026-07-10
 - **Doc** : [`git-commits-push-enforcer.md`](git-commits-push-enforcer.md)
 
 ### 5. Command Validator
