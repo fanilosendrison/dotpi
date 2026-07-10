@@ -20,6 +20,7 @@
 				"/Users/famillesendrison/Developper/Projects/telemetry-tools/*"
 			]
 		},
+		"rootDirs": ["../", "../../Developper/Projects"],
 		"strict": true,
 		"skipLibCheck": true,
 		"noEmit": true,
