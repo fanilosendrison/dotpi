@@ -7,8 +7,15 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator.ts";
-import { RESTRICTED_TOOLS } from "../../../.agents/agent-enforcers/command-validator/src/core/tool-rules.ts";
+import { CommandValidator } from "../../dotagents/agent-enforcers/command-validator/src/core/validator.ts";
+import {
+	createRuntimeValidationDetails,
+	formatPiConfirmationMessage,
+	formatValidationReason,
+	normalizeRawCommand,
+	shouldValidateRuntimeTool,
+	type RuntimeValidationOverrides,
+} from "../../dotagents/agent-enforcers/command-validator/src/core/runtime-contract.ts";
 
 export default function (pi: ExtensionAPI) {
 	const validator = new CommandValidator();
@@ -19,9 +26,8 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_call", async (event, ctx) => {
 		const isBash = isToolCallEventType("bash", event);
 		const toolName = event.toolName || "Unknown";
-		const isRestricted = RESTRICTED_TOOLS.includes(toolName);
 
-		if (!isBash && !isRestricted) return;
+		if (!shouldValidateRuntimeTool(toolName, isBash)) return;
 
 		let cmd: unknown;
 		if (isBash) {
@@ -30,34 +36,37 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		const result = validator.validate(cmd, toolName);
-
-		const rawCommandStr = typeof cmd === "string" ? cmd : "";
-		const telemetryData: Record<string, unknown> = {
-			rawCommand: rawCommandStr.length > 500 ? rawCommandStr.slice(0, 500) + "…" : rawCommandStr,
-			action: result.action,
+		const rawCommandStr = normalizeRawCommand(cmd);
+		const validationContext = {
+			rawCommand: cmd,
+			toolName,
 			parentModel: telemetry.model,
 			thinkingLevel: telemetry.thinking,
-			toolName,
 		};
 
-		if (result.violations && result.violations.length > 0) {
-			telemetryData.reason = result.violations.join("; ");
+		function emitTelemetry(overrides?: RuntimeValidationOverrides) {
+			telemetry.sink.append(
+				"validation_result",
+				createRuntimeValidationDetails(result, validationContext, overrides),
+				{ timestamp: new Date().toISOString() },
+			);
 		}
 
 		if (result.action === "deny") {
-			telemetry.sink.append("validation_result", telemetryData, { timestamp: new Date().toISOString() });
-			return { block: true, reason: result.violations.join("; ") };
+			emitTelemetry();
+			return { block: true, reason: formatValidationReason(result) };
 		}
 
 		if (result.action === "ask") {
 			const ok = await ctx.ui.confirm(
 				"Dangerous command",
-				`Allow: ${rawCommandStr.slice(0, 100)}`,
+				formatPiConfirmationMessage(rawCommandStr),
 			);
 
-			telemetryData.action = ok ? "ask_approved" : "ask_rejected";
-			telemetryData.userResponse = ok ? "yes" : "no";
-			telemetry.sink.append("validation_result", telemetryData, { timestamp: new Date().toISOString() });
+			emitTelemetry({
+				action: ok ? "ask_approved" : "ask_rejected",
+				userResponse: ok ? "yes" : "no",
+			});
 
 			if (!ok) {
 				return { block: true, reason: "Blocked by user" };
@@ -66,6 +75,6 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		// Allow
-		telemetry.sink.append("validation_result", telemetryData, { timestamp: new Date().toISOString() });
+		emitTelemetry();
 	});
 }
