@@ -92,7 +92,7 @@ describe("path-guard Pi extension integration", () => {
 		};
 		await bashHandler(unsafeBashEvent, {});
 		expect(unsafeBashEvent.input.command).toContain("settings.json");
-		expect(unsafeBashEvent.input.command).toContain("Redirection silencieuse vers");
+		expect(unsafeBashEvent.input.command).toContain("Silent redirection to");
 		expect(unsafeBashEvent.input.command).toContain(`${HOME}/.pi/agent/settings.json`);
 
 		expect(appendMock).toHaveBeenCalledTimes(3);
