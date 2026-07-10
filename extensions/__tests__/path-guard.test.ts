@@ -42,10 +42,10 @@ describe("path-guard Pi extension integration", () => {
 		// 1. Safe write path targets dot repo but is correct → unmodified, logs action: correct
 		const safeWriteEvent = {
 			toolName: "write",
-			input: { file_path: `${HOME}/.pi/agent/settings.json` },
+			input: { path: `${HOME}/.pi/agent/settings.json`, content: "" },
 		};
 		await writeEditHandler(safeWriteEvent, {});
-		expect(safeWriteEvent.input.file_path).toBe(`${HOME}/.pi/agent/settings.json`);
+		expect(safeWriteEvent.input.path).toBe(`${HOME}/.pi/agent/settings.json`);
 		expect(appendMock).toHaveBeenCalledTimes(1);
 		expect(appendMock.mock.calls[0][0]).toBe("path_access");
 		expect(appendMock.mock.calls[0][1]).toMatchObject({
@@ -60,10 +60,10 @@ describe("path-guard Pi extension integration", () => {
 		// 2. Direct write path is rewritten and emits redirected telemetry
 		const unsafeWriteEvent = {
 			toolName: "write",
-			input: { file_path: `${HOME}/Developper/Projects/dotpi/settings.json` },
+			input: { path: `${HOME}/Developper/Projects/dotpi/settings.json`, content: "" },
 		};
 		await writeEditHandler(unsafeWriteEvent, {});
-		expect(unsafeWriteEvent.input.file_path).toBe(`${HOME}/.pi/agent/settings.json`);
+		expect(unsafeWriteEvent.input.path).toBe(`${HOME}/.pi/agent/settings.json`);
 		expect(appendMock).toHaveBeenCalledTimes(2);
 		expect(appendMock.mock.calls[1][0]).toBe("path_access");
 		expect(appendMock.mock.calls[1][1]).toMatchObject({

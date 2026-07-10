@@ -10,7 +10,7 @@
  */
 
 import { homedir } from "node:os";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, WriteToolCallEvent, EditToolCallEvent } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
 import { checkPath, rewriteBashCommand, extractBashPaths } from "../../dotagents/agent-enforcers/path-guard/src/core/path-guard";
@@ -80,26 +80,29 @@ export default function (pi: ExtensionAPI) {
 
 	// ── Guard Write and Edit ─────────────────────────────────────────────────
 
-	pi.on("tool_call", async (event) => {
-		if (
-			!isToolCallEventType("write", event) &&
-			!isToolCallEventType("edit", event)
-		) {
+	/**
+	 * Guard a write or edit tool call — extract path, check, rewrite if needed.
+	 * Type-narrowed so `event.input.path` is compile-time checked against Pi's
+	 * actual type definitions. If Pi renames or removes `path`, this fails at
+	 * compile time instead of silently no-opping.
+	 */
+	async function guardFileToolCall(
+		event: WriteToolCallEvent | EditToolCallEvent,
+		toolType: "write" | "edit",
+	): Promise<void> {
+		const givenPath = event.input.path;
+		if (typeof givenPath !== "string" || !givenPath) {
+			console.warn(
+				"[Path-Guard] ⚠️  Unexpected: write/edit input has no `path` string. Pi API may have changed.",
+				{ toolName: event.toolName, input: event.input },
+			);
 			return;
 		}
 
-		const inputAny = event.input as Record<string, any>;
-		const givenPath =
-			inputAny.file_path ?? inputAny.path ?? inputAny.TargetFile;
-		if (!givenPath || typeof givenPath !== "string") return;
-
 		const isDot = targetsDotRepo(givenPath);
-		const result = checkPath(givenPath);
 		if (!isDot) return;
 
-		const toolType = isToolCallEventType("write", event)
-			? ("write" as const)
-			: ("edit" as const);
+		const result = checkPath(givenPath);
 		const repo = extractRepo(givenPath) || "unknown";
 
 		if (!result.allowed && result.rewrittenPath) {
@@ -116,11 +119,8 @@ export default function (pi: ExtensionAPI) {
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
-			if ("file_path" in event.input)
-				inputAny.file_path = result.rewrittenPath;
-			if ("path" in event.input) inputAny.path = result.rewrittenPath;
-			if ("TargetFile" in event.input)
-				inputAny.TargetFile = result.rewrittenPath;
+			// Typed mutation — compile-time checked against Pi's actual types
+			event.input.path = result.rewrittenPath;
 		} else {
 			telemetry.sink.append(
 				"path_access",
@@ -134,6 +134,15 @@ export default function (pi: ExtensionAPI) {
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
+		}
+	}
+
+	pi.on("tool_call", async (event) => {
+		if (isToolCallEventType("write", event)) {
+			return guardFileToolCall(event, "write");
+		}
+		if (isToolCallEventType("edit", event)) {
+			return guardFileToolCall(event, "edit");
 		}
 	});
 
