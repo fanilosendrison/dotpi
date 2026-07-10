@@ -56,6 +56,12 @@ export default function (pi: ExtensionAPI) {
 		if (!cmd || typeof cmd !== "string") return;
 
 		const legacyBypassSet = process.env.BYPASS_GIT_ENFORCER === "1";
+		// Pi is an agent-level interceptor (tool_call), not a subprocess-level
+		// enforcer. Trust tokens are subprocess-level and validated only by
+		// Gravity's PATH shim. We pass trustedSkillMarkerSet to the shared core
+		// but intentionally omit trustToken + validateToken: if the marker
+		// leaks into this process the core will fail-closed (block as forged).
+		// This is safe — real trust tokens are never set in the Pi parent process.
 		const trustedSkillMarkerSet =
 			process.env[TRUSTED_MARKER_ENV] === TRUSTED_MARKER_VALUE;
 
@@ -63,6 +69,7 @@ export default function (pi: ExtensionAPI) {
 			command: cmd,
 			legacyBypassSet,
 			trustedSkillMarkerSet,
+			// trustToken + validateToken intentionally omitted — see above.
 			allowLegacyBypass: true, // transitional compatibility
 		});
 
