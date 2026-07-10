@@ -6,8 +6,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
 import { detectPermissionGrantSource, updatePermissionState } from "../../../.agents/agent-enforcers/permission-enforcer/src/core/state";
-
-type PermissionGrantSource = "slash" | "skill-tag" | "none";
+import type { PermissionGrantSource } from "../../../.agents/agent-enforcers/permission-enforcer/src/core/state";
 
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "permission-enforcer");
