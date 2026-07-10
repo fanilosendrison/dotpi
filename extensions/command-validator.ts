@@ -7,8 +7,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { CommandValidator } from "../../dotagents/agent-enforcers/command-validator/src/core/validator.ts";
-import { RESTRICTED_TOOLS } from "../../dotagents/agent-enforcers/command-validator/src/core/tool-rules.ts";
+import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator.ts";
+import { RESTRICTED_TOOLS } from "../../../.agents/agent-enforcers/command-validator/src/core/tool-rules.ts";
 
 export default function (pi: ExtensionAPI) {
 	const validator = new CommandValidator();

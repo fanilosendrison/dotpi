@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { checkFile } from "../../dotagents/agent-enforcers/post-write-linter/src/core/linter";
+import { checkFile } from "../../../.agents/agent-enforcers/post-write-linter/src/core/linter";
 
 function extractLanguage(filePath: string): string {
 	const ext = filePath.split(".").pop()?.toLowerCase() || "";

@@ -13,7 +13,7 @@ import { homedir } from "node:os";
 import type { ExtensionAPI, WriteToolCallEvent, EditToolCallEvent } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { checkPath, rewriteBashCommand, extractBashPaths } from "../../dotagents/agent-enforcers/path-guard/src/core/path-guard";
+import { checkPath, rewriteBashCommand, extractBashPaths } from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

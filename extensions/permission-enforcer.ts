@@ -5,7 +5,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { detectPermissionGrantSource, updatePermissionState } from "../../dotagents/agent-enforcers/permission-enforcer/src/core/state";
+import { detectPermissionGrantSource, updatePermissionState } from "../../../.agents/agent-enforcers/permission-enforcer/src/core/state";
 
 type PermissionGrantSource = "slash" | "skill-tag" | "none";
 
