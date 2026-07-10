@@ -19,7 +19,7 @@ import {
 	TRUSTED_MARKER_VALUE,
 	type CommitIntentDetection,
 	type RawGitMutation,
-} from "../../../.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
+} from "../../dotagents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
 
 export type { CommitIntentDetection, RawGitMutation };
 export { detectRawGitMutation, detectCommitIntent };
