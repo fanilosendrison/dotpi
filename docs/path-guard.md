@@ -3,7 +3,7 @@
 - **Date**: 2026-07-05
 - **Type**: Extension
 - **File**: `~/.pi/agent/extensions/path-guard.ts`
-- **Core**: `~/Developper/Projects/dotagents/agent-enforcers/path-guard/src/core/path-guard.ts`
+- **Core**: `~/.agents/agent-enforcers/path-guard/src/core/path-guard.ts`
 
 ## What
 
@@ -11,8 +11,9 @@ Intercepts and transparently rewrites `Write`, `Edit`, and `Bash` tool calls tha
 `~/Developper/Projects/` (dotpi, dotagents, dotclaude, etc.) instead of through
 their `~/.` prefix gateway.
 
-For dotpi specifically: writes directed at `dotpi/` are silently rewritten to `~/.pi/agent/`.
-Git commits must still be done through `cd ~/Developper/Projects/dotpi && git ...`.
+For dotpi specifically: writes directed at `dotpi/` are silently rewritten to
+`~/.pi/agent/`. Git read-only commands may still run from physical repos, but
+commits and pushes must go through `/git-commits-push`.
 
 Instead of blocking the agent with an error, the extension now acts as a "verbose wrapper":
 - It mutates the target path on the fly to its safe `~/.` gateway.
@@ -33,9 +34,10 @@ friction and wasted iterations while maintaining the exact same security guarant
 
 ### Architecture
 
-The extension (`extensions/path-guard.ts`) is a thin Pi hook. All logic lives
-in the shared core at `dotagents/agent-enforcers/path-guard/src/core/path-guard.ts`,
-reusable by other agent harnesses.
+The extension (`extensions/path-guard.ts`) is a thin Pi hook. All path decision
+logic lives in the shared core at
+`~/.agents/agent-enforcers/path-guard/src/core/path-guard.ts`, reusable by
+other agent harnesses.
 
 ### Path resolution
 
@@ -44,12 +46,14 @@ reusable by other agent harnesses.
 2. Expands `~` and `~/...` to the home directory
 3. If the real path is inside `~/Developper/Projects/dot<name>/` but the given
    path does not start with the gateway (`~/.pi/agent/` for dotpi,
-   `~/.agents/` for dotagents, etc.), the operation is blocked
+   `~/.agents/` for dotagents, etc.), the core marks it unsafe. The Pi adapter
+   rewrites it before execution.
 
 ### Write / Edit guard
 
-Intercepts `tool_call` for `write` and `edit`. Reads the target path from
-`event.input.file_path ?? event.input.path` (tools use different parameter names).
+Intercepts `tool_call` for `write` and `edit`. It checks standard path fields,
+path arrays, and patch/diff payloads before rewriting any direct physical repo
+path to the gateway.
 
 ### Bash guard
 
@@ -63,7 +67,7 @@ Intercepts `tool_call` for `write` and `edit`. Reads the target path from
    - Redirect targets (`>`, `>>`, `2>`, `&>`)
    - Tee targets (`tee`, `tee -a`)
    - Skips flags (tokens starting with `-` even if they contain `/`)
-   - Skips paths inside single/double quotes
+   - Tokenizes shell quotes and escapes before extracting path-like tokens
 4. Checks each candidate path via `checkPath`
 5. Uses `rewriteBashCommand` to mutate the bash command, replacing any forbidden path with its `~/.` gateway path.
 6. Prepends an `echo` warning to `stderr` if any rewrite occurred.
@@ -71,8 +75,9 @@ Intercepts `tool_call` for `write` and `edit`. Reads the target path from
 ### Git whitelist
 
 Commands composed entirely of `cd` and `git` segments (separated by `&&` or `;`)
-are whitelisted — they can operate directly inside `dot*` repos. This is the
-whole reason these repos exist.
+are allowed by path-guard to operate directly inside `dot*` repos. Raw
+`git commit`, `git commit-tree`, and `git push` are still enforced by
+`git-commits-push-enforcer`.
 
 ### Supported dot* repos
 
