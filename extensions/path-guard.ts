@@ -13,79 +13,23 @@ import { homedir } from "node:os";
 import type { ExtensionAPI, WriteToolCallEvent, EditToolCallEvent } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { checkPath, rewriteBashCommand, extractBashPaths } from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
+import {
+	checkPath,
+	rewriteBashCommand,
+	extractBashPaths,
+	targetsDotRepo,
+	extractRepo,
+	PATH_FIELDS,
+	collectPatchPaths,
+} from "../../../.agents/agent-enforcers/path-guard/src/core/path-guard";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-/** True when the path (absolute or ~/) targets a dot* repo, either directly
- * (~/Developper/Projects/dot*) or via its gateway (~/.pi/agent/, ~/.agents/). */
-function targetsDotRepo(givenPath: string): boolean {
-	const expanded =
-		givenPath === "~" || givenPath.startsWith("~/")
-			? homedir() + givenPath.slice(1)
-			: givenPath;
-	return (
-		expanded.includes("/Developper/Projects/dot") ||
-		/^dot[a-z]/.test(expanded) ||
-		/\/\.(?:pi\/agent|agents|[a-z]+)(?:\/|$|\s)/.test(expanded)
-	);
-}
-
-/** Extract the dot* repo name from a path, e.g. "dotpi" or null.
- * Handles both direct paths (~/Developper/Projects/dotpi) and gateways
- * (~/.pi/agent/ → dotpi, ~/.agents/ → dotagents, ~/.gravity/ → dotgravity). */
-function extractRepo(p: string): string | null {
-	const expanded = p === "~" || p.startsWith("~/") ? homedir() + p.slice(1) : p;
-	const direct = expanded.match(/\/Developper\/Projects\/(dot[a-z]+)/);
-	if (direct) return direct[1];
-	// Known gateways with non-standard names
-	if (expanded.includes("/.pi/agent/")) return "dotpi";
-	if (expanded.includes("/.agents/")) return "dotagents";
-	// Generic gateway: ~/.<name>/ → dot<name>
-	const gateway = expanded.match(/\/\.([a-z]+)\/[^/]/);
-	if (gateway) return "dot" + gateway[1];
-	return null;
-}
-
-const PATH_FIELDS = [
-	"file_path",
-	"path",
-	"TargetFile",
-	"target_file",
-	"filepath",
-	"file",
-];
 
 interface ExtractedPath {
 	field: string;
 	type: "string" | "array" | "patch";
 	index?: number;
 	path: string;
-}
-
-function collectPatchPaths(patchText: string): string[] {
-	const paths = new Set<string>();
-	for (const line of patchText.split(/\r?\n/)) {
-		const explicitFile = line.match(
-			/^\*\*\* (?:Add|Update|Delete) File: (.+)$/,
-		);
-		if (explicitFile?.[1]) {
-			paths.add(explicitFile[1].trim());
-			continue;
-		}
-
-		const movedFile = line.match(/^\*\*\* Move to: (.+)$/);
-		if (movedFile?.[1]) {
-			paths.add(movedFile[1].trim());
-			continue;
-		}
-
-		const diffTarget = line.match(/^diff --git a\/.+ b\/(.+)$/);
-		if (diffTarget?.[1]) {
-			paths.add(diffTarget[1].trim());
-		}
-	}
-	return [...paths];
 }
 
 function collectPathsAndFields(input: any): ExtractedPath[] {
