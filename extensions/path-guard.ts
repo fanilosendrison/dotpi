@@ -47,6 +47,86 @@ function extractRepo(p: string): string | null {
 	return null;
 }
 
+const PATH_FIELDS = [
+	"file_path",
+	"path",
+	"TargetFile",
+	"target_file",
+	"filepath",
+	"file",
+];
+
+interface ExtractedPath {
+	field: string;
+	type: "string" | "array" | "patch";
+	index?: number;
+	path: string;
+}
+
+function collectPatchPaths(patchText: string): string[] {
+	const paths = new Set<string>();
+	for (const line of patchText.split(/\r?\n/)) {
+		const explicitFile = line.match(
+			/^\*\*\* (?:Add|Update|Delete) File: (.+)$/,
+		);
+		if (explicitFile?.[1]) {
+			paths.add(explicitFile[1].trim());
+			continue;
+		}
+
+		const movedFile = line.match(/^\*\*\* Move to: (.+)$/);
+		if (movedFile?.[1]) {
+			paths.add(movedFile[1].trim());
+			continue;
+		}
+
+		const diffTarget = line.match(/^diff --git a\/.+ b\/(.+)$/);
+		if (diffTarget?.[1]) {
+			paths.add(diffTarget[1].trim());
+		}
+	}
+	return [...paths];
+}
+
+function collectPathsAndFields(input: any): ExtractedPath[] {
+	const results: ExtractedPath[] = [];
+
+	// 1. Single string fields
+	for (const field of PATH_FIELDS) {
+		const val = input[field];
+		if (typeof val === "string" && val.length > 0) {
+			results.push({ field, type: "string", path: val });
+		}
+	}
+
+	// 2. Arrays of path strings
+	const listFields = ["paths", "files"];
+	for (const field of listFields) {
+		const list = input[field];
+		if (Array.isArray(list)) {
+			for (let i = 0; i < list.length; i++) {
+				const val = list[i];
+				if (typeof val === "string" && val.length > 0) {
+					results.push({ field, type: "array", index: i, path: val });
+				}
+			}
+		}
+	}
+
+	// 3. Patch fields
+	for (const field of ["patch", "input", "diff"]) {
+		const patchText = input[field];
+		if (typeof patchText === "string" && patchText.length > 0) {
+			const extracted = collectPatchPaths(patchText);
+			for (const val of extracted) {
+				results.push({ field, type: "patch", path: val });
+			}
+		}
+	}
+
+	return results;
+}
+
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "path-guard");
 
@@ -82,58 +162,88 @@ export default function (pi: ExtensionAPI) {
 
 	/**
 	 * Guard a write or edit tool call — extract path, check, rewrite if needed.
-	 * Type-narrowed so `event.input.path` is compile-time checked against Pi's
-	 * actual type definitions. If Pi renames or removes `path`, this fails at
-	 * compile time instead of silently no-opping.
+	 * Analyzes standard and fallback path fields, path list arrays, and diff/patch contents,
+	 * ensuring exactly one telemetry event is logged per tool call.
 	 */
 	async function guardFileToolCall(
 		event: WriteToolCallEvent | EditToolCallEvent,
 		toolType: "write" | "edit",
 	): Promise<void> {
-		const givenPath = event.input.path;
-		if (typeof givenPath !== "string" || !givenPath) {
-			console.warn(
-				"[Path-Guard] ⚠️  Unexpected: write/edit input has no `path` string. Pi API may have changed.",
-				{ toolName: event.toolName, input: event.input },
-			);
-			return;
+		const input = event.input as any;
+		if (!input) return;
+
+		const extracted = collectPathsAndFields(input);
+		if (extracted.length === 0) return;
+
+		// Find if there is any blocked path that targets a dot repo
+		let firstBlocked: ExtractedPath | null = null;
+		let blockedResult: any = null;
+
+		for (const item of extracted) {
+			const isDot = targetsDotRepo(item.path);
+			if (isDot) {
+				const res = checkPath(item.path);
+				if (!res.allowed) {
+					firstBlocked = item;
+					blockedResult = res;
+					break;
+				}
+			}
 		}
 
-		const isDot = targetsDotRepo(givenPath);
-		if (!isDot) return;
+		if (firstBlocked && blockedResult) {
+			const repo = extractRepo(firstBlocked.path) || "unknown";
+			const rewrittenTo = blockedResult.rewrittenPath;
 
-		const result = checkPath(givenPath);
-		const repo = extractRepo(givenPath) || "unknown";
+			// Perform the rewrite in the event input for all matching instances
+			for (const item of extracted) {
+				if (item.path === firstBlocked.path) {
+					if (item.type === "string") {
+						input[item.field] = rewrittenTo;
+					} else if (item.type === "array" && typeof item.index === "number") {
+						input[item.field][item.index] = rewrittenTo;
+					} else if (item.type === "patch") {
+						input[item.field] = input[item.field].split(item.path).join(rewrittenTo);
+					}
+				}
+			}
 
-		if (!result.allowed && result.rewrittenPath) {
+			// Log EXACTLY ONE redirected telemetry event
 			telemetry.sink.append(
 				"path_access",
 				buildDetails({
 					toolType,
 					repo,
 					action: "redirected",
-					givenPath,
-					rewrittenTo: result.rewrittenPath,
+					givenPath: firstBlocked.path,
+					rewrittenTo,
 					parentModel: telemetry.model,
 					thinkingLevel: telemetry.thinking,
 				}),
 				{ timestamp: new Date().toISOString() },
 			);
-			// Typed mutation — compile-time checked against Pi's actual types
-			event.input.path = result.rewrittenPath;
-		} else {
-			telemetry.sink.append(
-				"path_access",
-				buildDetails({
-					toolType,
-					repo,
-					action: "correct",
-					givenPath,
-					parentModel: telemetry.model,
-					thinkingLevel: telemetry.thinking,
-				}),
-				{ timestamp: new Date().toISOString() },
-			);
+			return;
+		}
+
+		// If nothing is blocked, check if we need to log a "correct" access
+		for (const item of extracted) {
+			if (targetsDotRepo(item.path)) {
+				const repo = extractRepo(item.path) || "unknown";
+				// Log EXACTLY ONE correct telemetry event
+				telemetry.sink.append(
+					"path_access",
+					buildDetails({
+						toolType,
+						repo,
+						action: "correct",
+						givenPath: item.path,
+						parentModel: telemetry.model,
+						thinkingLevel: telemetry.thinking,
+					}),
+					{ timestamp: new Date().toISOString() },
+				);
+				return; // Log once and done
+			}
 		}
 	}
 
