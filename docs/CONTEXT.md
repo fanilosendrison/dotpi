@@ -42,26 +42,22 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 - **Date** : 2026-06-29
 - **Doc** : [`read-deduplicator.md`](read-deduplicator.md)
 
-### 8. Post-Write Linter
-- **Date** : 2026-07-01
-- **Doc** : [`post-write-linter.md`](post-write-linter.md)
-
-### 9. Git Commits Push Skill — Retry Overhaul
+### 8. Git Commits Push Skill — Retry Overhaul
 - **Date** : 2026-07-04
 - **Doc** : [`git-commits-push-skill-retry-overhaul.md`](git-commits-push-skill-retry-overhaul.md)
 
-### 10. Zero-Timeout Filter
+### 9. Zero-Timeout Filter
 - **Date** : 2026-07-05
 - **Doc** : [`zero-timeout-filter.md`](zero-timeout-filter.md)
 
-### 11. Context Section Color
+### 10. Context Section Color
 - **Date** : 2026-07-06
 - **Doc** : [`context-section-color.md`](context-section-color.md)
 
-### 12. Permission Enforcer
+### 11. Permission Enforcer
 - **Date** : 2026-07-09
 - **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
 
-### 13. Cwd WezTerm Split
+### 12. Cwd WezTerm Split
 - **Date** : 2026-07-11
 - **Doc** : [`cwd-wezterm-split.md`](cwd-wezterm-split.md)
