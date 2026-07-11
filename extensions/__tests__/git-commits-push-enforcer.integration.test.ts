@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { gatewayExtensionPath } from "./pi-extension-loader";
 
 interface ProbeResult {
 	result?: {
@@ -21,15 +21,18 @@ interface TelemetryEvent {
 	details: Record<string, unknown>;
 }
 
-const TEST_DIR = dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = join(TEST_DIR, "../git-commits-push-enforcer.ts");
+const EXTENSION_PATH = gatewayExtensionPath("git-commits-push-enforcer.ts");
 const PROBE_SOURCE = `
+import { homedir } from "node:os";
 import { pathToFileURL } from "node:url";
 
 const extensionPath = process.env.PROBE_EXTENSION_PATH;
 if (!extensionPath) throw new Error("missing PROBE_EXTENSION_PATH");
 
-const { default: pushEnforcerExt } = await import(pathToFileURL(extensionPath).href);
+const jitiStaticPath = Bun.resolveSync("jiti/static", homedir());
+const { createJiti } = await import(pathToFileURL(jitiStaticPath).href);
+const jiti = createJiti(import.meta.url, { moduleCache: false });
+const pushEnforcerExt = await jiti.import(extensionPath, { default: true });
 const handlers = {};
 const piMock = {
   on: (event, cb) => {

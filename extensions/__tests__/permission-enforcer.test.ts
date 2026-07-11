@@ -4,20 +4,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isPermissionGranted } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
+import { importPiExtension } from "./pi-extension-loader";
 
 type ExtensionHandler = (
 	event: Record<string, unknown>,
 ) => Promise<unknown> | unknown;
 type HandlerRegistry = Record<string, ExtensionHandler[]>;
 
-const EXTENSION_PATH =
-	"/Users/famillesendrison/.pi/agent/extensions/permission-enforcer.ts";
 const TELEMETRY_PATH =
 	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts";
 
 function resetRuntimeModules() {
 	mock.restore();
-	for (const path of [EXTENSION_PATH, TELEMETRY_PATH]) {
+	for (const path of [TELEMETRY_PATH]) {
 		delete require.cache[require.resolve(path)];
 	}
 }
@@ -47,10 +46,10 @@ describe("permission-enforcer Pi extension", () => {
 
 	async function registerExtension(): Promise<HandlerRegistry> {
 		resetRuntimeModules();
-		// @ts-ignore: ?real is a Bun feature to bypass module mocks.
-		const { default: permissionEnforcerExt } = await import(
-			"../permission-enforcer?real"
-		);
+		const permissionEnforcerExt =
+			await importPiExtension<(pi: ExtensionAPI) => void>(
+				"permission-enforcer.ts",
+			);
 		const handlers: HandlerRegistry = {};
 		const piMock = {
 			on: (event: string, cb: ExtensionHandler) => {

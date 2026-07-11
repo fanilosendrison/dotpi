@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { importPiExtension } from "./pi-extension-loader";
 
 interface HookResult {
 	block?: boolean;
@@ -20,14 +21,12 @@ type CommandValidatorHandler = (
 	context: ConfirmContext,
 ) => Promise<HookResult | void> | HookResult | void;
 
-const EXTENSION_PATH =
-	"/Users/famillesendrison/.pi/agent/extensions/command-validator.ts";
 const TELEMETRY_PATH =
 	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts";
 
 function resetRuntimeModules() {
 	mock.restore();
-	for (const path of [EXTENSION_PATH, TELEMETRY_PATH]) {
+	for (const path of [TELEMETRY_PATH]) {
 		delete require.cache[require.resolve(path)];
 	}
 }
@@ -57,10 +56,10 @@ describe("command-validator Pi extension integration", () => {
 
 	test("registers tool_call handler and handles safe/unsafe/dangerous commands", async () => {
 		resetRuntimeModules();
-		// @ts-ignore: ?real is a Bun feature to bypass module mocks.
-		const { default: commandValidatorExt } = await import(
-			"../command-validator?real"
-		);
+		const commandValidatorExt =
+			await importPiExtension<(pi: ExtensionAPI) => void>(
+				"command-validator.ts",
+			);
 		let handler: CommandValidatorHandler | null = null;
 		const registeredEvents: string[] = [];
 

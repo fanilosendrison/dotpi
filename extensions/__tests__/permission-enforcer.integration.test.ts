@@ -23,8 +23,10 @@ describe("permission-enforcer Pi extension integration", () => {
 		const script = `
 			import { readFileSync } from "node:fs";
 			import { join } from "node:path";
-			import permissionEnforcerExt from "/Users/famillesendrison/.pi/agent/extensions/permission-enforcer.ts";
 			import { isPermissionGranted } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
+			import { importPiExtension } from "/Users/famillesendrison/.pi/agent/extensions/__tests__/pi-extension-loader.ts";
+
+			const permissionEnforcerExt = await importPiExtension("permission-enforcer.ts");
 
 			const handlers = {};
 			const piMock = {

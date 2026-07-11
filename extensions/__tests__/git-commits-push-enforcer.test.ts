@@ -1,10 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import {
+import { importPiExtensionModule } from "./pi-extension-loader";
+
+interface GitCommitsPushEnforcerModule {
+	detectCommitIntent(cmd: string): string | null;
+	detectRawGitMutation(cmd: string): string | null;
+	isCommitIntent(cmd: string): boolean;
+	isSkillCmd(cmd: string): boolean;
+}
+
+const {
 	detectCommitIntent,
 	detectRawGitMutation,
 	isCommitIntent,
 	isSkillCmd,
-} from "../git-commits-push-enforcer";
+} = await importPiExtensionModule<GitCommitsPushEnforcerModule>(
+	"git-commits-push-enforcer.ts",
+);
 
 describe("git-commits-push-enforcer detection helpers", () => {
 	test("detects raw git mutation commands", () => {
