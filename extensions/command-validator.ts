@@ -6,6 +6,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
+import { getPiPermissionScope } from "./shared/pi-permission-scope";
 import { getBashCommand, isBashToolCall } from "./shared/pi-tool-events";
 import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator.ts";
 import {
@@ -16,9 +17,12 @@ import {
 	shouldValidateRuntimeTool,
 	type RuntimeValidationOverrides,
 } from "../../../.agents/agent-enforcers/command-validator/src/core/runtime-contract.ts";
+import {
+	getPermissionScopeKey,
+	isPermissionGrantedForScope,
+} from "../../../.agents/agent-enforcers/permission-enforcer/src/core/state";
 
 export default function (pi: ExtensionAPI) {
-	const validator = new CommandValidator();
 	const telemetry = createPiTelemetry(pi, "command-validator");
 
 	// ── Validate bash commands ───────────────────────────────────────────────
@@ -28,6 +32,12 @@ export default function (pi: ExtensionAPI) {
 		const toolName = event.toolName || "Unknown";
 
 		if (!shouldValidateRuntimeTool(toolName, isBash)) return;
+
+		const scope = getPiPermissionScope(ctx);
+		const permissionScope = getPermissionScopeKey(scope);
+		const validator = new CommandValidator({
+			isPermissionGranted: () => isPermissionGrantedForScope(scope),
+		});
 
 		let cmd: unknown;
 		if (isBash) {
@@ -46,7 +56,14 @@ export default function (pi: ExtensionAPI) {
 		function emitTelemetry(overrides?: RuntimeValidationOverrides) {
 			telemetry.append(
 				"validation_result",
-				createRuntimeValidationDetails(result, validationContext, overrides),
+				{
+					...createRuntimeValidationDetails(
+						result,
+						validationContext,
+						overrides,
+					),
+					permissionScope,
+				},
 			);
 		}
 
