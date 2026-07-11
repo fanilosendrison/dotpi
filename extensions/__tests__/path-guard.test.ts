@@ -9,6 +9,24 @@ mock.module(
 			model: "test-model-pathguard",
 			thinking: "low",
 			sessionId: "test-session-uuid-pathguard",
+			contextDetails: () => ({
+				parentModel: "test-model-pathguard",
+				thinkingLevel: "low",
+			}),
+			append: (
+				eventType: string,
+				details: Record<string, unknown>,
+				overrides?: Record<string, unknown>,
+			) =>
+				appendMock(
+					eventType,
+					{
+						...details,
+						parentModel: "test-model-pathguard",
+						thinkingLevel: "low",
+					},
+					overrides,
+				),
 		}),
 	}),
 );

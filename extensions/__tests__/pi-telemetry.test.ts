@@ -144,6 +144,34 @@ describe("createPiTelemetry", () => {
 		expect(appendMock.mock.calls[0][1]).toEqual({ foo: "bar" });
 	});
 
+	test("append adds current model and thinking details", async () => {
+		const handlers: Record<string, Function> = {};
+		const piMock = {
+			on: (event: string, cb: Function) => {
+				handlers[event] = cb;
+			},
+		};
+		const telemetry = createPiTelemetry(piMock as any, "test-ext");
+
+		await handlers["before_provider_request"]({
+			payload: { model: "claude-sonnet-4" },
+		});
+		await handlers["thinking_level_select"]({ level: "high" });
+
+		telemetry.append("test_event", { foo: "bar" });
+
+		expect(appendMock).toHaveBeenCalledTimes(1);
+		expect(appendMock.mock.calls[0][0]).toBe("test_event");
+		expect(appendMock.mock.calls[0][1]).toEqual({
+			foo: "bar",
+			parentModel: "claude-sonnet-4",
+			thinkingLevel: "high",
+		});
+		expect(appendMock.mock.calls[0][2].timestamp).toMatch(
+			/^\d{4}-\d{2}-\d{2}T/,
+		);
+	});
+
 	test("ignores non-string model payloads", async () => {
 		const handlers: Record<string, Function> = {};
 		const piMock = {

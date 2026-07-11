@@ -9,6 +9,24 @@ mock.module(
 			model: "m-filter",
 			thinking: "high",
 			sessionId: "test-session-uuid-filter",
+			contextDetails: () => ({
+				parentModel: "m-filter",
+				thinkingLevel: "high",
+			}),
+			append: (
+				eventType: string,
+				details: Record<string, unknown>,
+				overrides?: Record<string, unknown>,
+			) =>
+				appendMock(
+					eventType,
+					{
+						...details,
+						parentModel: "m-filter",
+						thinkingLevel: "high",
+					},
+					overrides,
+				),
 		}),
 	}),
 );

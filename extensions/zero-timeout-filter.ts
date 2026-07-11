@@ -10,8 +10,15 @@
  * for computing the ratio: stripped / git-commits-push invocations.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
+import { onBashToolCall } from "./shared/pi-tool-events";
+import { isGitCommitsPushSkillCommand } from "../../../.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
+
+function isGitCommitsPushShellLaunch(command: string): boolean {
+	return (
+		isGitCommitsPushSkillCommand(command) && command.includes("bun run start")
+	);
+}
 
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "zero-timeout-filter", {
@@ -20,13 +27,8 @@ export default function (pi: ExtensionAPI) {
 
 	// ── Strip timeout on skill invocation ───────────────────────────────────
 
-	pi.on("tool_call", async (event) => {
-		if (!isToolCallEventType("bash", event)) return;
-		const cmd = event.input.command;
-		if (!cmd || typeof cmd !== "string") return;
-		if (!cmd.includes("bun run start")) return;
-		if (!cmd.includes(".agents/skills/git-commits-push")) return;
-
+	onBashToolCall(pi, async (event, cmd) => {
+		if (!isGitCommitsPushShellLaunch(cmd)) return;
 		const originalTimeout = event.input.timeout;
 
 		// Strip the timeout regardless — skill manages its own
@@ -35,18 +37,12 @@ export default function (pi: ExtensionAPI) {
 		// Log only if there was actually a timeout to strip
 		if (originalTimeout === undefined) return;
 
-		telemetry.sink.append(
+		telemetry.append(
 			"timeout_stripped",
 			{
 				originalTimeout,
-				parentModel: telemetry.model,
-				thinkingLevel: telemetry.thinking,
 				toolCallId: event.toolCallId,
-			},
-			{
-				timestamp: new Date().toISOString(),
 			},
 		);
 	});
 }
-

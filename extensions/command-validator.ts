@@ -5,8 +5,8 @@
  * No duplicated logic — all harnesses share the same rules.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
+import { getBashCommand, isBashToolCall } from "./shared/pi-tool-events";
 import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator.ts";
 import {
 	createRuntimeValidationDetails,
@@ -24,15 +24,15 @@ export default function (pi: ExtensionAPI) {
 	// ── Validate bash commands ───────────────────────────────────────────────
 
 	pi.on("tool_call", async (event, ctx) => {
-		const isBash = isToolCallEventType("bash", event);
+		const isBash = isBashToolCall(event);
 		const toolName = event.toolName || "Unknown";
 
 		if (!shouldValidateRuntimeTool(toolName, isBash)) return;
 
 		let cmd: unknown;
 		if (isBash) {
-			cmd = (event.input as any).command;
-			if (!cmd || typeof cmd !== "string") return;
+			cmd = getBashCommand(event);
+			if (cmd === null) return;
 		}
 
 		const result = validator.validate(cmd, toolName);
@@ -40,15 +40,13 @@ export default function (pi: ExtensionAPI) {
 		const validationContext = {
 			rawCommand: cmd,
 			toolName,
-			parentModel: telemetry.model,
-			thinkingLevel: telemetry.thinking,
+			...telemetry.contextDetails(),
 		};
 
 		function emitTelemetry(overrides?: RuntimeValidationOverrides) {
-			telemetry.sink.append(
+			telemetry.append(
 				"validation_result",
 				createRuntimeValidationDetails(result, validationContext, overrides),
-				{ timestamp: new Date().toISOString() },
 			);
 		}
 

@@ -6,7 +6,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
 import { detectPermissionGrantSource, updatePermissionState } from "../../../.agents/agent-enforcers/permission-enforcer/src/core/state";
-import type { PermissionGrantSource } from "../../../.agents/agent-enforcers/permission-enforcer/src/core/state";
 
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "permission-enforcer");
@@ -16,16 +15,13 @@ export default function (pi: ExtensionAPI) {
 		const matchSource = detectPermissionGrantSource(prompt);
 		const granted = updatePermissionState(prompt);
 
-		telemetry.sink.append(
+		telemetry.append(
 			"permission_state_change",
 			{
 				granted,
-				parentModel: telemetry.model,
-				thinkingLevel: telemetry.thinking,
 				matchSource,
 				promptLength: prompt.length,
 			},
-			{ timestamp: new Date().toISOString() },
 		);
 	});
 }

@@ -14,19 +14,36 @@
 
 import { createHash } from "node:crypto";
 import { closeSync, openSync, readSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	isReadToolResult,
 	isToolCallEventType,
 } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
+import { getReadPath } from "./shared/pi-tool-inputs";
 import { createReadTracker } from "./read-deduplicator-internals/read-tracker";
 
 // ── Fingerprint helpers ────────────────────────────────────────────────────
 
 const FINGERPRINT_SAMPLE_BYTES = 4096;
+
+interface ProviderTextBlock {
+	type: "text";
+	text: string;
+}
+
+interface ProviderMessage {
+	content?: unknown;
+}
+
+function isProviderTextBlock(value: unknown): value is ProviderTextBlock {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		(value as { type?: unknown }).type === "text" &&
+		typeof (value as { text?: unknown }).text === "string"
+	);
+}
 
 function sampleFileHash(path: string): string {
 	let fd: number;
@@ -65,8 +82,6 @@ function computeFingerprint(
 	};
 }
 
-
-
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "read-deduplicator");
 	const tracker = createReadTracker();
@@ -88,16 +103,18 @@ export default function (pi: ExtensionAPI) {
 	// ── Update context tracking before each provider request ───────────────
 
 	pi.on("before_provider_request", async (event) => {
-		const payload = event.payload as any;
-		const messages = payload?.messages ?? [];
+		const payload = event.payload as { messages?: ProviderMessage[] };
+		const messages = Array.isArray(payload.messages) ? payload.messages : [];
 		const payloadText = messages
-			.flatMap((m: any) =>
-				Array.isArray(m.content)
-					? m.content
-							.filter((c: any) => c.type === "text")
-							.map((c: any) => c.text)
-					: [typeof m.content === "string" ? m.content : ""],
-			)
+			.flatMap((message) => {
+				if (Array.isArray(message.content)) {
+					return message.content
+						.filter(isProviderTextBlock)
+						.map((content) => content.text);
+				}
+
+				return [typeof message.content === "string" ? message.content : ""];
+			})
 			.join("\n");
 
 		for (const [path, entry] of tracker.entries()) {
@@ -110,9 +127,8 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_call", async (event) => {
 		if (!isToolCallEventType("read", event)) return;
 
-		const input = event.input as any;
-		const path = input.path ?? input.file_path ?? input.AbsolutePath;
-		if (!path || typeof path !== "string") return;
+		const path = getReadPath(event.input as Record<string, unknown>);
+		if (path === null) return;
 
 		const fp = computeFingerprint(path);
 		if (!fp) return;
@@ -125,8 +141,6 @@ export default function (pi: ExtensionAPI) {
 			path,
 			sizeBytes,
 			turnIndex: currentTurn,
-			parentModel: telemetry.model,
-			thinkingLevel: telemetry.thinking,
 			sessionId: telemetry.sessionId,
 			workspace: process.cwd(),
 		};
@@ -139,15 +153,13 @@ export default function (pi: ExtensionAPI) {
 
 		// Same fingerprint, still in context — block
 		if (entry.stillInContext) {
-			telemetry.sink.append(
+			telemetry.append(
 				"file_access",
 				{
 					action: "blocked",
 					path: common.path,
 					sizeBytes: common.sizeBytes,
 					turnIndex: common.turnIndex,
-					parentModel: common.parentModel,
-					thinkingLevel: common.thinkingLevel,
 					blockedReason: `already in context (turn ${entry.turn})`,
 				},
 				{
@@ -170,11 +182,8 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_result", async (event) => {
 		if (!isReadToolResult(event)) return;
 
-		const input = event.input as any;
-		const path = (input.path ??
-			input.file_path ??
-			input.AbsolutePath) as string;
-		if (!path || typeof path !== "string") return;
+		const path = getReadPath(event.input);
+		if (path === null) return;
 
 		const textContent = event.content
 			.filter((c): c is { type: "text"; text: string } => c.type === "text")
@@ -190,15 +199,13 @@ export default function (pi: ExtensionAPI) {
 
 		tracker.track(path, fingerprint, currentTurn, textContent);
 
-		telemetry.sink.append(
+		telemetry.append(
 			"file_access",
 			{
 				action: "read",
 				path,
 				sizeBytes,
 				turnIndex: currentTurn,
-				parentModel: telemetry.model,
-				thinkingLevel: telemetry.thinking,
 			},
 			{
 				timestamp: new Date().toISOString(),

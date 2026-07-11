@@ -4,7 +4,7 @@
  *
  * Usage:
  *   const telemetry = createPiTelemetry(pi, "my-extension");
- *   telemetry.sink.append("event_type", { ...details, parentModel: telemetry.model });
+ *   telemetry.append("event_type", details);
  */
 
 import * as crypto from "node:crypto";
@@ -13,7 +13,15 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createEventSink } from "../../../telemetry-tools/event-sink/src/index.ts";
-import type { EventSink } from "../../../telemetry-tools/event-sink/src/index.ts";
+import type {
+	AppendOverrides,
+	EventSink,
+} from "../../../telemetry-tools/event-sink/src/index.ts";
+
+export interface PiTelemetryContextDetails {
+	parentModel: string;
+	thinkingLevel: string;
+}
 
 export interface PiTelemetry {
 	/** The underlying EventSink — call sink.append() directly. */
@@ -24,6 +32,14 @@ export interface PiTelemetry {
 	readonly thinking: string;
 	/** Session UUID (stable for the lifetime of this extension instance). */
 	readonly sessionId: string;
+	/** Common detail fields added to extension telemetry payloads. */
+	contextDetails(): PiTelemetryContextDetails;
+	/** Append an event with current model/thinking details and a fresh timestamp. */
+	append(
+		eventType: string,
+		details: Record<string, unknown>,
+		overrides?: AppendOverrides,
+	): void;
 }
 
 export interface PiTelemetryOptions {
@@ -78,6 +94,11 @@ export function createPiTelemetry(
 		workspace: process.cwd(),
 	});
 
+	const contextDetails = (): PiTelemetryContextDetails => ({
+		parentModel: lastModel,
+		thinkingLevel: lastThinking,
+	});
+
 	return {
 		sink,
 		get model() {
@@ -87,5 +108,13 @@ export function createPiTelemetry(
 			return lastThinking;
 		},
 		sessionId,
+		contextDetails,
+		append(eventType, details, overrides) {
+			sink.append(
+				eventType,
+				{ ...details, ...contextDetails() },
+				{ timestamp: new Date().toISOString(), ...overrides },
+			);
+		},
 	};
 }
