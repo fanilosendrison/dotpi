@@ -1,72 +1,87 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { importPiExtension } from "./pi-extension-loader";
 
-const appendMock = mock();
-mock.module(
-	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts",
-	() => ({
-		createPiTelemetry: () => ({
-			sink: { append: appendMock },
-			model: "test-model-pathguard",
-			thinking: "low",
-			sessionId: "test-session-uuid-pathguard",
-			contextDetails: () => ({
-				parentModel: "test-model-pathguard",
-				thinkingLevel: "low",
-			}),
-			append: (
-				eventType: string,
-				details: Record<string, unknown>,
-				overrides?: Record<string, unknown>,
-			) =>
-				appendMock(
-					eventType,
-					{
-						...details,
-						parentModel: "test-model-pathguard",
-						thinkingLevel: "low",
-					},
-					overrides,
-				),
-		}),
-	}),
-);
+type ExtensionFactory = (pi: {
+	on: (event: string, cb: Function) => void;
+}) => void;
 
-import pathGuardExt from "../path-guard";
-
-afterAll(() => {
-	mock.restore();
-});
+interface TelemetryEvent {
+	eventType: string;
+	details: Record<string, unknown>;
+}
 
 describe("path-guard Pi extension integration", () => {
-	beforeEach(() => {
-		appendMock.mockClear();
+	let tmpDir: string;
+	let originalTelemetryBaseDir: string | undefined;
+	let handlers: Record<string, Function[]>;
+
+	beforeEach(async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), "path-guard-"));
+		originalTelemetryBaseDir = process.env.PI_TELEMETRY_BASE_DIR;
+		process.env.PI_TELEMETRY_BASE_DIR = tmpDir;
+		handlers = {};
+
+		const pathGuardExt =
+			await importPiExtension<ExtensionFactory>("path-guard.ts");
+		pathGuardExt({
+			on: (event: string, cb: Function) => {
+				handlers[event] = [...(handlers[event] ?? []), cb];
+			},
+		});
+
+		await trigger("before_provider_request", {
+			payload: { model: "test-model-pathguard" },
+		});
+		await trigger("thinking_level_select", { level: "low" });
 	});
 
+	afterEach(() => {
+		if (originalTelemetryBaseDir === undefined) {
+			delete process.env.PI_TELEMETRY_BASE_DIR;
+		} else {
+			process.env.PI_TELEMETRY_BASE_DIR = originalTelemetryBaseDir;
+		}
+		if (existsSync(tmpDir)) {
+			rmSync(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	async function trigger(event: string, ...args: unknown[]): Promise<unknown> {
+		let lastResult: unknown;
+		for (const handler of handlers[event] ?? []) {
+			lastResult = await handler(...args);
+		}
+		return lastResult;
+	}
+
+	function readEvents(): TelemetryEvent[] {
+		const eventsPath = join(tmpDir, "path-guard", "events.jsonl");
+		if (!existsSync(eventsPath)) return [];
+		return readFileSync(eventsPath, "utf-8")
+			.trim()
+			.split("\n")
+			.filter(Boolean)
+			.map((line) => JSON.parse(line) as TelemetryEvent);
+	}
+
 	test("registers tool_call handlers and rewrites paths silently with telemetry", async () => {
-		const handlers: Function[] = [];
-
-		const piMock = {
-			on: (event: string, cb: Function) => {
-				if (event === "tool_call") handlers.push(cb);
-			},
-		};
-
-		pathGuardExt(piMock as any);
-		expect(handlers.length).toBe(2);
-
-		const [writeEditHandler, bashHandler] = handlers;
+		expect(handlers.tool_call).toHaveLength(2);
 		const HOME = process.env.HOME || "/Users/famillesendrison";
 
-		// 1. Safe write path targets dot repo but is correct → unmodified, logs action: correct
 		const safeWriteEvent = {
 			toolName: "write",
 			input: { path: `${HOME}/.pi/agent/settings.json`, content: "" },
 		};
-		await writeEditHandler(safeWriteEvent, {});
+		await trigger("tool_call", safeWriteEvent, {});
 		expect(safeWriteEvent.input.path).toBe(`${HOME}/.pi/agent/settings.json`);
-		expect(appendMock).toHaveBeenCalledTimes(1);
-		expect(appendMock.mock.calls[0][0]).toBe("path_access");
-		expect(appendMock.mock.calls[0][1]).toMatchObject({
+
+		let events = readEvents();
+		expect(events).toHaveLength(1);
+		expect(events[0].eventType).toBe("path_access");
+		expect(events[0].details).toMatchObject({
 			toolType: "write",
 			repo: "dotpi",
 			action: "correct",
@@ -75,16 +90,20 @@ describe("path-guard Pi extension integration", () => {
 			thinkingLevel: "low",
 		});
 
-		// 2. Direct write path is rewritten and emits redirected telemetry
 		const unsafeWriteEvent = {
 			toolName: "write",
-			input: { path: `${HOME}/Developper/Projects/dotpi/settings.json`, content: "" },
+			input: {
+				path: `${HOME}/Developper/Projects/dotpi/settings.json`,
+				content: "",
+			},
 		};
-		await writeEditHandler(unsafeWriteEvent, {});
+		await trigger("tool_call", unsafeWriteEvent, {});
 		expect(unsafeWriteEvent.input.path).toBe(`${HOME}/.pi/agent/settings.json`);
-		expect(appendMock).toHaveBeenCalledTimes(2);
-		expect(appendMock.mock.calls[1][0]).toBe("path_access");
-		expect(appendMock.mock.calls[1][1]).toMatchObject({
+
+		events = readEvents();
+		expect(events).toHaveLength(2);
+		expect(events[1].eventType).toBe("path_access");
+		expect(events[1].details).toMatchObject({
 			toolType: "write",
 			repo: "dotpi",
 			action: "redirected",
@@ -94,28 +113,31 @@ describe("path-guard Pi extension integration", () => {
 			thinkingLevel: "low",
 		});
 
-		// 3. Safe bash command does not target dot repo -> unmodified, no telemetry
 		const safeBashEvent = {
 			toolName: "bash",
 			input: { command: "ls -la" },
 		};
-		await bashHandler(safeBashEvent, {});
+		await trigger("tool_call", safeBashEvent, {});
 		expect(safeBashEvent.input.command).toBe("ls -la");
-		expect(appendMock).toHaveBeenCalledTimes(2); // Still 2
+		expect(readEvents()).toHaveLength(2);
 
-		// 4. Unsafe bash command is rewritten and emits redirected telemetry
 		const unsafeBashEvent = {
 			toolName: "bash",
-			input: { command: `echo 'hello' > ${HOME}/Developper/Projects/dotpi/settings.json` },
+			input: {
+				command: `echo 'hello' > ${HOME}/Developper/Projects/dotpi/settings.json`,
+			},
 		};
-		await bashHandler(unsafeBashEvent, {});
+		await trigger("tool_call", unsafeBashEvent, {});
 		expect(unsafeBashEvent.input.command).toContain("settings.json");
 		expect(unsafeBashEvent.input.command).toContain("Silent redirection to");
-		expect(unsafeBashEvent.input.command).toContain(`${HOME}/.pi/agent/settings.json`);
+		expect(unsafeBashEvent.input.command).toContain(
+			`${HOME}/.pi/agent/settings.json`,
+		);
 
-		expect(appendMock).toHaveBeenCalledTimes(3);
-		expect(appendMock.mock.calls[2][0]).toBe("path_access");
-		expect(appendMock.mock.calls[2][1]).toMatchObject({
+		events = readEvents();
+		expect(events).toHaveLength(3);
+		expect(events[2].eventType).toBe("path_access");
+		expect(events[2].details).toMatchObject({
 			toolType: "bash",
 			repo: "dotpi",
 			action: "redirected",

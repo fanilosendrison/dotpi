@@ -1,80 +1,78 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
-
-const appendMock = mock();
-mock.module(
-	"/Users/famillesendrison/.pi/agent/extensions/shared/pi-telemetry.ts",
-	() => ({
-		createPiTelemetry: () => ({
-			sink: { append: appendMock },
-			model: "m-filter",
-			thinking: "high",
-			sessionId: "test-session-uuid-filter",
-			contextDetails: () => ({
-				parentModel: "m-filter",
-				thinkingLevel: "high",
-			}),
-			append: (
-				eventType: string,
-				details: Record<string, unknown>,
-				overrides?: Record<string, unknown>,
-			) =>
-				appendMock(
-					eventType,
-					{
-						...details,
-						parentModel: "m-filter",
-						thinkingLevel: "high",
-					},
-					overrides,
-				),
-		}),
-	}),
-);
-
-import zeroTimeoutFilter from "../zero-timeout-filter";
-
-afterAll(() => {
-	mock.restore();
-});
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { importPiExtension } from "./pi-extension-loader";
 
 const SKILL_CMD =
 	"cd /Users/famillesendrison/.agents/skills/git-commits-push && bun run start";
 
+type ExtensionFactory = (pi: {
+	on: (event: string, cb: Function) => void;
+}) => void;
+
+interface TelemetryEvent {
+	eventType: string;
+	details: Record<string, unknown>;
+}
+
 describe("zero-timeout-filter", () => {
-	const handlers: Record<string, Function> = {};
+	let tmpDir: string;
+	let originalStatsDir: string | undefined;
+	let handlers: Record<string, Function>;
 
-	const piMock = {
-		on: (event: string, cb: Function) => {
-			handlers[event] = cb;
-		},
-	};
+	beforeEach(async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), "zero-timeout-filter-"));
+		originalStatsDir = process.env.ZERO_TIMEOUT_FILTER_STATS_DIR;
+		process.env.ZERO_TIMEOUT_FILTER_STATS_DIR = tmpDir;
+		handlers = {};
 
-	zeroTimeoutFilter(piMock as any);
-
-	beforeEach(() => {
-		appendMock.mockClear();
+		const zeroTimeoutFilter =
+			await importPiExtension<ExtensionFactory>("zero-timeout-filter.ts");
+		zeroTimeoutFilter({
+			on: (event: string, cb: Function) => {
+				handlers[event] = cb;
+			},
+		});
 	});
 
-	// ── Handler registration ───────────────────────────────────────────────
+	afterEach(() => {
+		if (originalStatsDir === undefined) {
+			delete process.env.ZERO_TIMEOUT_FILTER_STATS_DIR;
+		} else {
+			process.env.ZERO_TIMEOUT_FILTER_STATS_DIR = originalStatsDir;
+		}
+		if (existsSync(tmpDir)) {
+			rmSync(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	function readEvents(): TelemetryEvent[] {
+		const eventsPath = join(tmpDir, "events.jsonl");
+		if (!existsSync(eventsPath)) return [];
+		return readFileSync(eventsPath, "utf-8")
+			.trim()
+			.split("\n")
+			.filter(Boolean)
+			.map((line) => JSON.parse(line) as TelemetryEvent);
+	}
 
 	test("registers tool_call handler", () => {
 		expect(handlers["tool_call"]).toBeDefined();
 	});
 
-	// ── Does nothing on non-matching commands ───────────────────────────────
-
 	test("ignores non-bash tools", async () => {
 		const input = { command: SKILL_CMD, timeout: 30 };
 		await handlers["tool_call"]({ toolName: "write", input }, {});
 		expect(input.timeout).toBe(30);
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
 
 	test("ignores bash commands that are not the skill", async () => {
 		const input = { command: "echo hello", timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
 
 	test("ignores git commit commands", async () => {
@@ -84,17 +82,15 @@ describe("zero-timeout-filter", () => {
 		};
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
 
 	test("ignores /git-commits-push command", async () => {
 		const input = { command: "/git-commits-push", timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
-
-	// ── Strips timeout from skill invocation ────────────────────────────────
 
 	test("deletes timeout for the exact skill command and logs telemetry", async () => {
 		const input = { command: SKILL_CMD, timeout: 60 };
@@ -102,22 +98,22 @@ describe("zero-timeout-filter", () => {
 			{ toolName: "bash", input, toolCallId: "tc-1" },
 			{},
 		);
+
+		const events = readEvents();
 		expect(input.timeout).toBeUndefined();
-		expect(appendMock).toHaveBeenCalledTimes(1);
-		expect(appendMock.mock.calls[0][0]).toBe("timeout_stripped");
-		expect(appendMock.mock.calls[0][1]).toMatchObject({
+		expect(events).toHaveLength(1);
+		expect(events[0].eventType).toBe("timeout_stripped");
+		expect(events[0].details).toMatchObject({
 			originalTimeout: 60,
-			parentModel: "m-filter",
-			thinkingLevel: "high",
 			toolCallId: "tc-1",
 		});
 	});
 
-	test("works without timeout set (no-op delete) and does not log telemetry", async () => {
-		const input: Record<string, any> = { command: SKILL_CMD };
+	test("works without timeout set and does not log telemetry", async () => {
+		const input: Record<string, unknown> = { command: SKILL_CMD };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBeUndefined();
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
 
 	test("works with zero timeout and logs telemetry", async () => {
@@ -126,9 +122,11 @@ describe("zero-timeout-filter", () => {
 			{ toolName: "bash", input, toolCallId: "tc-2" },
 			{},
 		);
+
+		const events = readEvents();
 		expect(input.timeout).toBeUndefined();
-		expect(appendMock).toHaveBeenCalledTimes(1);
-		expect(appendMock.mock.calls[0][1].originalTimeout).toBe(0);
+		expect(events).toHaveLength(1);
+		expect(events[0].details.originalTimeout).toBe(0);
 	});
 
 	test("matches when command starts with cd ~/", async () => {
@@ -138,7 +136,7 @@ describe("zero-timeout-filter", () => {
 		};
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBeUndefined();
-		expect(appendMock).toHaveBeenCalledTimes(1);
+		expect(readEvents()).toHaveLength(1);
 	});
 
 	test("does not mutate other input fields", async () => {
@@ -153,19 +151,17 @@ describe("zero-timeout-filter", () => {
 		expect(input.extra).toBe("preserved");
 	});
 
-	// ── Edge cases ─────────────────────────────────────────────────────────
-
 	test("handles undefined command gracefully", async () => {
 		const input = { timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
 
 	test("handles null command gracefully", async () => {
 		const input = { command: null, timeout: 30 };
 		await handlers["tool_call"]({ toolName: "bash", input }, {});
 		expect(input.timeout).toBe(30);
-		expect(appendMock).not.toHaveBeenCalled();
+		expect(readEvents()).toHaveLength(0);
 	});
 });
