@@ -39,7 +39,6 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   ├── git-commits-push-enforcer.ts
 │   ├── path-guard.ts
 │   ├── permission-enforcer.ts
-│   ├── post-write-linter.ts
 │   ├── read-deduplicator.ts
 │   ├── read-deduplicator-internals/
 │   │   ├── read-tracker.ts
@@ -60,8 +59,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   ├── managing-api-keys-in-pi.md                ← How you manage API keys
 │   ├── path-guard.md                             ← Blocks writes to dot* repos
 │   ├── permission-enforcer.md                    ← Updates shared /go permission state before each run
-│   ├── post-write-linter.md                      ← Runs Biome after every write/edit
-│   │   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
+│   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
 │   └── zero-timeout-filter.md                    ← Strips external timeout from git-commits-push skill
 ├── patches/                ← Pi dist patches
 │   └── enhanced-model-selector/
@@ -84,7 +82,6 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Understand the path guard | `docs/path-guard.md` (blocks writes to dot* repos) |
 | Understand the read deduplicator | `docs/read-deduplicator.md` (avoids re-injecting already-read files + blocked-reads log) |
 | Understand the global context extension | `docs/extended-global-context.md` (How global context has been extended) |
-| Understand the post-write linter | `docs/post-write-linter.md` (Runs Biome after every write/edit) |
 | Understand the zero-timeout filter | `docs/zero-timeout-filter.md` (Strips external timeout from git-commits-push skill) |
 | Know about the cwd Pi command | `docs/cwd-wezterm-split.md` (Open Pi in another directory via a WezTerm pane or tab) |
 | Run extension integration tests | `extensions/__tests__/` (`bun test extensions/__tests__/`) |
