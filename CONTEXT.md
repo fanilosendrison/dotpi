@@ -34,6 +34,14 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ├── extensions/             ← Auto-discovered extensions
 │   ├── command-validator.ts
 │   ├── cwd.ts
+│   ├── cwd-internals/
+│   │   ├── args.ts
+│   │   ├── directory-browser.ts
+│   │   ├── handler.ts
+│   │   ├── interactive.ts
+│   │   ├── split-picker.ts
+│   │   ├── types.ts
+│   │   └── wezterm.ts
 │   ├── enhanced-model-selector.ts
 │   ├── extended-global-context.ts
 │   ├── git-commits-push-enforcer.ts
