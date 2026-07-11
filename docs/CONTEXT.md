@@ -61,3 +61,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 12. Permission Enforcer
 - **Date** : 2026-07-09
 - **Doc** : [`permission-enforcer.md`](permission-enforcer.md)
+
+### 13. Cwd WezTerm Split
+- **Date** : 2026-07-11
+- **Doc** : [`cwd-wezterm-split.md`](cwd-wezterm-split.md)
