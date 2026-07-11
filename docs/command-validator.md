@@ -1,7 +1,7 @@
 # Command Validator
 
 - **Date**: 2026-06-28
-- **Updated**: 2026-07-09
+- **Updated**: 2026-07-11
 - **Type**: Extension
 - **File**: `~/.pi/agent/extensions/command-validator.ts`
 
@@ -9,9 +9,9 @@
 
 Validates Pi tool calls against the shared command-validator rules.
 
-The extension blocks forbidden bash commands, asks for confirmation on dangerous
-bash commands, and consumes `/go` permission state for restricted modifying
-tools.
+The extension blocks forbidden bash commands and asks for confirmation on
+dangerous bash commands. For restricted modifying tools, it consumes the
+session-scoped permission state written by `permission-enforcer`.
 
 Its runtime-facing contract is shared with the Codex hook through:
 
@@ -35,18 +35,21 @@ For restricted modifying tools, the shared validator delegates to:
 ~/.agents/agent-enforcers/command-validator/src/core/tool-validator.ts
 ```
 
-That validator calls `isPermissionGranted()` from:
+The Pi extension injects a scoped permission checker using
+`isPermissionGrantedForScope({ agent: "pi", sessionId })` from:
 
 ```text
 ~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts
 ```
 
-The command-validator extension no longer updates permission state. Prompt
-lifecycle is owned by `~/.pi/agent/extensions/permission-enforcer.ts`.
+The command-validator extension does not detect `/go` and does not update
+permission state. Prompt lifecycle is owned by
+`~/.pi/agent/extensions/permission-enforcer.ts`.
 
 Telemetry details, reason formatting, command truncation, severity inclusion, and
 restricted-tool target detection are normalized by the shared runtime contract.
-Pi remains responsible for its platform-specific approval UI through
+Pi adds `permissionScope` telemetry from `ctx.sessionManager.getSessionId()` and
+remains responsible for its platform-specific approval UI through
 `ctx.ui.confirm`.
 
 ## Decisions
@@ -58,8 +61,8 @@ Pi remains responsible for its platform-specific approval UI through
 | Dangerous commands | User confirmation required. |
 | `chmod +x` | Allowed. |
 | Safe bash commands | Allowed silently. |
-| Restricted tool without `/go` | Blocked with the permission authorization message. |
-| Restricted tool with `/go` | Allowed. |
+| Restricted tool without `/go` in the same Pi session | Blocked with the permission authorization message. |
+| Restricted tool with `/go` in the same Pi session | Allowed. |
 
 ## Telemetry
 
@@ -79,5 +82,6 @@ validation_result
 
 - `~/.pi/agent/extensions/command-validator.ts`
 - `~/.pi/agent/extensions/permission-enforcer.ts`
+- `~/.pi/agent/extensions/shared/pi-permission-scope.ts`
 - `~/.agents/agent-enforcers/command-validator/`
 - `~/.agents/agent-enforcers/permission-enforcer/src/core/state.ts`
