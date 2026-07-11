@@ -7,7 +7,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { createPiTelemetry } from "./shared/pi-telemetry";
-import { CommandValidator } from "../../dotagents/agent-enforcers/command-validator/src/core/validator.ts";
+import { CommandValidator } from "../../../.agents/agent-enforcers/command-validator/src/core/validator.ts";
 import {
 	createRuntimeValidationDetails,
 	formatPiConfirmationMessage,
@@ -15,7 +15,7 @@ import {
 	normalizeRawCommand,
 	shouldValidateRuntimeTool,
 	type RuntimeValidationOverrides,
-} from "../../dotagents/agent-enforcers/command-validator/src/core/runtime-contract.ts";
+} from "../../../.agents/agent-enforcers/command-validator/src/core/runtime-contract.ts";
 
 export default function (pi: ExtensionAPI) {
 	const validator = new CommandValidator();
