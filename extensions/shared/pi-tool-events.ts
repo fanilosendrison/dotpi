@@ -33,8 +33,10 @@ export function onBashToolCall(
 	handler: BashToolCallHandler,
 ): void {
 	pi.on("tool_call", async (event, ctx) => {
-		const command = getBashCommand(event);
-		if (command === null) return;
+		if (!isBashToolCall(event)) return;
+
+		const { command } = event.input;
+		if (typeof command !== "string" || command.length === 0) return;
 
 		return handler(event, command, ctx);
 	});
