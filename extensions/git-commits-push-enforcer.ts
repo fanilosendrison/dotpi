@@ -49,8 +49,8 @@ export default function (pi: ExtensionAPI) {
 	// Skill invocations are logged and allowed. Direct raw git mutations are
 	// blocked so commits flow through the git-commits-push skill.
 
-		onBashToolCall(pi, async (event, cmd) => {
-			const legacyBypassSet = process.env.BYPASS_GIT_ENFORCER === "1";
+	onBashToolCall(pi, async (event, cmd) => {
+		const legacyBypassSet = process.env.BYPASS_GIT_ENFORCER === "1";
 		// Pi is an agent-level interceptor (tool_call), not a subprocess-level
 		// enforcer. Trust tokens are subprocess-level and validated only by
 		// Gravity's PATH shim. We pass trustedSkillMarkerSet to the shared core
@@ -68,38 +68,38 @@ export default function (pi: ExtensionAPI) {
 			allowLegacyBypass: true, // transitional compatibility
 		});
 
-			if (result.eventType === "skipped") {
-				if (result.skipReason === "not-commit-intent") return;
-				telemetry.append("skipped", {
-					rawCommand: cmd,
-					detectedBy: result.detectedBy,
-					mutation: result.mutation,
-					reason: result.skipReason,
-					toolCallId: event.toolCallId,
-				});
-				return;
-			}
-
-			const details = {
+		if (result.eventType === "skipped") {
+			if (result.skipReason === "not-commit-intent") return;
+			telemetry.append("skipped", {
 				rawCommand: cmd,
 				detectedBy: result.detectedBy,
+				mutation: result.mutation,
+				reason: result.skipReason,
 				toolCallId: event.toolCallId,
-				...(result.mutation ? { mutation: result.mutation } : {}),
-			};
+			});
+			return;
+		}
+
+		const details = {
+			rawCommand: cmd,
+			detectedBy: result.detectedBy,
+			toolCallId: event.toolCallId,
+			...(result.mutation ? { mutation: result.mutation } : {}),
+		};
 
 		if (result.action === "allow") {
 			// Pass parent model/session to the skill via env vars.
 			process.env.PI_PARENT_MODEL = telemetry.model;
 			process.env.PI_SESSION_ID = telemetry.sessionId;
 
-				telemetry.append("enforcer_triggered", details);
-				return;
-			}
+			telemetry.append("enforcer_triggered", details);
+			return;
+		}
 
-			// result.action === "block"
-			telemetry.append("blocked", details);
+		// result.action === "block"
+		telemetry.append("blocked", details);
 
-			return {
+		return {
 			block: true,
 			reason: result.deniedReason ?? buildDirectGitDeniedReason(cmd),
 		};
