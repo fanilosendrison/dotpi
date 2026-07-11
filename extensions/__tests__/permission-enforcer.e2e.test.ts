@@ -17,44 +17,60 @@ describe("permission-enforcer and command-validator E2E", () => {
 		}
 	});
 
-	test("prompt state controls restricted tool execution across turns", () => {
+	test("prompt state is isolated across active Pi sessions", () => {
 		const statePath = join(tmpDir, "state.json");
 		const telemetryBaseDir = join(tmpDir, "stats");
 		const script = `
 			import { readFileSync } from "node:fs";
 			import { join } from "node:path";
-			import { isPermissionGranted } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
+			import { isPermissionGrantedForScope } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
 			import { importPiExtension } from "/Users/famillesendrison/.pi/agent/extensions/__tests__/pi-extension-loader.ts";
 
 			const commandValidatorExt = await importPiExtension("command-validator.ts");
 			const permissionEnforcerExt = await importPiExtension("permission-enforcer.ts");
 
-			const handlers = {};
-			const piMock = {
-				on(event, cb) {
-					handlers[event] = [...(handlers[event] ?? []), cb];
-				},
-			};
+			function createRuntime(sessionId) {
+				const handlers = {};
+				const piMock = {
+					on(event, cb) {
+						handlers[event] = [...(handlers[event] ?? []), cb];
+					},
+				};
+				const ctx = {
+					sessionManager: {
+						getSessionId: () => sessionId,
+					},
+					ui: {
+						confirm: async () => true,
+					},
+				};
 
-			permissionEnforcerExt(piMock);
-			commandValidatorExt(piMock);
+				permissionEnforcerExt(piMock);
+				commandValidatorExt(piMock);
 
-			async function emitBeforeAgentStart(prompt) {
-				for (const handler of handlers.before_agent_start ?? []) {
-					await handler({ prompt });
+				return {
+					handlers,
+					ctx,
+					scope: { agent: "pi", sessionId },
+				};
+			}
+
+			async function emitBeforeAgentStart(runtime, prompt) {
+				for (const handler of runtime.handlers.before_agent_start ?? []) {
+					await handler({ prompt }, runtime.ctx);
 				}
 			}
 
-			async function emitThinkingLevelSelect(level) {
-				for (const handler of handlers.thinking_level_select ?? []) {
+			async function emitThinkingLevelSelect(runtime, level) {
+				for (const handler of runtime.handlers.thinking_level_select ?? []) {
 					await handler({ level });
 				}
 			}
 
-			async function emitToolCall(event) {
+			async function emitToolCall(runtime, event) {
 				let lastResult;
-				for (const handler of handlers.tool_call ?? []) {
-					const result = await handler(event, {});
+				for (const handler of runtime.handlers.tool_call ?? []) {
+					const result = await handler(event, runtime.ctx);
 					if (result?.block) return result;
 					lastResult = result;
 				}
@@ -79,26 +95,36 @@ describe("permission-enforcer and command-validator E2E", () => {
 				input: { TargetFile: "/tmp/e2e-test" },
 			};
 
-			await emitThinkingLevelSelect("e2e-thinking");
-			await emitBeforeAgentStart("continue without file changes");
-			const grantedBeforeGo = isPermissionGranted();
-			const blockedBeforeGo = await emitToolCall(restrictedToolCall);
+			const sessionA = createRuntime("session-a");
+			const sessionB = createRuntime("session-b");
 
-			await emitBeforeAgentStart("please /go implement it");
-			const grantedAfterGo = isPermissionGranted();
-			const allowedAfterGo = await emitToolCall(restrictedToolCall);
+			await emitThinkingLevelSelect(sessionA, "e2e-thinking");
+			await emitThinkingLevelSelect(sessionB, "e2e-thinking");
 
-			await emitBeforeAgentStart("continue now");
-			const grantedAfterReset = isPermissionGranted();
-			const blockedAfterReset = await emitToolCall(restrictedToolCall);
+			await emitBeforeAgentStart(sessionA, "please /go implement it");
+			const sessionAGrantedAfterGo = isPermissionGrantedForScope(sessionA.scope);
+			const sessionAAllowedAfterGo = await emitToolCall(sessionA, restrictedToolCall);
+
+			await emitBeforeAgentStart(sessionB, "continue without file changes");
+			const sessionBDeniedAfterPlainPrompt = isPermissionGrantedForScope(sessionB.scope);
+			const sessionBBlockedAfterPlainPrompt = await emitToolCall(sessionB, restrictedToolCall);
+
+			const sessionAStillGrantedAfterSessionBReset = isPermissionGrantedForScope(sessionA.scope);
+			const sessionAAllowedAfterSessionBReset = await emitToolCall(sessionA, restrictedToolCall);
+
+			await emitBeforeAgentStart(sessionA, "continue now");
+			const sessionADeniedAfterOwnReset = isPermissionGrantedForScope(sessionA.scope);
+			const sessionABlockedAfterOwnReset = await emitToolCall(sessionA, restrictedToolCall);
 
 			console.log(JSON.stringify({
-				grantedBeforeGo,
-				blockedBeforeGo,
-				grantedAfterGo,
-				allowedAfterGo,
-				grantedAfterReset,
-				blockedAfterReset,
+				sessionAGrantedAfterGo,
+				sessionAAllowedAfterGo,
+				sessionBDeniedAfterPlainPrompt,
+				sessionBBlockedAfterPlainPrompt,
+				sessionAStillGrantedAfterSessionBReset,
+				sessionAAllowedAfterSessionBReset,
+				sessionADeniedAfterOwnReset,
+				sessionABlockedAfterOwnReset,
 				permissionEvents: readEvents("permission-enforcer"),
 				validatorEvents: readEvents("command-validator"),
 			}));
@@ -118,25 +144,29 @@ describe("permission-enforcer and command-validator E2E", () => {
 		expect(result.stderr).toBe("");
 
 		const output = JSON.parse(result.stdout) as {
-			grantedBeforeGo: boolean;
-			blockedBeforeGo: { block: boolean; reason: string };
-			grantedAfterGo: boolean;
-			allowedAfterGo?: unknown;
-			grantedAfterReset: boolean;
-			blockedAfterReset: { block: boolean; reason: string };
+			sessionAGrantedAfterGo: boolean;
+			sessionAAllowedAfterGo?: unknown;
+			sessionBDeniedAfterPlainPrompt: boolean;
+			sessionBBlockedAfterPlainPrompt: { block: boolean; reason: string };
+			sessionAStillGrantedAfterSessionBReset: boolean;
+			sessionAAllowedAfterSessionBReset?: unknown;
+			sessionADeniedAfterOwnReset: boolean;
+			sessionABlockedAfterOwnReset: { block: boolean; reason: string };
 			permissionEvents: Array<Record<string, unknown>>;
 			validatorEvents: Array<Record<string, unknown>>;
 		};
 
-		expect(output.grantedBeforeGo).toBe(false);
-		expect(output.blockedBeforeGo).toEqual({
+		expect(output.sessionAGrantedAfterGo).toBe(true);
+		expect(output.sessionAAllowedAfterGo).toBeUndefined();
+		expect(output.sessionBDeniedAfterPlainPrompt).toBe(false);
+		expect(output.sessionBBlockedAfterPlainPrompt).toEqual({
 			block: true,
 			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
 		});
-		expect(output.grantedAfterGo).toBe(true);
-		expect(output.allowedAfterGo).toBeUndefined();
-		expect(output.grantedAfterReset).toBe(false);
-		expect(output.blockedAfterReset).toEqual({
+		expect(output.sessionAStillGrantedAfterSessionBReset).toBe(true);
+		expect(output.sessionAAllowedAfterSessionBReset).toBeUndefined();
+		expect(output.sessionADeniedAfterOwnReset).toBe(false);
+		expect(output.sessionABlockedAfterOwnReset).toEqual({
 			block: true,
 			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
 		});
@@ -145,12 +175,27 @@ describe("permission-enforcer and command-validator E2E", () => {
 			output.permissionEvents.map(
 				(event) => (event.details as Record<string, unknown>).granted,
 			),
-		).toEqual([false, true, false]);
+		).toEqual([true, false, false]);
+		expect(
+			output.permissionEvents.map(
+				(event) => (event.details as Record<string, unknown>).permissionScope,
+			),
+		).toEqual(["pi:session-a", "pi:session-b", "pi:session-a"]);
 		expect(
 			output.validatorEvents.map(
 				(event) => (event.details as Record<string, unknown>).action,
 			),
-		).toEqual(["deny", "allow", "deny"]);
+		).toEqual(["allow", "deny", "allow", "deny"]);
+		expect(
+			output.validatorEvents.map(
+				(event) => (event.details as Record<string, unknown>).permissionScope,
+			),
+		).toEqual([
+			"pi:session-a",
+			"pi:session-b",
+			"pi:session-a",
+			"pi:session-a",
+		]);
 		expect(JSON.stringify(output.permissionEvents)).not.toContain(
 			"please /go implement it",
 		);

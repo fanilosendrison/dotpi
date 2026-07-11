@@ -23,10 +23,16 @@ describe("permission-enforcer Pi extension integration", () => {
 		const script = `
 			import { readFileSync } from "node:fs";
 			import { join } from "node:path";
-			import { isPermissionGranted } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
+			import { isPermissionGrantedForScope } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
 			import { importPiExtension } from "/Users/famillesendrison/.pi/agent/extensions/__tests__/pi-extension-loader.ts";
 
 			const permissionEnforcerExt = await importPiExtension("permission-enforcer.ts");
+			const scope = { agent: "pi", sessionId: "pi-integration-session" };
+			const ctx = {
+				sessionManager: {
+					getSessionId: () => scope.sessionId,
+				},
+			};
 
 			const handlers = {};
 			const piMock = {
@@ -37,7 +43,7 @@ describe("permission-enforcer Pi extension integration", () => {
 
 			permissionEnforcerExt(piMock);
 			await handlers.thinking_level_select[0]({ level: "integration-thinking" });
-			await handlers.before_agent_start[0]({ prompt: "please /go ahead" });
+			await handlers.before_agent_start[0]({ prompt: "please /go ahead" }, ctx);
 
 			const eventsPath = join(
 				process.env.PI_TELEMETRY_BASE_DIR,
@@ -51,7 +57,7 @@ describe("permission-enforcer Pi extension integration", () => {
 				.map((line) => JSON.parse(line));
 
 			console.log(JSON.stringify({
-				granted: isPermissionGranted(),
+				granted: isPermissionGrantedForScope(scope),
 				handlerCounts: {
 					beforeAgentStart: handlers.before_agent_start?.length ?? 0,
 					beforeProviderRequest: handlers.before_provider_request?.length ?? 0,
@@ -92,6 +98,7 @@ describe("permission-enforcer Pi extension integration", () => {
 		expect(output.event.eventType).toBe("permission_state_change");
 		expect(details.granted).toBe(true);
 		expect(details.matchSource).toBe("slash");
+		expect(details.permissionScope).toBe("pi:pi-integration-session");
 		expect(details.promptLength).toBe("please /go ahead".length);
 		expect(details.parentModel).toBe("unknown");
 		expect(details.thinkingLevel).toBe("integration-thinking");

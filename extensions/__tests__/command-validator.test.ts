@@ -3,7 +3,10 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { updatePermissionStateForScope } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
 import { importPiExtension } from "./pi-extension-loader";
+
+const TEST_SCOPE = { agent: "pi", sessionId: "pi-session-a" };
 
 interface HookResult {
 	block?: boolean;
@@ -11,10 +14,18 @@ interface HookResult {
 }
 
 interface ConfirmContext {
+	sessionManager: {
+		getSessionId(): string;
+	};
 	ui?: {
 		confirm(title: string, message: string): Promise<boolean>;
 	};
 }
+
+type ConfirmHandler = (
+	title: string,
+	message: string,
+) => Promise<boolean>;
 
 type CommandValidatorHandler = (
 	event: Record<string, unknown>,
@@ -76,13 +87,13 @@ describe("command-validator Pi extension integration", () => {
 
 		const safeResult = await handler!(
 			{ toolName: "bash", input: { command: "ls -la" } },
-			{},
+			createSessionContext(TEST_SCOPE.sessionId),
 		);
 		expect(safeResult).toBeUndefined();
 
 		const prohibitedResult = await handler!(
 			{ toolName: "bash", input: { command: "rm -rf /tmp/stuff" } },
-			{},
+			createSessionContext(TEST_SCOPE.sessionId),
 		);
 		expect(prohibitedResult).toEqual({
 			block: true,
@@ -91,11 +102,11 @@ describe("command-validator Pi extension integration", () => {
 
 		const destructiveResult = await handler!(
 			{ toolName: "bash", input: { command: "dd if=/dev/zero of=/dev/sda" } },
-			{},
+			createSessionContext(TEST_SCOPE.sessionId),
 		);
 		expect(destructiveResult?.block).toBe(true);
 
-		const ctxMockReject = { ui: { confirm: async () => false } };
+		const ctxMockReject = createSessionContext(TEST_SCOPE.sessionId, async () => false);
 		const dangerousResultReject = await handler!(
 			{ toolName: "bash", input: { command: "sudo ls" } },
 			ctxMockReject,
@@ -105,7 +116,7 @@ describe("command-validator Pi extension integration", () => {
 			reason: "Blocked by user",
 		});
 
-		const ctxMockApprove = { ui: { confirm: async () => true } };
+		const ctxMockApprove = createSessionContext(TEST_SCOPE.sessionId, async () => true);
 		const dangerousResultApprove = await handler!(
 			{ toolName: "bash", input: { command: "sudo ls" } },
 			ctxMockApprove,
@@ -114,11 +125,30 @@ describe("command-validator Pi extension integration", () => {
 
 		const restrictedResult = await handler!(
 			{ toolName: "write_to_file", input: { TargetFile: "/tmp/test" } },
-			{},
+			createSessionContext(TEST_SCOPE.sessionId),
 		);
 		expect(restrictedResult).toEqual({
 			block: true,
 			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
 		});
+
+		updatePermissionStateForScope("/go", TEST_SCOPE);
+		const restrictedAllowedResult = await handler!(
+			{ toolName: "write_to_file", input: { TargetFile: "/tmp/test" } },
+			createSessionContext(TEST_SCOPE.sessionId),
+		);
+		expect(restrictedAllowedResult).toBeUndefined();
 	});
 });
+
+function createSessionContext(
+	sessionId: string,
+	confirm?: ConfirmHandler,
+): ConfirmContext {
+	return {
+		sessionManager: {
+			getSessionId: () => sessionId,
+		},
+		ui: confirm ? { confirm } : undefined,
+	};
+}

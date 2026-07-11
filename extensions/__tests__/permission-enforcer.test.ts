@@ -3,11 +3,20 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { isPermissionGranted } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
+import { isPermissionGrantedForScope } from "/Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts";
 import { importPiExtension } from "./pi-extension-loader";
+
+const TEST_SCOPE = { agent: "pi", sessionId: "pi-session-a" };
+
+interface SessionContext {
+	sessionManager: {
+		getSessionId(): string;
+	};
+}
 
 type ExtensionHandler = (
 	event: Record<string, unknown>,
+	context: SessionContext,
 ) => Promise<unknown> | unknown;
 type HandlerRegistry = Record<string, ExtensionHandler[]>;
 
@@ -70,30 +79,50 @@ describe("permission-enforcer Pi extension", () => {
 	test("grants permission for slash /go prompts", async () => {
 		const handlers = await registerExtension();
 
-		await handlers.before_agent_start[0]({ prompt: "please /go ahead" });
+		await handlers.before_agent_start[0](
+			{ prompt: "please /go ahead" },
+			createSessionContext(TEST_SCOPE.sessionId),
+		);
 
-		expect(isPermissionGranted()).toBe(true);
+		expect(isPermissionGrantedForScope(TEST_SCOPE)).toBe(true);
 	});
 
 	test("grants permission for expanded skill prompts", async () => {
 		const handlers = await registerExtension();
 
 		const prompt = '<skill name="go">implementation rules</skill>';
-		await handlers.before_agent_start[0]({ prompt });
+		await handlers.before_agent_start[0](
+			{ prompt },
+			createSessionContext(TEST_SCOPE.sessionId),
+		);
 
-		expect(isPermissionGranted()).toBe(true);
+		expect(isPermissionGrantedForScope(TEST_SCOPE)).toBe(true);
 	});
 
 	test("revokes permission for prompts without /go", async () => {
 		const handlers = await registerExtension();
 
-		await handlers.before_agent_start[0]({ prompt: "please /go ahead" });
-		expect(isPermissionGranted()).toBe(true);
+		await handlers.before_agent_start[0](
+			{ prompt: "please /go ahead" },
+			createSessionContext(TEST_SCOPE.sessionId),
+		);
+		expect(isPermissionGrantedForScope(TEST_SCOPE)).toBe(true);
 
-		await handlers.before_agent_start[0]({
-			prompt: "continue without changing files",
-		});
+		await handlers.before_agent_start[0](
+			{
+				prompt: "continue without changing files",
+			},
+			createSessionContext(TEST_SCOPE.sessionId),
+		);
 
-		expect(isPermissionGranted()).toBe(false);
+		expect(isPermissionGrantedForScope(TEST_SCOPE)).toBe(false);
 	});
 });
+
+function createSessionContext(sessionId: string): SessionContext {
+	return {
+		sessionManager: {
+			getSessionId: () => sessionId,
+		},
+	};
+}
