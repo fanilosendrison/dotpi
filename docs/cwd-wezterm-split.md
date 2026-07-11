@@ -14,15 +14,22 @@ WezTerm split pane or tab without closing the current session.
 
 Defaults:
 
-- Split flag defaults to `--bottom`.
-- Path defaults to `.` relative to `ctx.cwd`.
+- `/cwd` with no arguments opens the interactive directory browser.
+- In fast path mode, the split flag defaults to `--bottom`.
+- In fast path mode, the path defaults to `.` relative to `ctx.cwd`.
 - Flag and path order are both accepted.
 
 ## How It Works
 
-The command parses the raw slash-command argument string, resolves the target
-directory relative to Pi's current working directory, verifies that the
-directory exists, then launches WezTerm with `execFileSync` and an argv array.
+The command has two modes:
+
+| Mode | Trigger | Behavior |
+| ---- | ------- | -------- |
+| Interactive browser | `/cwd` | Opens a keyboard-driven directory browser overlay, then a split type picker overlay. |
+| Fast path | `/cwd [flag] [path]` | Parses the raw arguments and opens Pi directly in the requested path/split. |
+
+Both modes eventually verify the selected directory exists, then launch WezTerm
+with `execFileSync` and an argv array.
 
 ```typescript
 execFileSync(
@@ -47,6 +54,32 @@ Command mapping:
 The `--vertical` user flag is intentionally translated to `--bottom` because
 the installed WezTerm CLI rejects `--vertical`; WezTerm expresses vertical
 top/bottom splits through `--top` and `--bottom`.
+
+## Interactive Directory Browser
+
+Type `/cwd` with no arguments to open the interactive browser.
+
+Flow:
+
+1. Directory browser overlay opens at `ctx.cwd`.
+2. Choose `📂 Use this directory` to confirm the displayed directory, or enter a
+   subdirectory.
+3. Split type overlay opens.
+4. Choose a split type to spawn a new Pi instance in WezTerm.
+
+Directory browser behavior:
+
+| Key | Action |
+| --- | ------ |
+| `↑` / `↓` | Move selection. |
+| `Enter` | Confirm current item. |
+| `Backspace` | Go to parent directory. |
+| `←` | Go to parent directory. |
+| `Home` | Jump to first item. |
+| `End` | Jump to last item. |
+| `Esc` | Cancel. |
+
+Only subdirectories are shown. Dot directories are hidden to reduce noise.
 
 Error behavior:
 

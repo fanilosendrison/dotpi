@@ -1,7 +1,17 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { DynamicBorder, type ExtensionAPI, type Theme } from "@earendil-works/pi-coding-agent";
+import {
+	Container,
+	Key,
+	matchesKey,
+	type Component,
+	type SelectItem,
+	SelectList,
+	Text,
+	truncateToWidth,
+} from "@earendil-works/pi-tui";
 import { execFileSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 const SPLIT_TYPES = [
 	"--bottom",
@@ -32,6 +42,15 @@ type ParsedCwdArgs =
 type CwdCommandContext = {
 	cwd: string;
 	ui: {
+		custom?: <T>(
+			factory: (
+				tui: { requestRender: () => void },
+				theme: Theme,
+				keybindings: unknown,
+				done: (result: T) => void,
+			) => Component | Promise<Component>,
+			options?: { overlay?: boolean },
+		) => Promise<T>;
 		notify: (message: string, level: "info" | "warning" | "error") => void;
 	};
 };
@@ -49,6 +68,19 @@ const WEZTERM_SPLIT_FLAGS: Record<Exclude<SplitType, "--tab">, string> = {
 	"--horizontal": "--horizontal",
 	"--vertical": "--bottom",
 };
+
+const SPLIT_TYPE_ITEMS: SelectItem[] = [
+	{ value: "--bottom", label: "Bottom" },
+	{ value: "--top", label: "Top" },
+	{ value: "--right", label: "Right" },
+	{ value: "--left", label: "Left" },
+	{ value: "--horizontal", label: "Horizontal" },
+	{ value: "--vertical", label: "Vertical" },
+	{ value: "--tab", label: "New Tab" },
+];
+
+const BROWSER_HELP_LINE = "↑↓ navigate · ↵ enter · ⌫ back · esc cancel";
+const SPLIT_PICKER_HELP_LINE = "↑↓ navigate · enter select · esc cancel";
 
 function isSplitType(value: string): value is SplitType {
 	return SPLIT_TYPES.includes(value as SplitType);
@@ -149,6 +181,190 @@ export function buildWezTermArgs(splitType: SplitType, directory: string): strin
 	];
 }
 
+function isRootPath(path: string): boolean {
+	return dirname(path) === path;
+}
+
+export class DirectoryBrowser {
+	private currentPath: string;
+	private entries: Dirent[] = [];
+	private selectedIndex = 0;
+	private cachedWidth?: number;
+	private cachedLines?: string[];
+
+	public onSelect?: (path: string) => void;
+	public onCancel?: () => void;
+
+	constructor(startPath: string, private readonly theme: Theme) {
+		this.currentPath = resolve(startPath);
+		this.refreshEntries();
+	}
+
+	getCurrentPath(): string {
+		return this.currentPath;
+	}
+
+	getSelectedIndex(): number {
+		return this.selectedIndex;
+	}
+
+	getEntryNames(): string[] {
+		return this.entries.map((entry) => entry.name);
+	}
+
+	invalidate(): void {
+		this.cachedWidth = undefined;
+		this.cachedLines = undefined;
+	}
+
+	private refreshEntries(): void {
+		try {
+			this.entries = readdirSync(this.currentPath, { withFileTypes: true })
+				.filter((entry) => entry.isDirectory())
+				.filter((entry) => !entry.name.startsWith("."))
+				.sort((a, b) => a.name.localeCompare(b.name));
+		} catch {
+			this.entries = [];
+		}
+		this.invalidate();
+	}
+
+	private itemCount(): number {
+		return 1 + (isRootPath(this.currentPath) ? 0 : 1) + this.entries.length;
+	}
+
+	private goToParent(): void {
+		if (isRootPath(this.currentPath)) {
+			return;
+		}
+
+		this.currentPath = dirname(this.currentPath);
+		this.selectedIndex = 0;
+		this.refreshEntries();
+	}
+
+	private goToChild(entry: Dirent): void {
+		this.currentPath = join(this.currentPath, entry.name);
+		this.selectedIndex = 0;
+		this.refreshEntries();
+	}
+
+	private renderItem(text: string, index: number, width: number, style?: (line: string) => string): string {
+		const prefix = index === this.selectedIndex ? "> " : "  ";
+		const line = truncateToWidth(`${prefix}${text}`, width);
+		return style ? style(line) : line;
+	}
+
+	private renderEntryLines(width: number): string[] {
+		const lines: string[] = [];
+		let index = 0;
+
+		lines.push(
+			this.renderItem(
+				"📂 Use this directory",
+				index,
+				width,
+				index === this.selectedIndex
+					? (line) => this.theme.fg("success", line)
+					: (line) => this.theme.fg("dim", line),
+			),
+		);
+		index += 1;
+
+		if (!isRootPath(this.currentPath)) {
+			lines.push(this.renderItem("..", index, width, (line) => this.theme.fg("muted", line)));
+			index += 1;
+		}
+
+		for (const entry of this.entries) {
+			lines.push(this.renderItem(`📁 ${entry.name}/`, index, width));
+			index += 1;
+		}
+
+		return lines;
+	}
+
+	render(width: number): string[] {
+		if (this.cachedLines && this.cachedWidth === width) {
+			return this.cachedLines;
+		}
+
+		const border = new DynamicBorder((s: string) => this.theme.fg("border", s)).render(width)[0] ?? "";
+		const lines = [
+			border,
+			truncateToWidth(`  ${this.theme.fg("accent", this.theme.bold("Navigate to directory"))}`, width),
+			"",
+			truncateToWidth(`  ${this.theme.fg("muted", `📁 ${this.currentPath}`)}`, width),
+			border,
+			...this.renderEntryLines(width),
+			border,
+			truncateToWidth(`  ${this.theme.fg("dim", BROWSER_HELP_LINE)}`, width),
+		];
+
+		this.cachedWidth = width;
+		this.cachedLines = lines;
+		return lines;
+	}
+
+	handleInput(data: string): void {
+		const maxIndex = Math.max(0, this.itemCount() - 1);
+
+		if (matchesKey(data, Key.up)) {
+			this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+			this.invalidate();
+			return;
+		}
+
+		if (matchesKey(data, Key.down)) {
+			this.selectedIndex = Math.min(maxIndex, this.selectedIndex + 1);
+			this.invalidate();
+			return;
+		}
+
+		if (matchesKey(data, Key.home)) {
+			this.selectedIndex = 0;
+			this.invalidate();
+			return;
+		}
+
+		if (matchesKey(data, Key.end)) {
+			this.selectedIndex = maxIndex;
+			this.invalidate();
+			return;
+		}
+
+		if (matchesKey(data, Key.backspace) || matchesKey(data, Key.left)) {
+			this.goToParent();
+			return;
+		}
+
+		if (matchesKey(data, Key.escape)) {
+			this.onCancel?.();
+			return;
+		}
+
+		if (!matchesKey(data, Key.enter)) {
+			return;
+		}
+
+		if (this.selectedIndex === 0) {
+			this.onSelect?.(this.currentPath);
+			return;
+		}
+
+		const parentOffset = isRootPath(this.currentPath) ? 0 : 1;
+		if (parentOffset === 1 && this.selectedIndex === 1) {
+			this.goToParent();
+			return;
+		}
+
+		const entry = this.entries[this.selectedIndex - parentOffset - 1];
+		if (entry) {
+			this.goToChild(entry);
+		}
+	}
+}
+
 function directoryExists(directory: string): boolean {
 	if (!existsSync(directory)) {
 		return false;
@@ -168,11 +384,106 @@ const defaultDependencies: CwdCommandDependencies = {
 	},
 };
 
+async function pickSplitType(ctx: CwdCommandContext): Promise<SplitType | null> {
+	if (!ctx.ui.custom) {
+		ctx.ui.notify("/cwd interactive mode requires TUI mode", "error");
+		return null;
+	}
+
+	const result = await ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
+		const container = new Container();
+		container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
+		container.addChild(new Text(theme.fg("accent", theme.bold("Choose split type")), 1, 0));
+
+		const selectList = new SelectList(SPLIT_TYPE_ITEMS, SPLIT_TYPE_ITEMS.length, {
+			selectedPrefix: (text) => theme.fg("accent", text),
+			selectedText: (text) => theme.fg("accent", text),
+			description: (text) => theme.fg("muted", text),
+			scrollInfo: (text) => theme.fg("dim", text),
+			noMatch: (text) => theme.fg("warning", text),
+		});
+
+		selectList.onSelect = (item) => done(item.value);
+		selectList.onCancel = () => done(null);
+		container.addChild(selectList);
+		container.addChild(new Text(theme.fg("dim", SPLIT_PICKER_HELP_LINE), 1, 0));
+		container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
+
+		return {
+			render: (width: number) => container.render(width),
+			invalidate: () => container.invalidate(),
+			handleInput: (data: string) => {
+				selectList.handleInput(data);
+				tui.requestRender();
+			},
+		};
+	}, { overlay: true });
+
+	if (!result || !isSplitType(result)) {
+		return null;
+	}
+
+	return result;
+}
+
+export async function interactiveCwd(
+	ctx: CwdCommandContext,
+	dependencies: CwdCommandDependencies = defaultDependencies,
+): Promise<void> {
+	if (!ctx.ui.custom) {
+		ctx.ui.notify("/cwd interactive mode requires TUI mode", "error");
+		return;
+	}
+
+	const selectedDirectory = await ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
+		const browser = new DirectoryBrowser(ctx.cwd, theme);
+		browser.onSelect = (path) => done(path);
+		browser.onCancel = () => done(null);
+
+		return {
+			render: (width: number) => browser.render(width),
+			invalidate: () => browser.invalidate(),
+			handleInput: (data: string) => {
+				browser.handleInput(data);
+				tui.requestRender();
+			},
+		};
+	}, { overlay: true });
+
+	if (selectedDirectory === null) {
+		return;
+	}
+
+	const splitType = await pickSplitType(ctx);
+	if (splitType === null) {
+		return;
+	}
+
+	if (!dependencies.directoryExists(selectedDirectory)) {
+		ctx.ui.notify(`Directory not found: ${selectedDirectory}`, "error");
+		return;
+	}
+
+	try {
+		dependencies.runWezTerm(buildWezTermArgs(splitType, selectedDirectory));
+	} catch {
+		ctx.ui.notify("wezterm CLI not available. Are you inside WezTerm?", "error");
+		return;
+	}
+
+	ctx.ui.notify(`Pi opened in split pane: ${selectedDirectory}`, "info");
+}
+
 export async function handleCwdCommand(
 	args: string,
 	ctx: CwdCommandContext,
 	dependencies: CwdCommandDependencies = defaultDependencies,
 ): Promise<void> {
+	if (args.trim() === "") {
+		await interactiveCwd(ctx, dependencies);
+		return;
+	}
+
 	const parsed = parseCwdArgs(args);
 	if (!parsed.ok) {
 		ctx.ui.notify(parsed.message, "error");
