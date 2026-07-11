@@ -10,12 +10,14 @@ describe("read-deduplicator / createReadTracker", () => {
 
 	test("tracks and retrieves fingerprint, turn, and injectedText", () => {
 		const t = createReadTracker();
-		t.track("/tmp/a.md", "fp-a", 5, "content of a");
+		t.track("/tmp/a.md", "fp-a", 5, "content of a", 10, 20);
 		const entry = t.get("/tmp/a.md");
 		expect(entry!.fingerprint).toBe("fp-a");
 		expect(entry!.turn).toBe(5);
 		expect(entry!.injectedText).toBe("content of a");
 		expect(entry!.stillInContext).toBe(true);
+		expect(entry!.offset).toBe(10);
+		expect(entry!.limit).toBe(20);
 	});
 
 	test("overwrites on second track of same path", () => {
@@ -81,5 +83,25 @@ describe("read-deduplicator / createReadTracker", () => {
 		t.track("/tmp/y.md", "fp-y", 2, "y");
 		expect(t.get("/tmp/x.md")!.injectedText).toBe("x");
 		expect(t.get("/tmp/y.md")!.injectedText).toBe("y");
+	});
+
+	// ── cache hits ─────────────────────────────────────────────────────────
+	test("returns cached text when fingerprint and line range match", () => {
+		const t = createReadTracker();
+		t.track("/tmp/cache.md", "fp-cache", 7, "cached content", 5, 15);
+
+		expect(t.getCacheHit("/tmp/cache.md", "fp-cache", 5, 15)).toBe(
+			"cached content",
+		);
+	});
+
+	test("misses cache for untracked path, fingerprint mismatch, or line range mismatch", () => {
+		const t = createReadTracker();
+		t.track("/tmp/cache.md", "fp-cache", 7, "cached content", 5, 15);
+
+		expect(t.getCacheHit("/tmp/missing.md", "fp-cache", 5, 15)).toBeUndefined();
+		expect(t.getCacheHit("/tmp/cache.md", "fp-other", 5, 15)).toBeUndefined();
+		expect(t.getCacheHit("/tmp/cache.md", "fp-cache", 6, 15)).toBeUndefined();
+		expect(t.getCacheHit("/tmp/cache.md", "fp-cache", 5, 16)).toBeUndefined();
 	});
 });

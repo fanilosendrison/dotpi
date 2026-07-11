@@ -17,7 +17,7 @@ describe("track / get", () => {
 
 	test("stores and retrieves a track entry", () => {
 		const tracker = createReadTracker();
-		tracker.track("/a.ts", "fp1", 0, "content a");
+		tracker.track("/a.ts", "fp1", 0, "content a", 3, 9);
 
 		const entry = tracker.get("/a.ts");
 		expect(entry).toBeDefined();
@@ -25,6 +25,8 @@ describe("track / get", () => {
 		expect(entry!.turn).toBe(0);
 		expect(entry!.injectedText).toBe("content a");
 		expect(entry!.stillInContext).toBe(true);
+		expect(entry!.offset).toBe(3);
+		expect(entry!.limit).toBe(9);
 	});
 
 	test("overwrites existing entry on re-track", () => {
@@ -49,7 +51,36 @@ describe("track / get", () => {
 	});
 });
 
-// ── 2. stillInContext updates ─────────────────────────────────────────
+// ── 2. Cache hits ─────────────────────────────────────────────────────
+
+describe("getCacheHit", () => {
+	test("returns injected text when path, fingerprint, offset, and limit match", () => {
+		const tracker = createReadTracker();
+		tracker.track("/a.ts", "fp1", 0, "cached a", 10, 20);
+
+		expect(tracker.getCacheHit("/a.ts", "fp1", 10, 20)).toBe("cached a");
+	});
+
+	test("returns injected text for matching full-file reads", () => {
+		const tracker = createReadTracker();
+		tracker.track("/a.ts", "fp1", 0, "cached a");
+
+		expect(tracker.getCacheHit("/a.ts", "fp1")).toBe("cached a");
+	});
+
+	test("misses when path, fingerprint, offset, or limit differ", () => {
+		const tracker = createReadTracker();
+		tracker.track("/a.ts", "fp1", 0, "cached a", 10, 20);
+
+		expect(tracker.getCacheHit("/b.ts", "fp1", 10, 20)).toBeUndefined();
+		expect(tracker.getCacheHit("/a.ts", "fp2", 10, 20)).toBeUndefined();
+		expect(tracker.getCacheHit("/a.ts", "fp1", 11, 20)).toBeUndefined();
+		expect(tracker.getCacheHit("/a.ts", "fp1", 10, 21)).toBeUndefined();
+		expect(tracker.getCacheHit("/a.ts", "fp1")).toBeUndefined();
+	});
+});
+
+// ── 3. stillInContext updates ─────────────────────────────────────────
 
 describe("setStillInContext", () => {
 	test("marks an entry as still in context", () => {
@@ -87,7 +118,7 @@ describe("setStillInContext", () => {
 	});
 });
 
-// ── 3. Iteration ──────────────────────────────────────────────────────
+// ── 4. Iteration ──────────────────────────────────────────────────────
 
 describe("entries", () => {
 	test("returns empty iterator when nothing tracked", () => {
@@ -119,7 +150,7 @@ describe("entries", () => {
 	});
 });
 
-// ── 4. Edge cases ─────────────────────────────────────────────────────
+// ── 5. Edge cases ─────────────────────────────────────────────────────
 
 describe("edge cases", () => {
 	test("handles empty string path", () => {

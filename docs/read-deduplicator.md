@@ -2,9 +2,11 @@
 
 ## Where / What
 
-An extension that intercepts `read` tool calls and blocks re-reads when the file
-is already present — unmodified and in full — in the current provider context.
-Reads (allowed and blocked) are logged to a JSONL event file.
+An extension that intercepts `read` tool calls and serves cached read content
+when the same file and line range are requested again with the same file
+fingerprint. The underlying read is allowed to execute, then `tool_result`
+middleware swaps the result content with the cached text. Reads and cache serves
+are logged to a JSONL event file.
 
 | What | Where |
 |------|-------|
@@ -27,7 +29,9 @@ Each tracked file holds:
 | `fingerprint` | `mtimeMs:size:sha256(first 4KB)[:16]` |
 | `turn` | Turn number at which the file was last injected |
 | `injectedText` | Exact text injected into the prompt (formatted, with line numbers) |
-| `stillInContext` | Whether `injectedText` was found in the most recent provider request payload |
+| `stillInContext` | Diagnostic flag showing whether `injectedText` was found in the most recent provider request payload |
+| `offset` | Optional 1-indexed starting line from the read request |
+| `limit` | Optional maximum number of lines from the read request |
 
 #### Fingerprint
 
@@ -45,13 +49,14 @@ On every `tool_call` of type `read`:
 
 | Condition | Action |
 |-----------|--------|
-| File not tracked | Allow. Store `{fingerprint, turn, injectedText}` on `tool_result`. |
-| Tracked, fingerprint matches, `stillInContext` = `true` | **Block** → respond `(already in context, turn N)`, log `file_access{action: "blocked"}`. |
-| Tracked, fingerprint matches, `stillInContext` = `false` | Allow (truncated from context). Update `turn` and `injectedText`. |
+| File not tracked | Allow. Store `{fingerprint, turn, injectedText, offset, limit}` on `tool_result`. |
+| Tracked, fingerprint + `offset` + `limit` match | Allow the read, then replace the `tool_result` content with cached text and log `file_access{action: "cache_served"}`. |
+| Tracked, fingerprint matches but `offset` or `limit` differ | Allow. Replace the entry on `tool_result`. |
 | Tracked, fingerprint differs (file modified) | Allow. Replace the entry. |
 
 `stillInContext` is updated on `before_provider_request` by checking each
-tracked entry's `injectedText` against the current payload text.
+tracked entry's `injectedText` against the current payload text. It is retained
+for diagnostics, but it no longer controls the cache-serve decision.
 
 ### Event Log (JSONL)
 
@@ -59,25 +64,24 @@ Single event type `file_access` with `action` discriminator:
 
 | `details.action` | When |
 |---|---|
-| `blocked` | Read blocked (file already in context) |
-| `read` | Successful read (allowed) |
+| `cache_served` | Matching file/range result returned from cache |
+| `read` | Successful read recorded for future cache serves |
 
 ```json
 {
   "eventType": "file_access",
   "details": {
-    "action": "blocked",
+    "action": "cache_served",
     "path": "/src/foo.ts",
     "sizeBytes": 1024,
     "turnIndex": 3,
     "parentModel": "deepseek-v4-flash",
-    "thinkingLevel": "xhigh",
-    "blockedReason": "already in context (turn 1)"
+    "thinkingLevel": "xhigh"
   }
 }
 ```
 
-Ratio: `blocked / (blocked + read)`.
+Ratio: `cache_served / (cache_served + read)`.
 
 No `cycle_summary`, no `cycleId`, no RAM counters.
 
@@ -86,14 +90,13 @@ No `cycle_summary`, no `cycleId`, no RAM counters.
 | Pi event | Role |
 |----------|------|
 | `turn_start` | Sets `currentTurn`. |
-| `tool_call` (read) | Fingerprint + decision + log `file_access{blocked}` if blocked. |
-| `tool_result` (read) | Updates tracker, logs `file_access{read}`. |
+| `tool_call` (read) | Fingerprint + range lookup; records pending cache serves by `toolCallId`. |
+| `tool_result` (read) | Swaps cached content on a confirmed hit, or updates tracker and logs `file_access{read}`. |
 | `before_provider_request` | Updates `stillInContext` for all tracked files. |
 
 ### Health Check
 
-The extension shows the running block count in Pi's status bar via
-`pi.ui.setStatus("rd", ...)`.
+No status bar health check is currently implemented.
 
 ## Relevant Files
 

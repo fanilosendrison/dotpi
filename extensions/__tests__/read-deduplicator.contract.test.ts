@@ -3,7 +3,7 @@
  *
  * Tests the DATA CONTRACT only:
  *   - namespace, eventType, details shape
- *   - blocked action with blockedReason
+ *   - cache_served action without blockedReason
  *   - read action without blockedReason
  *
  * Infrastructure (file creation, mkdir, ordering, required fields schema)
@@ -34,10 +34,10 @@ function readEvents(filePath: string): any[] {
 		.map((l) => JSON.parse(l));
 }
 
-// ── file_access (blocked) ────────────────────────────────────────────────
+// ── file_access (cache_served) ────────────────────────────────────────────
 
-describe("file_access (blocked)", () => {
-	test("writes file_access with all fields for blocked action", () => {
+describe("file_access (cache_served)", () => {
+	test("writes file_access with all fields for cache_served action", () => {
 		const sink = createEventSink({
 			statsDir: tmpDir,
 			agent: "pi",
@@ -47,13 +47,12 @@ describe("file_access (blocked)", () => {
 		sink.append(
 			"file_access",
 			{
-				action: "blocked",
+				action: "cache_served",
 				path: "/a.ts",
 				sizeBytes: 100,
 				turnIndex: 1,
 				parentModel: "deepseek-v4-flash",
 				thinkingLevel: "xhigh",
-				blockedReason: "already in context (turn 1)",
 			},
 			{
 				timestamp: "2026-07-03T12:00:00Z",
@@ -70,13 +69,13 @@ describe("file_access (blocked)", () => {
 		expect(ev.sessionId).toBe("sess-1");
 		expect(ev.timestamp).toBe("2026-07-03T12:00:00Z");
 		expect(ev.eventId).toBeDefined();
-		expect(ev.details.action).toBe("blocked");
+		expect(ev.details.action).toBe("cache_served");
 		expect(ev.details.path).toBe("/a.ts");
 		expect(ev.details.sizeBytes).toBe(100);
 		expect(ev.details.turnIndex).toBe(1);
 		expect(ev.details.parentModel).toBe("deepseek-v4-flash");
 		expect(ev.details.thinkingLevel).toBe("xhigh");
-		expect(ev.details.blockedReason).toBe("already in context (turn 1)");
+		expect(ev.details.blockedReason).toBeUndefined();
 	});
 });
 

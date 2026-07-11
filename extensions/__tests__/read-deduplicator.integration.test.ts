@@ -79,7 +79,7 @@ describe("read-deduplicator extension integration", () => {
 		return lastResult;
 	};
 
-	test("full cycle: read -> block on re-read -> allow after truncation -> re-track", async () => {
+	test("full cycle: read -> cache serve same range -> miss on different range", async () => {
 		const file = join(tempDir, "doc.md");
 		await writeFile(file, "Hello world, this is a unique text.");
 
@@ -87,18 +87,22 @@ describe("read-deduplicator extension integration", () => {
 		await trigger("turn_start", { turnIndex: 1 });
 
 		// 1. First read is allowed, no telemetry emitted yet (until tool_result)
-		const blockResult1 = await trigger("tool_call", {
+		const toolCallResult1 = await trigger("tool_call", {
 			toolName: "read",
-			input: { path: file },
+			toolCallId: "read-1",
+			input: { path: file, offset: 1, limit: 10 },
 		});
-		expect(blockResult1).toBeUndefined();
+		expect(toolCallResult1).toBeUndefined();
 		expect(appendMock).not.toHaveBeenCalled();
 
 		// 2. Capture read result (telemetry: action = read)
 		await trigger("tool_result", {
 			toolName: "read",
-			input: { path: file },
+			toolCallId: "read-1",
+			input: { path: file, offset: 1, limit: 10 },
 			content: [{ type: "text", text: "Hello world, this is a unique text." }],
+			details: { lines: 1 },
+			isError: false,
 		});
 		expect(appendMock).toHaveBeenCalledTimes(1);
 		expect(appendMock.mock.calls[0][0]).toBe("file_access");
@@ -109,7 +113,7 @@ describe("read-deduplicator extension integration", () => {
 			thinkingLevel: "high",
 		});
 
-		// 3. Next turn: content is still in provider context. Try to read again -> blocked
+		// 3. Next turn: same fingerprint and range. The read is allowed, then result is swapped.
 		await trigger("turn_start", { turnIndex: 2 });
 		await trigger("before_provider_request", {
 			payload: {
@@ -123,26 +127,37 @@ describe("read-deduplicator extension integration", () => {
 			},
 		});
 
-		const blockResult2 = await trigger("tool_call", {
+		const toolCallResult2 = await trigger("tool_call", {
 			toolName: "read",
-			input: { path: file },
+			toolCallId: "read-2",
+			input: { path: file, offset: 1, limit: 10 },
 		});
-		expect(blockResult2).toEqual({
-			block: true,
-			reason: "(already in context, turn 1)",
+		expect(toolCallResult2).toBeUndefined();
+		const cachedResult = await trigger("tool_result", {
+			toolName: "read",
+			toolCallId: "read-2",
+			input: { path: file, offset: 1, limit: 10 },
+			content: [{ type: "text", text: "fresh disk text should be replaced" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+		expect(cachedResult).toEqual({
+			content: [{ type: "text", text: "Hello world, this is a unique text." }],
+			details: { lines: 1 },
+			isError: false,
 		});
 
-		// Telemetry should log block
+		// Telemetry should log cache serve
 		expect(appendMock).toHaveBeenCalledTimes(2);
 		expect(appendMock.mock.calls[1][1]).toMatchObject({
-			action: "blocked",
+			action: "cache_served",
 			path: file,
 			parentModel: "m-dedup",
 			thinkingLevel: "high",
-			blockedReason: "already in context (turn 1)",
 		});
+		expect(appendMock.mock.calls[1][1].blockedReason).toBeUndefined();
 
-		// 4. Next turn: content is truncated from provider context. Try to read -> allowed
+		// 4. Different offset/limit is a cache miss and re-tracks the latest read.
 		await trigger("turn_start", { turnIndex: 3 });
 		await trigger("before_provider_request", {
 			payload: {
@@ -156,14 +171,29 @@ describe("read-deduplicator extension integration", () => {
 			},
 		});
 
-		const blockResult3 = await trigger("tool_call", {
+		const toolCallResult3 = await trigger("tool_call", {
 			toolName: "read",
-			input: { path: file },
+			toolCallId: "read-3",
+			input: { path: file, offset: 2, limit: 1 },
 		});
-		expect(blockResult3).toBeUndefined(); // Allowed!
+		expect(toolCallResult3).toBeUndefined();
+		const missResult = await trigger("tool_result", {
+			toolName: "read",
+			toolCallId: "read-3",
+			input: { path: file, offset: 2, limit: 1 },
+			content: [{ type: "text", text: "second line" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+		expect(missResult).toBeUndefined();
+		expect(appendMock).toHaveBeenCalledTimes(3);
+		expect(appendMock.mock.calls[2][1]).toMatchObject({
+			action: "read",
+			path: file,
+		});
 	});
 
-	test("re-read after file is modified is allowed", async () => {
+	test("re-read after file is modified re-tracks before later cache serving", async () => {
 		const file = join(tempDir, "doc.md");
 		await writeFile(file, "Content V1");
 
@@ -173,8 +203,11 @@ describe("read-deduplicator extension integration", () => {
 		// Read V1
 		await trigger("tool_result", {
 			toolName: "read",
+			toolCallId: "modified-1",
 			input: { path: file },
 			content: [{ type: "text", text: "Content V1" }],
+			details: { lines: 1 },
+			isError: false,
 		});
 		expect(appendMock).toHaveBeenCalledTimes(1);
 
@@ -186,13 +219,91 @@ describe("read-deduplicator extension integration", () => {
 			},
 		});
 
-		await writeFile(file, "Content V2");
+		await writeFile(file, "Content V2 has changed");
 
 		// Even though "Content V1" is still in the payload, since fingerprint changed on disk, re-read is allowed!
-		const blockResult = await trigger("tool_call", {
+		const toolCallResult = await trigger("tool_call", {
 			toolName: "read",
+			toolCallId: "modified-2",
 			input: { path: file },
 		});
-		expect(blockResult).toBeUndefined();
+		expect(toolCallResult).toBeUndefined();
+		await trigger("tool_result", {
+			toolName: "read",
+			toolCallId: "modified-2",
+			input: { path: file },
+			content: [{ type: "text", text: "Content V2 has changed" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+		expect(appendMock).toHaveBeenCalledTimes(2);
+		expect(appendMock.mock.calls[1][1]).toMatchObject({
+			action: "read",
+			path: file,
+		});
+
+		await trigger("turn_start", { turnIndex: 3 });
+		await trigger("tool_call", {
+			toolName: "read",
+			toolCallId: "modified-3",
+			input: { path: file },
+		});
+		const cachedResult = await trigger("tool_result", {
+			toolName: "read",
+			toolCallId: "modified-3",
+			input: { path: file },
+			content: [{ type: "text", text: "disk text should be replaced" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+
+		expect(cachedResult).toEqual({
+			content: [{ type: "text", text: "Content V2 has changed" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+		expect(appendMock.mock.calls[2][1]).toMatchObject({
+			action: "cache_served",
+			path: file,
+		});
+	});
+
+	test("pending cache serve falls through if the file changes before tool_result", async () => {
+		const file = join(tempDir, "doc.md");
+		await writeFile(file, "Content V1");
+
+		await trigger("session_start");
+		await trigger("turn_start", { turnIndex: 1 });
+		await trigger("tool_result", {
+			toolName: "read",
+			toolCallId: "race-1",
+			input: { path: file },
+			content: [{ type: "text", text: "Content V1" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+
+		await trigger("turn_start", { turnIndex: 2 });
+		await trigger("tool_call", {
+			toolName: "read",
+			toolCallId: "race-2",
+			input: { path: file },
+		});
+		await writeFile(file, "Content V2 changed after preflight");
+
+		const result = await trigger("tool_result", {
+			toolName: "read",
+			toolCallId: "race-2",
+			input: { path: file },
+			content: [{ type: "text", text: "Content V2 changed after preflight" }],
+			details: { lines: 1 },
+			isError: false,
+		});
+
+		expect(result).toBeUndefined();
+		expect(appendMock.mock.calls[1][1]).toMatchObject({
+			action: "read",
+			path: file,
+		});
 	});
 });

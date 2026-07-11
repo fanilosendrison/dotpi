@@ -2,14 +2,14 @@
  * Pi extension — deduplicates `read` tool calls by tracking which files
  * have already been injected into the context in this session.
  *
- * Blocks re-reads when: fingerprint matches AND file still in provider payload.
- * Allows re-reads when: first read, file modified, or content truncated from payload.
+ * Serves cached text when: fingerprint and read line range both match.
+ * Allows normal reads when: first read, file modified, or offset/limit differ.
  *
  * Logs a file_access event per read attempt in
  * ~/neelopedia/stats/pi/read-deduplicator/events.jsonl
  *
  * Environment:
- *   RD_DRY_RUN=true — log blocks but do not actually block (debug mode).
+ *   RD_DRY_RUN=true — legacy no-op, kept for compatibility with existing env.
  */
 
 import { createHash } from "node:crypto";
@@ -36,6 +36,12 @@ interface ProviderMessage {
 	content?: unknown;
 }
 
+interface PendingCacheServe {
+	path: string;
+	fingerprint: string;
+	cachedText: string;
+}
+
 function isProviderTextBlock(value: unknown): value is ProviderTextBlock {
 	return (
 		typeof value === "object" &&
@@ -43,6 +49,14 @@ function isProviderTextBlock(value: unknown): value is ProviderTextBlock {
 		(value as { type?: unknown }).type === "text" &&
 		typeof (value as { text?: unknown }).text === "string"
 	);
+}
+
+function getOptionalNumberField(
+	input: { offset?: unknown; limit?: unknown },
+	field: "offset" | "limit",
+): number | undefined {
+	const value = input[field];
+	return typeof value === "number" ? value : undefined;
 }
 
 function sampleFileHash(path: string): string {
@@ -85,6 +99,7 @@ function computeFingerprint(
 export default function (pi: ExtensionAPI) {
 	const telemetry = createPiTelemetry(pi, "read-deduplicator");
 	const tracker = createReadTracker();
+	const pendingCacheServes = new Map<string, PendingCacheServe>();
 
 	let currentTurn = 0;
 
@@ -133,48 +148,18 @@ export default function (pi: ExtensionAPI) {
 		const fp = computeFingerprint(path);
 		if (!fp) return;
 
-		const { fingerprint, sizeBytes } = fp;
-		const entry = tracker.get(path);
+		const { fingerprint } = fp;
+		const offset = getOptionalNumberField(event.input, "offset");
+		const limit = getOptionalNumberField(event.input, "limit");
+		const cachedText = tracker.getCacheHit(path, fingerprint, offset, limit);
 
-		const common = {
-			ts: new Date().toISOString(),
-			path,
-			sizeBytes,
-			turnIndex: currentTurn,
-			sessionId: telemetry.sessionId,
-			workspace: process.cwd(),
-		};
-
-		// First read — always allow
-		if (!entry) return;
-
-		// File modified — allow
-		if (entry.fingerprint !== fingerprint) return;
-
-		// Same fingerprint, still in context — block
-		if (entry.stillInContext) {
-			telemetry.append(
-				"file_access",
-				{
-					action: "blocked",
-					path: common.path,
-					sizeBytes: common.sizeBytes,
-					turnIndex: common.turnIndex,
-					blockedReason: `already in context (turn ${entry.turn})`,
-				},
-				{
-					timestamp: common.ts,
-					sessionId: common.sessionId,
-					workspace: common.workspace,
-				},
-			);
-			return {
-				block: true,
-				reason: `(already in context, turn ${entry.turn})`,
-			};
+		if (cachedText !== undefined) {
+			pendingCacheServes.set(event.toolCallId, {
+				path,
+				fingerprint,
+				cachedText,
+			});
 		}
-
-		// Same fingerprint, truncated from context — allow (falls through)
 	});
 
 	// ── Capture injected text after successful reads ─────────────────────
@@ -184,6 +169,38 @@ export default function (pi: ExtensionAPI) {
 
 		const path = getReadPath(event.input);
 		if (path === null) return;
+
+		const pendingCacheServe = pendingCacheServes.get(event.toolCallId);
+		if (pendingCacheServe) {
+			pendingCacheServes.delete(event.toolCallId);
+			const fp = computeFingerprint(path);
+
+			if (
+				path === pendingCacheServe.path &&
+				fp?.fingerprint === pendingCacheServe.fingerprint
+			) {
+				telemetry.append(
+					"file_access",
+					{
+						action: "cache_served",
+						path,
+						sizeBytes: fp.sizeBytes,
+						turnIndex: currentTurn,
+					},
+					{
+						timestamp: new Date().toISOString(),
+						sessionId: telemetry.sessionId,
+						workspace: process.cwd(),
+					},
+				);
+
+				return {
+					content: [{ type: "text", text: pendingCacheServe.cachedText }],
+					details: event.details,
+					isError: false,
+				};
+			}
+		}
 
 		const textContent = event.content
 			.filter((c): c is { type: "text"; text: string } => c.type === "text")
@@ -196,8 +213,10 @@ export default function (pi: ExtensionAPI) {
 		if (!fp) return;
 
 		const { fingerprint, sizeBytes } = fp;
+		const offset = getOptionalNumberField(event.input, "offset");
+		const limit = getOptionalNumberField(event.input, "limit");
 
-		tracker.track(path, fingerprint, currentTurn, textContent);
+		tracker.track(path, fingerprint, currentTurn, textContent, offset, limit);
 
 		telemetry.append(
 			"file_access",
