@@ -11,6 +11,7 @@ import {
 } from "@earendil-works/pi-tui";
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 const SPLIT_TYPES = [
@@ -81,6 +82,7 @@ const SPLIT_TYPE_ITEMS: SelectItem[] = [
 
 const BROWSER_HELP_LINE = "↑↓ navigate · ↵ enter · ⌫ back · esc cancel";
 const SPLIT_PICKER_HELP_LINE = "↑↓ navigate · enter select · esc cancel";
+const DEFAULT_BROWSER_START_PATH = join(homedir(), "Developper", "Projects");
 
 function isSplitType(value: string): value is SplitType {
 	return SPLIT_TYPES.includes(value as SplitType);
@@ -179,6 +181,13 @@ export function buildWezTermArgs(splitType: SplitType, directory: string): strin
 		"--",
 		"pi",
 	];
+}
+
+export function resolveInteractiveBrowserStartPath(
+	cwd: string,
+	pathExists: (directory: string) => boolean = directoryExists,
+): string {
+	return pathExists(DEFAULT_BROWSER_START_PATH) ? DEFAULT_BROWSER_START_PATH : cwd;
 }
 
 function isRootPath(path: string): boolean {
@@ -435,8 +444,9 @@ export async function interactiveCwd(
 		return;
 	}
 
+	const browserStartPath = resolveInteractiveBrowserStartPath(ctx.cwd, dependencies.directoryExists);
 	const selectedDirectory = await ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
-		const browser = new DirectoryBrowser(ctx.cwd, theme);
+		const browser = new DirectoryBrowser(browserStartPath, theme);
 		browser.onSelect = (path) => done(path);
 		browser.onCancel = () => done(null);
 

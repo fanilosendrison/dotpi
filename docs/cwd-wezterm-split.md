@@ -15,6 +15,8 @@ WezTerm split pane or tab without closing the current session.
 Defaults:
 
 - `/cwd` with no arguments opens the interactive directory browser.
+- The interactive browser starts at `~/Developper/Projects` when that directory
+  exists, otherwise it starts at `ctx.cwd`.
 - In fast path mode, the split flag defaults to `--bottom`.
 - In fast path mode, the path defaults to `.` relative to `ctx.cwd`.
 - Flag and path order are both accepted.
@@ -57,7 +59,9 @@ top/bottom splits through `--top` and `--bottom`.
 
 ## Interactive Directory Browser
 
-Type `/cwd` with no arguments to open the interactive browser.
+Type `/cwd` with no arguments to open the interactive browser. It starts at
+`~/Developper/Projects` when that directory exists, and falls back to Pi's
+current working directory otherwise.
 
 Flow:
 

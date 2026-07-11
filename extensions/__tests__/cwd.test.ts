@@ -3,7 +3,7 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import type { Component } from "@earendil-works/pi-tui";
 import { describe, expect, test } from "bun:test";
 import { closeSync, mkdtempSync, mkdirSync, openSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import cwdExtension, {
 	buildWezTermArgs,
@@ -11,6 +11,7 @@ import cwdExtension, {
 	handleCwdCommand,
 	interactiveCwd,
 	parseCwdArgs,
+	resolveInteractiveBrowserStartPath,
 } from "../cwd";
 
 type NotifyLevel = "info" | "warning" | "error";
@@ -33,6 +34,7 @@ const KEY_END = "\x1b[F";
 const KEY_ENTER = "\r";
 const KEY_ESCAPE = "\x1b";
 const KEY_BACKSPACE = "\x7f";
+const PREFERRED_BROWSER_START_PATH = join(homedir(), "Developper", "Projects");
 
 const testTheme = {
 	fg: (_color: string, text: string) => text,
@@ -200,20 +202,22 @@ describe("handleCwdCommand", () => {
 	test("opens interactive mode when no args are provided", async () => {
 		const root = "/tmp/root";
 		const selectedDirectory = "/tmp/root/project";
-		const { ctx, notifications, customCalls } = createInteractiveCommandContext(root, [
+		const { ctx, notifications, customCalls, renderedComponents } = createInteractiveCommandContext(root, [
 			selectedDirectory,
 			"--right",
 		]);
 		const executedCommands: string[][] = [];
 
 		await handleCwdCommand("   ", ctx, {
-			directoryExists: (candidate) => candidate === selectedDirectory,
+			directoryExists: (candidate) =>
+				candidate === selectedDirectory || candidate === PREFERRED_BROWSER_START_PATH,
 			runWezTerm: (args) => {
 				executedCommands.push(args);
 			},
 		});
 
 		expect(customCalls).toEqual([{ overlay: true }, { overlay: true }]);
+		expect(renderedComponents[0].render(160).some((line) => line.includes(PREFERRED_BROWSER_START_PATH))).toBe(true);
 		expect(executedCommands).toEqual([
 			["cli", "split-pane", "--right", "--cwd", selectedDirectory, "--", "pi"],
 		]);
@@ -307,6 +311,18 @@ describe("handleCwdCommand", () => {
 				level: "error",
 			},
 		]);
+	});
+});
+
+describe("resolveInteractiveBrowserStartPath", () => {
+	test("prefers the projects directory when it exists", () => {
+		expect(
+			resolveInteractiveBrowserStartPath("/tmp/current", (candidate) => candidate === PREFERRED_BROWSER_START_PATH),
+		).toBe(PREFERRED_BROWSER_START_PATH);
+	});
+
+	test("falls back to the current cwd when the projects directory is missing", () => {
+		expect(resolveInteractiveBrowserStartPath("/tmp/current", () => false)).toBe("/tmp/current");
 	});
 });
 
