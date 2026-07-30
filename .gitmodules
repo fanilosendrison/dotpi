@@ -1,0 +1,3 @@
+[submodule "extensions/pi-subagents-4-turnlock"]
+	path = extensions/pi-subagents-4-turnlock
+	url = git@github.com:fanilosendrison/pi-subagents-4-turnlock.git
