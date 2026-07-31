@@ -1,0 +1,179 @@
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+const IGNORED_CHANGE_PREFIXES = [".pi-subagents/", "tmp/", "node_modules/"];
+const IGNORED_CHANGE_PATHS = new Set([".pi-subagents", "tmp", "node_modules"]);
+
+const DEFAULT_MAX_HASH_FILE_BYTES = 64 * 1024 * 1024;
+
+// Read at call time (not module load) so PI_SUBAGENTS_MAX_HASH_FILE_BYTES can be
+// overridden by tests after this module is imported. Falls back to the 64 MiB
+// default when the env value is missing, non-numeric, non-finite, or <= 0.
+function maxHashFileBytes(): number {
+	const parsed = Number(process.env.PI_SUBAGENTS_MAX_HASH_FILE_BYTES);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_HASH_FILE_BYTES;
+}
+
+export interface WatchdogRepoChangeSignature {
+	root: string;
+	key: string;
+	changedPaths: string[];
+}
+
+function git(cwd: string, args: string[]): string | undefined {
+	const result = spawnSync("git", ["-C", cwd, ...args], { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 });
+	if (result.status !== 0) return undefined;
+	return result.stdout;
+}
+
+function normalizeRelPath(value: string): string {
+	return value.replaceAll(path.sep, "/").replace(/^\.\//, "");
+}
+
+function ignoredRelPath(relPath: string): boolean {
+	const normalized = normalizeRelPath(relPath);
+	return IGNORED_CHANGE_PATHS.has(normalized) || IGNORED_CHANGE_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
+function hashFile(filePath: string): string {
+	return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function largeFileHash(stat: fs.Stats): string {
+	return "large:" + stat.size + ":" + Math.floor(stat.mtimeMs);
+}
+
+function hashFileEntry(normalized: string, fullPath: string, stat: fs.Stats): unknown {
+	let hash: string;
+	if (stat.size > maxHashFileBytes()) {
+		hash = largeFileHash(stat);
+	} else {
+		try {
+			hash = hashFile(fullPath);
+		} catch (error) {
+			const code = (error as NodeJS.ErrnoException).code;
+			// A file racing away between lstat and read: mirror the lstat ENOENT path.
+			if (code === "ENOENT") return { path: normalized, state: "deleted" };
+			// Any other read failure (too-large, EACCES, EISDIR, ...) degrades to the
+			// metadata marker so one unreadable file never discards the whole signature.
+			hash = largeFileHash(stat);
+			if (code !== "ERR_FS_FILE_TOO_LARGE") {
+				console.warn("[pi-subagents] watchdog hashFile fell back to metadata for", normalized + ":", (error as Error)?.message);
+			}
+		}
+	}
+	return { path: normalized, state: "file", mode: stat.mode & 0o777, size: stat.size, hash };
+}
+
+function hashPath(root: string, relPath: string): unknown {
+	const normalized = normalizeRelPath(relPath);
+	const fullPath = path.join(root, normalized);
+	let stat: fs.Stats;
+	try {
+		stat = fs.lstatSync(fullPath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return { path: normalized, state: "deleted" };
+		throw error;
+	}
+	if (stat.isSymbolicLink()) {
+		return { path: normalized, state: "symlink", target: fs.readlinkSync(fullPath) };
+	}
+	if (stat.isDirectory()) {
+		if (fs.existsSync(path.join(fullPath, ".git"))) {
+			const changes = computeWatchdogRepoChangeSignature(fullPath);
+			return {
+				path: normalized,
+				state: "git-worktree",
+				head: git(fullPath, ["rev-parse", "HEAD"])?.trim(),
+				changes: changes ? { key: changes.key, changedPaths: changes.changedPaths } : undefined,
+			};
+		}
+		const entries = fs.readdirSync(fullPath)
+			.map((entry) => normalizeRelPath(path.posix.join(normalized, entry)))
+			.filter((entry) => !ignoredRelPath(entry))
+			.sort();
+		return { path: normalized, state: "dir", entries: entries.map((entry) => hashPath(root, entry)) };
+	}
+	if (stat.isFile()) return hashFileEntry(normalized, fullPath, stat);
+	return { path: normalized, state: "other", mode: stat.mode };
+}
+
+function parsePorcelainZ(raw: string): Array<{ status: string; paths: string[] }> {
+	const tokens = raw.split("\0").filter(Boolean);
+	const entries: Array<{ status: string; paths: string[] }> = [];
+	for (let index = 0; index < tokens.length; index++) {
+		const token = tokens[index]!;
+		if (token.length < 4) continue;
+		const status = token.slice(0, 2);
+		const relPath = token.slice(3);
+		const paths = [relPath];
+		if (status[0] === "R" || status[0] === "C") {
+			const originalPath = tokens[++index];
+			if (originalPath) paths.push(originalPath);
+		}
+		entries.push({ status, paths });
+	}
+	return entries;
+}
+
+function buildRepoChangeSignature(root: string, statusOutput: string): WatchdogRepoChangeSignature {
+	const entries = parsePorcelainZ(statusOutput)
+		.map((entry) => ({
+			status: entry.status,
+			paths: entry.paths.map(normalizeRelPath).filter((relPath) => !ignoredRelPath(relPath)),
+		}))
+		.filter((entry) => entry.paths.length > 0)
+		.sort((a, b) => `${a.status} ${a.paths.join("\0")}`.localeCompare(`${b.status} ${b.paths.join("\0")}`));
+	const changedPaths = [...new Set(entries.flatMap((entry) => entry.paths))].sort();
+	const payload = entries.map((entry) => ({
+		status: entry.status,
+		paths: entry.paths,
+		content: entry.paths.map((relPath) => hashPath(root, relPath)),
+	}));
+	const key = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+	return { root, key, changedPaths };
+}
+
+export function computeWatchdogRepoChangeSignature(cwd: string): WatchdogRepoChangeSignature | undefined {
+	const root = git(cwd, ["rev-parse", "--show-toplevel"])?.trim();
+	if (!root) return undefined;
+	const statusOutput = git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]);
+	if (statusOutput === undefined) return undefined;
+	try {
+		return buildRepoChangeSignature(root, statusOutput);
+	} catch (error) {
+		console.warn("[pi-subagents] watchdog repo change signature failed:", (error as Error)?.message);
+		return undefined;
+	}
+}
+
+function toolNameFromMessage(message: Record<string, unknown>): string {
+	const value = message.toolName ?? message.name;
+	return typeof value === "string" ? value : "";
+}
+
+function toolResultSucceeded(message: Record<string, unknown>): boolean {
+	return message.isError !== true && message.error === undefined;
+}
+
+function messageIndicatesRepoEdit(message: unknown): boolean {
+	if (!message || typeof message !== "object") return false;
+	const input = message as Record<string, unknown>;
+	const role = input.role;
+	if (role !== "toolResult" && role !== "tool") return false;
+	const toolName = toolNameFromMessage(input);
+	return (toolName === "edit" || toolName === "write") && toolResultSucceeded(input);
+}
+
+export function eventIndicatesRepoEdit(event: unknown): boolean {
+	if (!event || typeof event !== "object") return false;
+	const input = event as Record<string, unknown>;
+	if (input.type === "turn_end" || input.event === "turn_end") {
+		return [input.message, ...(Array.isArray(input.toolResults) ? input.toolResults : [])].some(messageIndicatesRepoEdit);
+	}
+	if (input.type === "tool_result" || input.event === "tool_result") return messageIndicatesRepoEdit({ role: "toolResult", ...input });
+	if (input.type !== "tool_result_end" && input.event !== "tool_result_end") return false;
+	return messageIndicatesRepoEdit(input.message);
+}
