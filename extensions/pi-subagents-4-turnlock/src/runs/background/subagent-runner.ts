@@ -2672,7 +2672,11 @@ async function runSubagent(
 					: undefined;
 				const groupStopped = stopped || stopAbortController.signal.aborted;
 				const groupTimedOut = !groupStopped && (timedOut || timeoutAbortController.signal.aborted);
-				const effectiveGroupAcceptance = groupTimedOut || groupStopped ? undefined : groupAcceptance;
+				const effectiveGroupAcceptance = groupStopped
+					? buildSkippedAcceptanceLedger(effectiveDynamicGroupAcceptance, { id: "stopped", message: "Acceptance was not evaluated because the dynamic fanout was stopped." })
+					: groupTimedOut
+						? buildSkippedAcceptanceLedger(effectiveDynamicGroupAcceptance, { id: "timeout", message: "Acceptance was not evaluated because the dynamic fanout timed out." })
+						: groupAcceptance;
 				if (placeholder && effectiveGroupAcceptance) placeholder.acceptance = effectiveGroupAcceptance;
 				const groupAcceptanceFailure = effectiveGroupAcceptance ? acceptanceFailureMessage(effectiveGroupAcceptance) : undefined;
 				if (groupTimedOut || groupStopped || groupAcceptanceFailure) {
@@ -2966,7 +2970,11 @@ async function runSubagent(
 						: undefined;
 					const groupStopped = stopped || stopAbortController.signal.aborted;
 					const groupTimedOut = !groupStopped && (timedOut || timeoutAbortController.signal.aborted);
-					const effectiveGroupAcceptance = groupTimedOut || groupStopped ? undefined : groupAcceptance;
+					const effectiveGroupAcceptance = groupStopped
+						? buildSkippedAcceptanceLedger(effectiveDynamicGroupAcceptance, { id: "stopped", message: "Acceptance was not evaluated because the dynamic fanout was stopped." })
+						: groupTimedOut
+							? buildSkippedAcceptanceLedger(effectiveDynamicGroupAcceptance, { id: "timeout", message: "Acceptance was not evaluated because the dynamic fanout timed out." })
+							: groupAcceptance;
 					const groupAcceptanceFailure = effectiveDynamicGroupAcceptance.explicit && effectiveGroupAcceptance ? acceptanceFailureMessage(effectiveGroupAcceptance) : undefined;
 					const groupError = groupStopped ? stopMessage : groupTimedOut ? timeoutMessage ?? "Subagent timed out." : groupAcceptanceFailure;
 					markDynamicGraphGroup(stepIndex, groupError ? groupStopped ? "stopped" : "failed" : "completed", groupError, effectiveGroupAcceptance);

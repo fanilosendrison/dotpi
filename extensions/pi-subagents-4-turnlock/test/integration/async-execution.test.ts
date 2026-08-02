@@ -1855,7 +1855,8 @@ describe("async execution utilities", { skip: !available ? "pi packages not avai
 		mockPi.onCall({ output: "targets", structuredOutput: { items: [{ path: "src/a.ts" }] } });
 		mockPi.onCall({ output: "review-a", structuredOutput: { ok: "a" } });
 		const id = `async-dynamic-acceptance-timeout-${Date.now().toString(36)}`;
-		const startedAt = Date.now();
+		const asyncDir = path.join(ASYNC_DIR, id);
+		const statusPath = path.join(asyncDir, "status.json");
 		executeAsyncChain(id, {
 			chain: [
 				{ agent: "producer", task: "Produce targets", as: "targets", outputSchema: { type: "object" } },
@@ -1874,20 +1875,43 @@ describe("async execution utilities", { skip: !available ? "pi packages not avai
 			artifactConfig: { enabled: false, includeInput: false, includeOutput: false, includeJsonl: false, includeMetadata: false, cleanupDays: 7 },
 			shareEnabled: false,
 			maxSubagentDepth: 2,
-			timeoutMs: 1_000,
+			timeoutMs: 60_000,
 		});
 
+		const readinessDeadline = Date.now() + 45_000;
+		let timeoutPid: number | undefined;
+		while (Date.now() <= readinessDeadline) {
+			if (fs.existsSync(statusPath)) {
+				const liveStatus = JSON.parse(fs.readFileSync(statusPath, "utf-8")) as AsyncStatusPayload & {
+					workflowGraph?: { nodes?: Array<{ status?: string; children?: Array<{ status?: string }> }> };
+				};
+				const liveDynamicNode = liveStatus.workflowGraph?.nodes?.[1];
+				if (liveStatus.state === "running"
+					&& liveDynamicNode?.children?.length === 1
+					&& liveDynamicNode.children.every((child) => child.status === "completed")) {
+					timeoutPid = liveStatus.pid;
+					break;
+				}
+			}
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+		assert.ok(timeoutPid, `dynamic acceptance did not become ready before timeout: ${readIfExists(statusPath) ?? "missing status"}`);
+		const timeoutTriggeredAt = Date.now();
+		deliverTimeoutRequest({ asyncDir, pid: timeoutPid, source: "test" });
+
 		const resultPath = await waitForAsyncResultFile(id, 5_000);
-		const elapsedMs = Date.now() - startedAt;
+		const elapsedMs = Date.now() - timeoutTriggeredAt;
 		const payload = JSON.parse(fs.readFileSync(resultPath, "utf-8")) as AsyncResultPayload;
-		const status = JSON.parse(fs.readFileSync(path.join(ASYNC_DIR, id, "status.json"), "utf-8")) as AsyncStatusPayload;
+		const status = JSON.parse(fs.readFileSync(statusPath, "utf-8")) as AsyncStatusPayload;
 		const dynamicNode = payload.workflowGraph?.nodes?.[1] as { status?: string; error?: string; acceptanceStatus?: string } | undefined;
 		assert.equal(payload.state, "failed");
 		assert.equal(payload.timedOut, true);
 		assert.equal(payload.results.at(-1)?.timedOut, true);
-		assert.equal(payload.results.at(-1)?.acceptance, undefined);
+		const timedOutChildAcceptance = payload.results.at(-1)?.acceptance;
+		assert.equal(timedOutChildAcceptance?.status, "rejected");
+		assert.equal(timedOutChildAcceptance?.runtimeChecks?.some((check) => check.id === "timeout" && check.status === "failed"), true);
 		assert.equal(dynamicNode?.status, "failed");
-		assert.match(dynamicNode?.error ?? "", /Subagent timed out after 1000ms\./);
+		assert.match(dynamicNode?.error ?? "", /Subagent timed out after 60000ms\./);
 		assert.notEqual(dynamicNode?.acceptanceStatus, "verified");
 		assert.equal(status.timedOut, true);
 		assert.ok(elapsedMs < 3_000, `timeout should cancel dynamic aggregate acceptance promptly, elapsed ${elapsedMs}ms`);
