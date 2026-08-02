@@ -1,0 +1,29 @@
+--- a/src/agents/agents.ts
++++ b/src/agents/agents.ts
+@@ -1221,6 +1221,26 @@
+ 		}
+ 
+ 		const { frontmatter, body } = parseFrontmatter(content);
++
++		// Merge cross-harness pi: block into top-level frontmatter.
++		// Agents in ~/.agents/agents/ use a pi: key to declare
++		// Pi-specific metadata while keeping Claude Code fields at
++		// the top level. A value of "false" or "" removes the key
++		// inherited from the top level (e.g. model: false clears the
++		// Claude Code model so Pi falls back to its own defaults).
++		if (frontmatter.pi && frontmatter.pi.trim()) {
++			// Wrap in --- delimiters so parseFrontmatter can parse it
++			// (it expects full frontmatter blocks, not raw YAML).
++			const piRaw = `---\n${frontmatter.pi.trim()}\n---`;
++			const { frontmatter: piBlock } = parseFrontmatter(piRaw);
++			for (const [key, value] of Object.entries(piBlock)) {
++				if (value === "false" || value === "") {
++					delete frontmatter[key];
++				} else if (value) {
++					frontmatter[key] = value;
++				}
++			}
++		}
+ 
+ 		if (!frontmatter.name || !frontmatter.description) {
+ 			continue;
