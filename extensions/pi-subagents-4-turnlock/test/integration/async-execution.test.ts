@@ -205,6 +205,8 @@ const ASYNC_DIR = typesMod?.ASYNC_DIR;
 const RESULTS_DIR = typesMod?.RESULTS_DIR;
 const TEMP_ROOT_DIR = typesMod?.TEMP_ROOT_DIR;
 const createSubagentExecutor = executorMod?.createSubagentExecutor;
+const gitCommitShimActive = (process.env.PATH ?? "").split(path.delimiter)
+	.some((entry) => entry.includes("git-commits-push-enforcer"));
 
 function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -2014,7 +2016,7 @@ describe("async execution utilities", { skip: !available ? "pi packages not avai
 		assert.match(payload.workflowGraph?.nodes?.[1]?.error ?? "", /Collected output validation failed/);
 	});
 
-	it("top-level async worktree parallel resolves reads against the worktree and output under project artifacts", { skip: !isAsyncAvailable() || !createSubagentExecutor ? "jiti or executor not available" : process.platform === "win32" ? "worktree path separators unreliable on Windows CI" : undefined }, async () => {
+	it("top-level async worktree parallel resolves reads against the worktree and output under project artifacts", { skip: !isAsyncAvailable() || !createSubagentExecutor ? "jiti or executor not available" : process.platform === "win32" ? "worktree path separators unreliable on Windows CI" : gitCommitShimActive ? "test fixture commits are blocked by the active Git commit enforcer" : undefined }, async () => {
 		const repoDir = createRepo("pi-subagent-async-worktree-");
 		try {
 			mockPi.onCall({ output: "Worktree report" });
@@ -3293,7 +3295,7 @@ describe("async execution utilities", { skip: !available ? "pi packages not avai
 		});
 
 		assert.equal(result.isError, true);
-		assert.match(result.content[0]?.text ?? "", /Failed to start async run/);
+		assert.match(result.content[0]?.text ?? "", /Failed to start async single run/);
 		assert.match(result.content[0]?.text ?? "", /async-cfg-/);
 	});
 
@@ -3321,7 +3323,7 @@ describe("async execution utilities", { skip: !available ? "pi packages not avai
 		});
 
 		assert.equal(singleResult.isError, true);
-		assert.match(singleResult.content[0]?.text ?? "", /Failed to start async run/);
+		assert.match(singleResult.content[0]?.text ?? "", /Failed to start async single run/);
 		assert.match(singleResult.content[0]?.text ?? "", /cwd does not exist/);
 
 		const chainId = `async-missing-cwd-chain-${Date.now().toString(36)}`;
@@ -3375,7 +3377,7 @@ describe("async execution utilities", { skip: !available ? "pi packages not avai
 			});
 
 			assert.equal(result.isError, true);
-			assert.match(result.content[0]?.text ?? "", /Failed to start async run/);
+			assert.match(result.content[0]?.text ?? "", /Failed to start async single run/);
 			assert.match(result.content[0]?.text ?? "", /async runner did not produce a pid/);
 		} finally {
 			process.execPath = originalExecPath;
