@@ -29,6 +29,7 @@ import { INTERCOM_DETACH_REQUEST_EVENT, INTERCOM_DETACH_RESPONSE_EVENT, type Sub
 import { CHILD_WATCHDOG_STATUS_EVENT } from "../../src/watchdog/child-status.ts";
 import { WAIT_TOOL_ENABLED_ENV } from "../../src/runs/background/wait-config.ts";
 import { MainWatchdogRuntime } from "../../src/watchdog/runtime.ts";
+import { getProjectArtifactsDir, getProjectChainRunsDir, getProjectSubagentsDir } from "../../src/shared/artifacts.ts";
 import { MAX_CHILD_PENDING_LINE_BYTES, MAX_CHILD_STDERR_BYTES } from "../../src/runs/shared/child-protocol.ts";
 import {
 	SUBAGENT_FANOUT_CHILD_ENV,
@@ -257,6 +258,7 @@ describe("single sync execution", { skip: !available ? "pi packages not availabl
 	});
 
 	afterEach(() => {
+		removeTempDir(getProjectSubagentsDir(tempDir));
 		removeTempDir(tempDir);
 	});
 
@@ -333,6 +335,27 @@ describe("single sync execution", { skip: !available ? "pi packages not availabl
 
 		assert.equal(result.isError, undefined);
 		assert.match(result.content[0]?.text ?? "", /single alias finished/);
+	});
+
+	it("routes default foreground chain state to the global project namespace", { skip: !createSubagentExecutor ? "executor not importable" : undefined }, async () => {
+		mockPi.onCall({ output: "analysis complete" });
+		mockPi.onCall({ output: "report complete" });
+		const executor = makeExecutor([makeAgent("analyst"), makeAgent("reporter")]);
+
+		const result = await executor.execute(
+			"global-chain-dir",
+			{ chain: [{ agent: "analyst", task: "Analyze" }, { agent: "reporter", task: "Report" }] },
+			new AbortController().signal,
+			undefined,
+			makeMinimalCtx(tempDir),
+		);
+
+		const chainRunsDir = getProjectChainRunsDir(tempDir);
+		assert.equal(result.isError, undefined);
+		assert.equal(fs.existsSync(path.join(tempDir, ".pi-subagents")), false);
+		assert.equal(fs.existsSync(chainRunsDir), true);
+		if (process.platform !== "win32") assert.equal(fs.statSync(chainRunsDir).mode & 0o777, 0o700);
+		assert.equal(fs.readdirSync(chainRunsDir).length > 0, true);
 	});
 
 	it("rejects string \"none\" acceptance before spawning", { skip: !createSubagentExecutor ? "executor not importable" : undefined }, async () => {
@@ -1575,7 +1598,7 @@ describe("single sync execution", { skip: !available ? "pi packages not availabl
 
 		const taskArg = readCallArgs().at(-1) ?? "";
 		assert.equal(result.isError, undefined);
-		assert.match(taskArg, new RegExp(`Write your findings to exactly this path: ${escapeRegExp(path.join(tempDir, ".pi-subagents", "artifacts", "outputs"))}.*context\\.md`));
+		assert.match(taskArg, new RegExp(`Write your findings to exactly this path: ${escapeRegExp(path.join(getProjectArtifactsDir(tempDir), "outputs"))}.*context\\.md`));
 		assert.equal(fs.existsSync(path.join(tempDir, "context.md")), false);
 	});
 

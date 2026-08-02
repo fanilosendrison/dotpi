@@ -64,6 +64,8 @@ describe("buildDoctorReport", () => {
 				asyncDir: path.join(root, "async"),
 				resultsDir: path.join(root, "results"),
 				chainRunsDir: path.join(root, "chains"),
+				projectArtifactsDir: path.join(root, "project-artifacts"),
+				projectChainRunsDir: path.join(root, "project-chains"),
 			};
 			for (const dir of Object.values(paths)) fs.mkdirSync(dir, { recursive: true });
 
@@ -111,6 +113,8 @@ describe("buildDoctorReport", () => {
 			assert.match(report, /- configured session dir: .*subagent-sessions/);
 			assert.match(report, /- current session file: .*parent\.jsonl/);
 			assert.match(report, /- temp root: ok /);
+			assert.match(report, /- project artifacts: ok /);
+			assert.match(report, /- project chain runs: ok /);
 			assert.match(report, /- agents: total 4 \(builtin 1, package 0, user 1, project 2\)/);
 			assert.match(report, /- chains: total 2 \(builtin 0, package 0, user 1, project 1\)/);
 			assert.match(report, /Spawn budget\n- usage: 3\/5 used, 2 remaining \(configured 4; granted 1; grant allowance 3\)/);

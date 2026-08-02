@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { describe, it } from "node:test";
 import { createJsonlWriter, type DrainableSource, type JsonlWriteStream } from "../../src/shared/jsonl-writer.ts";
 
@@ -76,6 +79,20 @@ describe("createJsonlWriter", () => {
 		assert.equal(stream.ended, true);
 		await writer.close();
 		assert.equal(stream.ended, true);
+	});
+
+	it("creates JSONL artifacts with owner-only file permissions", async () => {
+		if (process.platform === "win32") return;
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagents-jsonl-"));
+		const filePath = path.join(dir, "artifact.jsonl");
+		try {
+			const writer = createJsonlWriter(filePath, new MockSource());
+			writer.writeLine('{"type":"artifact"}');
+			await writer.close();
+			assert.equal(fs.statSync(filePath).mode & 0o777, 0o600);
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("returns no-op writer when file path is undefined", async () => {

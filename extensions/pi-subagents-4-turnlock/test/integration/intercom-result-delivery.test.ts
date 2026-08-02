@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, afterEach, before, beforeEach, describe, it } from "node:test";
 import { ASYNC_DIR, INTERCOM_DETACH_REQUEST_EVENT, RESULTS_DIR, SUBAGENT_ASYNC_STARTED_EVENT, SUBAGENT_FOREGROUND_COMPLETE_EVENT } from "../../src/shared/types.ts";
+import { getProjectArtifactsDir } from "../../src/shared/artifacts.ts";
 import { waitForSubagents } from "../../src/runs/background/subagent-wait.ts";
 import { sessionLeaseDir } from "../../src/runs/shared/session-lease.ts";
 import type { MockPi } from "../support/helpers.ts";
@@ -669,6 +670,7 @@ describe("intercom result delivery cutover", { skip: !available ? "executor not 
 		const runId = `resume-descriptor-${Date.now()}`;
 		const asyncDir = path.join(ASYNC_DIR, runId);
 		const sessionFile = path.join(tempDir, "descriptor-child.jsonl");
+		const legacyArtifactsDir = path.join(tempDir, ".pi-subagents", "artifacts");
 		let revivedId: string | undefined;
 		try {
 			fs.mkdirSync(asyncDir, { recursive: true });
@@ -691,6 +693,7 @@ describe("intercom result delivery cutover", { skip: !available ? "executor not 
 				outputMode: "inline",
 				maxSubagentDepth: 1,
 				share: false,
+				artifactsDir: legacyArtifactsDir,
 			}, null, 2), "utf-8");
 			const { executor } = makeExecutor({ agents: [] });
 
@@ -711,6 +714,9 @@ describe("intercom result delivery cutover", { skip: !available ? "executor not 
 			assert.equal(args[args.indexOf("--tools") + 1], "read");
 			assert.equal(args.includes("--system-prompt"), true);
 			assert.equal(args.includes("--append-system-prompt"), false);
+			const revivedDescriptor = JSON.parse(fs.readFileSync(path.join(ASYNC_DIR, revivedId, "recovery-descriptor.json"), "utf-8")) as { artifactsDir?: string };
+			assert.equal(revivedDescriptor.artifactsDir, getProjectArtifactsDir(tempDir));
+			assert.equal(fs.existsSync(legacyArtifactsDir), false);
 			await waitForFile(path.join(RESULTS_DIR, `${revivedId}.json`));
 		} finally {
 			fs.rmSync(asyncDir, { recursive: true, force: true });

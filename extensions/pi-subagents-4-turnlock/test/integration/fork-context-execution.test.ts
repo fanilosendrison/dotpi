@@ -6,6 +6,7 @@ import type { MockPi } from "../support/helpers.ts";
 import { createEventBus, createMockPi, createTempDir, events, removeTempDir, tryImport } from "../support/helpers.ts";
 import { discoverAgents } from "../../src/agents/agents.ts";
 import { DEFAULT_FORK_PREAMBLE, INTERCOM_DETACH_REQUEST_EVENT, SUBAGENT_ASYNC_STARTED_EVENT } from "../../src/shared/types.ts";
+import { getProjectSubagentsDir } from "../../src/shared/artifacts.ts";
 
 interface ExecutorModule {
 	createSubagentExecutor?: (...args: unknown[]) => {
@@ -112,6 +113,8 @@ describe("fork context execution wiring", { skip: !available ? "subagent executo
 		else process.env.HOME = originalHome;
 		if (originalUserProfile === undefined) delete process.env.USERPROFILE;
 		else process.env.USERPROFILE = originalUserProfile;
+		removeTempDir(getProjectSubagentsDir(tempDir));
+		removeTempDir(getProjectSubagentsDir(path.join(tempDir, "worktree")));
 		removeTempDir(tempDir);
 	});
 
