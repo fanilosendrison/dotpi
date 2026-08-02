@@ -56,25 +56,31 @@ cd ~/.agents/skills/git-commits-push && bun run start
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
-│   ├── command-validator.md                      ← Bash security rules
-│   ├── context-section-color.md                  ← Rose Pine yellow [Context] header
-│   ├── cwd-wezterm-split.md                      ← WezTerm split command
-│   ├── creating-extensions.md                    ← Conventions for new extensions
-│   ├── enhanced-model-selector.md                ← How model picker has been extended with costs
-│   ├── extended-global-context.md                ← How global context has been extended
-│   ├── git-commits-push-enforcer.md              ← How to commit & push
-│   ├── git-commits-push-skill-retry-overhaul.md  ← Unified retry on all catches
-│   ├── managing-api-keys-in-pi.md                ← How you manage API keys
-│   ├── path-guard.md                             ← Blocks writes to dot* repos
-│   ├── permission-enforcer.md                    ← Updates shared /go permission state before each run
-│   ├── pi-subagents-global-artifacts.md           ← Global project artifact storage
-│   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
-│   └── zero-timeout-filter.md                    ← Strips external timeout from git-commits-push skill
-├── patches/                ← Pi dist patches
-│   └── enhanced-model-selector/
-│       ├── interactive-mode.patch
+│   ├── command-validator.md                             ← Bash security rules
+│   ├── context-section-color.md                         ← Rose Pine yellow [Context] header
+│   ├── creating-extensions.md                           ← Conventions for new extensions
+│   ├── cwd-wezterm-split.md                             ← WezTerm split command
+│   ├── enhanced-model-selector.md                       ← How model picker has been extended with costs
+│   ├── extended-global-context.md                       ← How global context has been extended
+│   ├── git-commits-push-enforcer.md                     ← How to commit & push
+│   ├── git-commits-push-skill-retry-overhaul.md         ← Unified retry on all catches
+│   ├── managing-api-keys-in-pi.md                       ← How you manage API keys
+│   ├── path-guard.md                                    ← Blocks writes to dot* repos
+│   ├── permission-enforcer.md                           ← Updates shared /go permission state before each run
+│   ├── pi-subagents-cross-harness-agent-frontmatter.md  ← Pi override patch for shared agents
+│   ├── pi-subagents-global-artifacts.md                 ← Global project artifact storage
+│   ├── read-deduplicator.md                             ← avoids re-injecting already-read files + blocked-reads log
+│   └── zero-timeout-filter.md                           ← Strips external timeout from git-commits-push skill
+├── patches/                ← Persistent Pi and extension patches
+│   ├── enhanced-model-selector/
+│   │   ├── interactive-mode.patch
+│   │   ├── apply.sh
+│   │   └── revert.sh
+│   └── pi-subagents-cross-harness-agent-frontmatter/
+│       ├── cross-harness-agent-frontmatter.patch
 │       ├── apply.sh
-│       └── revert.sh
+│       ├── revert.sh
+│       └── verify-cross-harness-agent.test.mjs
 └── tsconfig.json           ← TypeScript config for VSCode
 ```
 
@@ -96,6 +102,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Run extension integration tests | `extensions/__tests__/` (`bun test extensions/__tests__/`) |
 | Run internals unit tests | `extensions/*-internals/__tests__/` (`bun test extensions/*-internals/__tests__/`) |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
+| Reapply the cross-harness agent frontmatter patch | `docs/pi-subagents-cross-harness-agent-frontmatter.md` (Pi override patch for shared agents) |
 | Conventions for new extensions | `docs/creating-extensions.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
 | Inspect Pi subagent artifact storage | `docs/pi-subagents-global-artifacts.md` (Global project artifact storage) |
