@@ -12,6 +12,7 @@ export interface JsonlWriteStream {
 }
 
 const DEFAULT_MAX_JSONL_BYTES = 50 * 1024 * 1024;
+const PRIVATE_FILE_MODE = 0o600;
 
 interface JsonlWriterDeps {
 	createWriteStream?: (filePath: string) => JsonlWriteStream;
@@ -35,7 +36,7 @@ export function createJsonlWriter(
 		};
 	}
 
-	const createWriteStream = deps.createWriteStream ?? ((targetPath: string) => fs.createWriteStream(targetPath, { flags: "a" }));
+	const createWriteStream = deps.createWriteStream ?? ((targetPath: string) => fs.createWriteStream(targetPath, { flags: "a", mode: PRIVATE_FILE_MODE }));
 	let stream: JsonlWriteStream | undefined;
 	try {
 		stream = createWriteStream(filePath);

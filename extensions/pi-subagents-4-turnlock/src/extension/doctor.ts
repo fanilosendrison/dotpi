@@ -5,6 +5,7 @@ import { isAsyncAvailable } from "../runs/background/async-execution.ts";
 import { formatSpawnBudgetSummary, getSpawnBudgetSnapshot } from "../runs/shared/spawn-budget.ts";
 import { diagnoseIntercomBridge, type IntercomBridgeDiagnostic } from "../intercom/intercom-bridge.ts";
 import { discoverAvailableSkills, type SkillSource } from "../agents/skills.ts";
+import { getProjectArtifactsDir, getProjectChainRunsDir } from "../shared/artifacts.ts";
 import {
 	ASYNC_DIR,
 	CHAIN_RUNS_DIR,
@@ -19,6 +20,8 @@ interface DoctorPaths {
 	asyncDir: string;
 	resultsDir: string;
 	chainRunsDir: string;
+	projectArtifactsDir?: string;
+	projectChainRunsDir?: string;
 }
 
 interface DoctorDeps {
@@ -193,6 +196,8 @@ function formatPermissionSystemSection(): string[] {
 
 export function buildDoctorReport(input: DoctorReportInput): string {
 	const paths = input.paths ?? DEFAULT_PATHS;
+	const projectArtifactsDir = paths.projectArtifactsDir ?? getProjectArtifactsDir(input.cwd);
+	const projectChainRunsDir = paths.projectChainRunsDir ?? getProjectChainRunsDir(input.cwd);
 	const deps = { ...DEFAULT_DEPS, ...input.deps };
 	const lines = [
 		"Subagents doctor report",
@@ -206,7 +211,9 @@ export function buildDoctorReport(input: DoctorReportInput): string {
 		formatExistingDirectory("temp root", paths.tempRootDir),
 		formatExistingDirectory("async runs", paths.asyncDir),
 		formatExistingDirectory("results", paths.resultsDir),
-		formatExistingDirectory("chain runs", paths.chainRunsDir),
+		formatExistingDirectory("temporary chain runs", paths.chainRunsDir),
+		formatExistingDirectory("project artifacts", projectArtifactsDir),
+		formatExistingDirectory("project chain runs", projectChainRunsDir),
 		"",
 		"Discovery",
 		...formatDiscovery(input, deps),
