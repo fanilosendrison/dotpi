@@ -61,3 +61,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 12. Cwd WezTerm Split
 - **Date** : 2026-07-11
 - **Doc** : [`cwd-wezterm-split.md`](cwd-wezterm-split.md)
+
+### 14. Pi Subagents Global Artifacts
+- **Date** : 2026-08-02
+- **Doc** : [`pi-subagents-global-artifacts.md`](pi-subagents-global-artifacts.md)

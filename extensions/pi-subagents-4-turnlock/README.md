@@ -1208,7 +1208,7 @@ Agent definitions are not loaded into context by default. Management actions let
 | `worktree` | boolean | false | Create isolated git worktrees for parallel tasks. |
 | `chain` | array | - | Sequential, static parallel, and dynamic fanout chain steps. Steps and chain parallel tasks support `phase`, `label`, `as`, `outputSchema`, and `acceptance` in addition to the usual execution fields. Dynamic fanout uses `expand`, one child `parallel` template, and `collect`. With `action: "append-step"`, pass exactly one step to append to a running async chain. |
 | `context` | `fresh \| fork` | per-agent default or `fresh` | Explicit `fresh` or `fork` overrides every child. When omitted, each agent uses its own `defaultContext`; `fork` creates real branched sessions from the parent leaf. Packaged `planner`, `worker`, and `oracle` default to `fork`. |
-| `chainDir` | string | temp chain dir | Persistent directory for chain artifacts. |
+| `chainDir` | string | user project namespace | Persistent directory for chain artifacts. |
 | `view` | `fleet \| transcript` | - | Optional `status` view for the active fleet surface or transcript tail inspection. |
 | `lines` | number | `80` | Maximum transcript lines for `action: "status", view: "transcript"`; capped at 500. |
 | `clarify` | boolean | false | Show TUI preview/edit flow. Explicit `clarify: true` keeps the run foreground for the clarify UI. |
@@ -1486,22 +1486,22 @@ Failed and paused completions bypass batching and fire immediately, flushing any
 
 ## Files, logs, and observability
 
-Each chain run creates a user-scoped temp directory like:
+Foreground chains default to a persistent project directory like:
 
 ```text
-<tmpdir>/pi-subagents-<scope>/chain-runs/{runId}/
+~/.pi-subagents/projects/{project-name}--{project-sha256}/chain-runs/{runId}/
 ```
 
-It may contain files such as `context.md`, `plan.md`, `progress.md`, and `parallel-{stepIndex}/.../output.md`. Directories older than 24 hours are cleaned up on extension startup.
+It may contain files such as `context.md`, `plan.md`, `progress.md`, and `parallel-{stepIndex}/.../output.md`. An explicitly supplied `chainDir` remains unchanged. The extension may prune its separate temporary chain storage, but it does not prune default project chain directories.
 
-Debug artifacts live under `{sessionDir}/subagent-artifacts/`, `.pi-subagents/artifacts/` for project-scoped runs, or a user-scoped temp artifact directory. Single-run relative `output` files are saved under `{artifactsDir}/outputs/{runId}/` unless `singleRunOutputBaseDir` is configured. Per task you may see:
+Debug artifacts live under `{sessionDir}/subagent-artifacts/`, a user-scoped temp artifact directory, or `~/.pi-subagents/projects/{project-name}--{project-sha256}/artifacts/` for project-scoped runs. The project namespace is derived from the canonical Git worktree root (or the canonical CWD outside Git), so invoking from a subdirectory shares the same artifact store without writing into the project. Single-run relative `output` files are saved under `{artifactsDir}/outputs/{runId}/` unless `singleRunOutputBaseDir` is configured. Per task you may see:
 
 - `{runId}_{agent}_input.md`
 - `{runId}_{agent}_output.md`
 - `{runId}_{agent}.jsonl`
 - `{runId}_{agent}_meta.json`
 
-Metadata records timing, usage, exit code, final model, attempted models, fallback attempt outcomes, and the resolved acceptance ledger with its parsed child report.
+Metadata records timing, usage, exit code, final model, attempted models, fallback attempt outcomes, and the resolved acceptance ledger with its parsed child report. Completed project artifact groups are retained for the configured cleanup period (seven days by default); incomplete groups are retained to preserve recovery evidence. Artifact directories and newly created artifact files are private to the local user.
 
 Session files are stored under a per-run session directory. With `context: "fork"`, each child starts with `--session <branched-session-file>` produced from the parent’s current leaf. That is a real session fork, not an injected summary.
 

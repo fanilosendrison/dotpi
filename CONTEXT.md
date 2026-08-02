@@ -67,6 +67,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 │   ├── managing-api-keys-in-pi.md                ← How you manage API keys
 │   ├── path-guard.md                             ← Blocks writes to dot* repos
 │   ├── permission-enforcer.md                    ← Updates shared /go permission state before each run
+│   ├── pi-subagents-global-artifacts.md           ← Global project artifact storage
 │   ├── read-deduplicator.md                      ← avoids re-injecting already-read files + blocked-reads log
 │   └── zero-timeout-filter.md                    ← Strips external timeout from git-commits-push skill
 ├── patches/                ← Pi dist patches
@@ -97,6 +98,7 @@ cd ~/.agents/skills/git-commits-push && bun run start
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Conventions for new extensions | `docs/creating-extensions.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
+| Inspect Pi subagent artifact storage | `docs/pi-subagents-global-artifacts.md` (Global project artifact storage) |
 
 ## Transversal Skills
 
