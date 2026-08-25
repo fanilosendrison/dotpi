@@ -18,9 +18,9 @@ step_id: 0
 - [x] Verify immutable event-sink 0.1.0 registry publication, integrity, and clean installation.
 - [x] Verify Node-compatible turnlock 0.9.1 registry publication, byte-identical pnpm pack reproduction, and clean runtime plus TypeScript installation.
 - [x] Declare exact event-sink 0.1.0 locally and exact Turnlock 0.9.1 in its dotagents consumer before replacing runtime imports.
-- [!] Materialize and verify both exact packages in the independent pnpm lockfiles before replacing runtime imports.
+- [x] Materialize and verify both exact packages in independent pnpm lockfiles; defer runtime import replacement until green baseline gates pass.
 - [ ] Add Bun 1.3.14 baseline CI with an exact dotagents commit pin.
-- [ ] Add the independent pnpm 11.24.0 lockfile.
+- [x] Add the independent root-only pnpm 11.24.0 lockfile, exclude the upstream package, and pass two clean frozen installations.
 - [x] Pin Pi Coding Agent 0.84.2 and Jiti 2.7.0 in the local manifest.
 - [x] Override Pi Agent Core, AI, Client, Protocol, Telemetry, and TUI to exact 0.84.2 so pnpm cannot drift to 0.84.3.
 - [ ] Run tests directly through Node TypeScript stripping.
