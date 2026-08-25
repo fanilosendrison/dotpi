@@ -15,7 +15,8 @@ step_id: 0
 - [x] Confirm 25 direct Bun tests.
 - [x] Keep `extensions/pi-subagents-4-turnlock/**` explicitly excluded.
 - [x] Generate and validate the machine-readable inventory and parity manifest.
-- [!] Wait for immutable event-sink 0.1.0 and Node-compatible turnlock 0.9.1 publication before replacing imports.
+- [x] Verify immutable event-sink 0.1.0 registry publication, integrity, and clean installation.
+- [!] Wait for Node-compatible turnlock 0.9.1 registry publication and integrity verification before replacing imports.
 - [ ] Add Bun 1.3.14 baseline CI with an exact dotagents commit pin.
 - [ ] Add the independent pnpm 11.24.0 lockfile.
 - [ ] Pin Pi Coding Agent 0.84.2 and Jiti 2.7.0 locally.
