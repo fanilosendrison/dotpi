@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "repository": "dotpi",
+  "policy": "bun-allowlist-policy-v0.1.0",
+  "defaultDecision": "deny",
+  "enforcementStatus": "planned",
+  "entries": [],
+  "excludedPathRules": [
+    {
+      "pattern": "extensions/pi-subagents-4-turnlock/**",
+      "category": "upstream-exclusion",
+      "reason": "The upstream extension remains outside the migration scope and retains its upstream runtime behavior."
+    }
+  ]
+}

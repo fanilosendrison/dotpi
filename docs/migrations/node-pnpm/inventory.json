@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "repository": "dotpi",
+  "sourceCommit": "d01a04daadcb840f8bc29831701fba6b3d28b539",
+  "rawBaselineTag": "pre-node-pnpm-raw",
+  "rawBaselineCommit": "d01a04daadcb840f8bc29831701fba6b3d28b539",
+  "expectedCounts": {
+    "bunLockfiles": 1,
+    "bunTestSurfaces": 25
+  },
+  "exclusions": [
+    {
+      "pattern": "extensions/pi-subagents-4-turnlock/**",
+      "category": "upstream",
+      "reason": "The upstream pi-subagents-4-turnlock extension remains outside the migration scope."
+    }
+  ],
+  "bunLockfiles": [
+    "bun.lock"
+  ],
+  "packageManifests": [
+    "package.json"
+  ],
+  "bunTestSurfaces": [
+    "extensions/__tests__/command-validator.contract.test.ts",
+    "extensions/__tests__/command-validator.test.ts",
+    "extensions/__tests__/cwd-args.test.ts",
+    "extensions/__tests__/cwd-browser.test.ts",
+    "extensions/__tests__/cwd-extension.test.ts",
+    "extensions/__tests__/cwd-handler.test.ts",
+    "extensions/__tests__/cwd-interactive.test.ts",
+    "extensions/__tests__/enhanced-model-selector.test.ts",
+    "extensions/__tests__/extended-global-context.test.ts",
+    "extensions/__tests__/git-commits-push-enforcer.contract.test.ts",
+    "extensions/__tests__/git-commits-push-enforcer.integration.test.ts",
+    "extensions/__tests__/git-commits-push-enforcer.test.ts",
+    "extensions/__tests__/path-guard.contract.test.ts",
+    "extensions/__tests__/path-guard.test.ts",
+    "extensions/__tests__/permission-enforcer.contract.test.ts",
+    "extensions/__tests__/permission-enforcer.e2e.test.ts",
+    "extensions/__tests__/permission-enforcer.integration.test.ts",
+    "extensions/__tests__/permission-enforcer.test.ts",
+    "extensions/__tests__/pi-telemetry.test.ts",
+    "extensions/__tests__/read-deduplicator.contract.test.ts",
+    "extensions/__tests__/read-deduplicator.integration.test.ts",
+    "extensions/__tests__/read-deduplicator.test.ts",
+    "extensions/__tests__/zero-timeout-filter.contract.test.ts",
+    "extensions/__tests__/zero-timeout-filter.test.ts",
+    "extensions/read-deduplicator-internals/read-tracker.test.ts"
+  ],
+  "nonSurfaceBunTestReferences": [],
+  "usages": {
+    "bunGlobalApi": {
+      "activeFileCount": 2,
+      "activeFiles": [
+        "extensions/__tests__/git-commits-push-enforcer.integration.test.ts",
+        "extensions/__tests__/pi-extension-loader.ts"
+      ],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "bunModuleImport": {
+      "activeFileCount": 0,
+      "activeFiles": [],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "bunTestImport": {
+      "activeFileCount": 25,
+      "activeFiles": [
+        "extensions/__tests__/command-validator.contract.test.ts",
+        "extensions/__tests__/command-validator.test.ts",
+        "extensions/__tests__/cwd-args.test.ts",
+        "extensions/__tests__/cwd-browser.test.ts",
+        "extensions/__tests__/cwd-extension.test.ts",
+        "extensions/__tests__/cwd-handler.test.ts",
+        "extensions/__tests__/cwd-interactive.test.ts",
+        "extensions/__tests__/enhanced-model-selector.test.ts",
+        "extensions/__tests__/extended-global-context.test.ts",
+        "extensions/__tests__/git-commits-push-enforcer.contract.test.ts",
+        "extensions/__tests__/git-commits-push-enforcer.integration.test.ts",
+        "extensions/__tests__/git-commits-push-enforcer.test.ts",
+        "extensions/__tests__/path-guard.contract.test.ts",
+        "extensions/__tests__/path-guard.test.ts",
+        "extensions/__tests__/permission-enforcer.contract.test.ts",
+        "extensions/__tests__/permission-enforcer.e2e.test.ts",
+        "extensions/__tests__/permission-enforcer.integration.test.ts",
+        "extensions/__tests__/permission-enforcer.test.ts",
+        "extensions/__tests__/pi-telemetry.test.ts",
+        "extensions/__tests__/read-deduplicator.contract.test.ts",
+        "extensions/__tests__/read-deduplicator.integration.test.ts",
+        "extensions/__tests__/read-deduplicator.test.ts",
+        "extensions/__tests__/zero-timeout-filter.contract.test.ts",
+        "extensions/__tests__/zero-timeout-filter.test.ts",
+        "extensions/read-deduplicator-internals/read-tracker.test.ts"
+      ],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "importMetaDir": {
+      "activeFileCount": 0,
+      "activeFiles": [],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "importMetaMain": {
+      "activeFileCount": 0,
+      "activeFiles": [],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "esmDirname": {
+      "activeFileCount": 0,
+      "activeFiles": [],
+      "excludedFileCount": 2,
+      "excludedFiles": [
+        "extensions/pi-subagents-4-turnlock/test/support/helpers.ts",
+        "extensions/pi-subagents-4-turnlock/test/support/mock-pi.ts"
+      ]
+    },
+    "bunRealImportQuery": {
+      "activeFileCount": 2,
+      "activeFiles": [
+        "extensions/__tests__/bun-import-query.d.ts",
+        "extensions/__tests__/pi-telemetry.test.ts"
+      ],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "bunTimerType": {
+      "activeFileCount": 0,
+      "activeFiles": [],
+      "excludedFileCount": 2,
+      "excludedFiles": [
+        "extensions/pi-subagents-4-turnlock/CHANGELOG.md",
+        "extensions/pi-subagents-4-turnlock/specs/working/CDD-O-TURNLOCK-ORCHESTRATOR.md"
+      ]
+    },
+    "bunShebang": {
+      "activeFileCount": 0,
+      "activeFiles": [],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "bunCommand": {
+      "activeFileCount": 7,
+      "activeFiles": [
+        "CONTEXT.md",
+        "docs/git-commits-push-enforcer.md",
+        "docs/zero-timeout-filter.md",
+        "extensions/__tests__/git-commits-push-enforcer.integration.test.ts",
+        "extensions/__tests__/git-commits-push-enforcer.test.ts",
+        "extensions/__tests__/zero-timeout-filter.test.ts",
+        "extensions/zero-timeout-filter.ts"
+      ],
+      "excludedFileCount": 0,
+      "excludedFiles": []
+    },
+    "absoluteUserPath": {
+      "activeFileCount": 24,
+      "activeFiles": [
+        "extensions/__tests__/command-validator.contract.test.ts",
+        "extensions/__tests__/command-validator.test.ts",
+        "extensions/__tests__/git-commits-push-enforcer.contract.test.ts",
+        "extensions/__tests__/git-commits-push-enforcer.test.ts",
+        "extensions/__tests__/path-guard.contract.test.ts",
+        "extensions/__tests__/path-guard.test.ts",
+        "extensions/__tests__/permission-enforcer.contract.test.ts",
+        "extensions/__tests__/permission-enforcer.e2e.test.ts",
+        "extensions/__tests__/permission-enforcer.integration.test.ts",
+        "extensions/__tests__/permission-enforcer.test.ts",
+        "extensions/__tests__/pi-telemetry.test.ts",
+        "extensions/__tests__/read-deduplicator.contract.test.ts",
+        "extensions/__tests__/read-deduplicator.integration.test.ts",
+        "extensions/__tests__/zero-timeout-filter.contract.test.ts",
+        "extensions/__tests__/zero-timeout-filter.test.ts",
+        "specs/command-validator-stats.md",
+        "specs/cwd-interactive-browser.md",
+        "specs/path-guard-stats.md",
+        "specs/post-write-linter-stats.md",
+        "specs/read-deduplicator-blocked-log.md",
+        "specs/read-deduplicator-per-path-stats.md",
+        "specs/read-deduplicator-tests.md",
+        "specs/secret-scanner-stats.md",
+        "tsconfig.json"
+      ],
+      "excludedFileCount": 1,
+      "excludedFiles": [
+        "extensions/pi-subagents-4-turnlock/README.md"
+      ]
+    }
+  }
+}

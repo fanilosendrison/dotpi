@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "repository": "fanilosendrison/dotagents",
+  "rawBaselineTag": "pre-node-pnpm-raw",
+  "rawBaselineCommit": "74d46e8948172bdb2f79d0c7d2ba813c235abb4b",
+  "greenBaselineTag": "pre-node-pnpm-green",
+  "greenBaselineCommit": null,
+  "ciStatus": "pending"
+}
