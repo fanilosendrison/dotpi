@@ -20,7 +20,7 @@ step_id: 0
 - [x] Declare exact event-sink 0.1.0 locally and exact Turnlock 0.9.1 in its dotagents consumer before replacing runtime imports.
 - [x] Materialize and verify both exact packages in independent pnpm lockfiles; defer runtime import replacement until green baseline gates pass.
 - [x] Add Bun 1.3.14 baseline CI on Linux/macOS with exact dotagents commit `3516a87e52b51e607fad387703a0b47c99751adf` and all 25 inventoried surfaces.
-- [ ] Run the complete historical suite and record both operating-system results.
+- [!] Rerun the complete historical suite after initial run `32905295034` exposed the missing global Pi Jiti fallback in subprocess probes.
 - [x] Add the independent root-only pnpm 11.24.0 lockfile, exclude the upstream package, and pass two clean frozen installations.
 - [x] Pin Pi Coding Agent 0.84.2 and Jiti 2.7.0 in the local manifest.
 - [x] Override Pi Agent Core, AI, Client, Protocol, Telemetry, and TUI to exact 0.84.2 so pnpm cannot drift to 0.84.3.

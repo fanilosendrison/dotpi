@@ -89,6 +89,14 @@ jobs:
             pnpm install --frozen-lockfile --ignore-scripts
           )
 
+      - name: Install exact global Pi Jiti fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global --ignore-scripts \
+            @earendil-works/pi-coding-agent@0.84.2
+          test "$(pi --version)" = "0.84.2"
+
       - name: Build historical gateways and compatibility aliases
         shell: bash
         run: |
