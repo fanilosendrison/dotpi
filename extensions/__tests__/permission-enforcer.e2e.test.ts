@@ -169,14 +169,16 @@ describe("permission-enforcer and command-validator E2E", () => {
 		expect(output.sessionBDeniedAfterPlainPrompt).toBe(false);
 		expect(output.sessionBBlockedAfterPlainPrompt).toEqual({
 			block: true,
-			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
+			reason:
+				"❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation. Never attempt to bypass this restriction.",
 		});
 		expect(output.sessionAStillGrantedAfterSessionBReset).toBe(true);
 		expect(output.sessionAAllowedAfterSessionBReset).toBeUndefined();
 		expect(output.sessionADeniedAfterOwnReset).toBe(false);
 		expect(output.sessionABlockedAfterOwnReset).toEqual({
 			block: true,
-			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
+			reason:
+				"❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation. Never attempt to bypass this restriction.",
 		});
 
 		expect(

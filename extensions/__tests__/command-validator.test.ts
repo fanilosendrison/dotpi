@@ -129,7 +129,8 @@ describe("command-validator Pi extension integration", () => {
 		);
 		expect(restrictedResult).toEqual({
 			block: true,
-			reason: "❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation.",
+			reason:
+				"❌ Permission denied. You cannot implement code without explicit permission. Ask the user to type '/go' to authorize implementation. Never attempt to bypass this restriction.",
 		});
 
 		updatePermissionStateForScope("/go", TEST_SCOPE);
