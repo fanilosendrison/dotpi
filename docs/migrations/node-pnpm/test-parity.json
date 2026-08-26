@@ -119,7 +119,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/cwd-extension.test.ts",
-      "targetFile": "extensions/__tests__/cwd-extension.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/cwd-extension.node.ts",
       "role": "test",
       "testCaseNames": [
         "registers the /cwd command"

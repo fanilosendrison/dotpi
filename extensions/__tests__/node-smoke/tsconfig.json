@@ -16,6 +16,7 @@
     "../node-parity/command-validator.contract.node.ts",
     "../node-parity/cwd-args.node.ts",
     "../node-parity/cwd-browser.node.ts",
+    "../node-parity/cwd-extension.node.ts",
     "../node-parity/cwd-handler.node.ts",
     "../node-parity/cwd-interactive.node.ts",
     "../node-parity/enhanced-model-selector.node.ts",
