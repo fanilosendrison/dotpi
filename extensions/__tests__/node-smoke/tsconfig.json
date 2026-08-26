@@ -16,6 +16,7 @@
     "../node-parity/command-validator.contract.node.ts",
     "../node-parity/cwd-args.node.ts",
     "../node-parity/cwd-browser.node.ts",
+    "../node-parity/cwd-handler.node.ts",
     "../node-parity/enhanced-model-selector.node.ts",
     "../node-parity/extended-global-context.node.ts",
     "../node-parity/git-commits-push-enforcer.contract.node.ts",

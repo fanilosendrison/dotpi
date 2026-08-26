@@ -1,7 +1,11 @@
-import { DirectoryBrowser } from "./directory-browser";
-import { pickSplitType } from "./split-picker";
-import type { CwdCommandContext, CwdCommandDependencies } from "./types";
-import { buildWezTermArgs, defaultDependencies, resolveInteractiveBrowserStartPath } from "./wezterm";
+import { DirectoryBrowser } from "./directory-browser.ts";
+import { pickSplitType } from "./split-picker.ts";
+import type { CwdCommandContext, CwdCommandDependencies } from "./types.ts";
+import {
+	buildWezTermArgs,
+	defaultDependencies,
+	resolveInteractiveBrowserStartPath,
+} from "./wezterm.ts";
 
 export async function interactiveCwd(
 	ctx: CwdCommandContext,
@@ -12,21 +16,27 @@ export async function interactiveCwd(
 		return;
 	}
 
-	const browserStartPath = resolveInteractiveBrowserStartPath(ctx.cwd, dependencies.directoryExists);
-	const selectedDirectory = await ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
-		const browser = new DirectoryBrowser(browserStartPath, theme);
-		browser.onSelect = (path) => done(path);
-		browser.onCancel = () => done(null);
+	const browserStartPath = resolveInteractiveBrowserStartPath(
+		ctx.cwd,
+		dependencies.directoryExists,
+	);
+	const selectedDirectory = await ctx.ui.custom<string | null>(
+		(tui, theme, _keybindings, done) => {
+			const browser = new DirectoryBrowser(browserStartPath, theme);
+			browser.onSelect = (path) => done(path);
+			browser.onCancel = () => done(null);
 
-		return {
-			render: (width: number) => browser.render(width),
-			invalidate: () => browser.invalidate(),
-			handleInput: (data: string) => {
-				browser.handleInput(data);
-				tui.requestRender();
-			},
-		};
-	}, { overlay: true });
+			return {
+				render: (width: number) => browser.render(width),
+				invalidate: () => browser.invalidate(),
+				handleInput: (data: string) => {
+					browser.handleInput(data);
+					tui.requestRender();
+				},
+			};
+		},
+		{ overlay: true },
+	);
 
 	if (selectedDirectory === null) {
 		return;
@@ -45,7 +55,10 @@ export async function interactiveCwd(
 	try {
 		dependencies.runWezTerm(buildWezTermArgs(splitType, selectedDirectory));
 	} catch {
-		ctx.ui.notify("wezterm CLI not available. Are you inside WezTerm?", "error");
+		ctx.ui.notify(
+			"wezterm CLI not available. Are you inside WezTerm?",
+			"error",
+		);
 		return;
 	}
 
