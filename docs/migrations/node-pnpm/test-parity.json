@@ -7,7 +7,7 @@
   "surfaces": [
     {
       "sourceFile": "extensions/__tests__/command-validator.contract.test.ts",
-      "targetFile": "extensions/__tests__/command-validator.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/command-validator.contract.node.ts",
       "role": "test",
       "testCaseNames": [
         "writes validation_result for an allowed command",

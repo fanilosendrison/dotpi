@@ -13,6 +13,7 @@
   },
   "include": [
     "../../shared/pi-telemetry.ts",
+    "../node-parity/command-validator.contract.node.ts",
     "./pi-telemetry-event-sink.node.ts"
   ]
 }

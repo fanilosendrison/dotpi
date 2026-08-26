@@ -65,7 +65,7 @@ jobs:
           printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
           printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
 
-      - name: Typecheck and run the direct TypeScript smoke
+      - name: Typecheck and run migrated TypeScript tests
         shell: bash
         run: |
           set -euo pipefail

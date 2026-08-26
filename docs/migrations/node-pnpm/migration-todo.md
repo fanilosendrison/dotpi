@@ -27,6 +27,7 @@ step_id: 0
 - [x] Override Pi Agent Core, AI, Client, Protocol, Telemetry, and TUI to exact 0.84.2 so pnpm cannot drift to 0.84.3.
 - [x] Replace active event-sink source imports and mock keys with the exact public package, and remove its source checkout and compatibility alias from Bun CI.
 - [x] Start direct Node TypeScript stripping with a `node:test` event-envelope smoke; Node run `32947362470` passes on Node 22.19.0/24 Linux/macOS without Bun, and retained Bun run `32947362415` passes on Linux/macOS.
+- [!] Map `command-validator.contract.test.ts` to a separate Node parity target with the same four test identities and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
