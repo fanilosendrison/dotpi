@@ -246,7 +246,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/git-commits-push-enforcer.contract.test.ts",
-      "targetFile": "extensions/__tests__/git-commits-push-enforcer.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/git-commits-push-enforcer.contract.node.ts",
       "role": "test",
       "testCaseNames": [
         "writes enforcer_triggered with all fields",
