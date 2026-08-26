@@ -580,7 +580,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/zero-timeout-filter.contract.test.ts",
-      "targetFile": "extensions/__tests__/zero-timeout-filter.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/zero-timeout-filter.contract.node.ts",
       "role": "test",
       "testCaseNames": [
         "writes valid JSON with all fields"
