@@ -30,6 +30,7 @@ step_id: 0
 - [x] Map `command-validator.contract.test.ts` to a separate Node parity target with the same four test identities and no normative change; Node run `32966415836` and retained Bun run `32966415806` pass on Linux/macOS.
 - [x] Map `git-commits-push-enforcer.contract.test.ts` to a separate Node parity target with the same five test identities and no normative change; Node run `32967954525` and retained Bun run `32967954588` pass on Linux/macOS.
 - [x] Map `path-guard.contract.test.ts` to a separate Node parity target with the same four test identities and no normative change; Node run `32968724147` and retained Bun run `32968724145` pass on Linux/macOS.
+- [!] Map `permission-enforcer.contract.test.ts` to a separate Node parity target with the same two test identities and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.

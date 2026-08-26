@@ -371,7 +371,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/permission-enforcer.contract.test.ts",
-      "targetFile": "extensions/__tests__/permission-enforcer.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/permission-enforcer.contract.node.ts",
       "role": "test",
       "testCaseNames": [
         "writes permission_state_change with all contract fields",
