@@ -15,6 +15,7 @@
     "../../shared/pi-telemetry.ts",
     "../node-parity/command-validator.contract.node.ts",
     "../node-parity/git-commits-push-enforcer.contract.node.ts",
+    "../node-parity/path-guard.contract.node.ts",
     "./pi-telemetry-event-sink.node.ts"
   ]
 }

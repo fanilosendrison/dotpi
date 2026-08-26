@@ -29,6 +29,7 @@ step_id: 0
 - [x] Start direct Node TypeScript stripping with a `node:test` event-envelope smoke; Node run `32947362470` passes on Node 22.19.0/24 Linux/macOS without Bun, and retained Bun run `32947362415` passes on Linux/macOS.
 - [x] Map `command-validator.contract.test.ts` to a separate Node parity target with the same four test identities and no normative change; Node run `32966415836` and retained Bun run `32966415806` pass on Linux/macOS.
 - [x] Map `git-commits-push-enforcer.contract.test.ts` to a separate Node parity target with the same five test identities and no normative change; Node run `32967954525` and retained Bun run `32967954588` pass on Linux/macOS.
+- [!] Map `path-guard.contract.test.ts` to a separate Node parity target with the same four test identities and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
