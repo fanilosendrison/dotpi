@@ -10,7 +10,7 @@ import {
 
 const appendMock = mock();
 mock.module(
-	"/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts",
+	"@fanilosendrison/event-sink",
 	() => ({
 		createEventSink: (opts: any) => {
 			// Store options so tests can inspect them

@@ -1,4 +1,16 @@
 {
+  "name": "dotpi",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.19.0",
+    "pnpm": "11.24.0"
+  },
+  "scripts": {
+    "test:node": "node --preserve-symlinks --preserve-symlinks-main --test --test-concurrency=1 extensions/__tests__/node-smoke/pi-telemetry-event-sink.node.ts",
+    "typecheck:node": "tsc -p extensions/__tests__/node-smoke/tsconfig.json"
+  },
   "dependencies": {
     "@earendil-works/pi-ai": "0.84.2",
     "@earendil-works/pi-coding-agent": "0.84.2",
@@ -7,6 +19,8 @@
     "jiti": "2.7.0"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14"
+    "@types/bun": "1.3.14",
+    "@types/node": "22.20.0",
+    "typescript": "5.9.3"
   }
 }

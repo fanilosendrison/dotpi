@@ -12,11 +12,11 @@ import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createEventSink } from "../../../telemetry-tools/event-sink/src/index.ts";
-import type {
-	AppendOverrides,
-	EventSink,
-} from "../../../telemetry-tools/event-sink/src/index.ts";
+import {
+	createEventSink,
+	type AppendOverrides,
+	type EventSink,
+} from "@fanilosendrison/event-sink";
 
 export interface PiTelemetryContextDetails {
 	parentModel: string;

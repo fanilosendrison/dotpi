@@ -15,9 +15,6 @@
 			],
 			"../../dotagents/*": [
 				"/Users/famillesendrison/Developper/Projects/dotagents/*"
-			],
-			"../../../telemetry-tools/*": [
-				"/Users/famillesendrison/Developper/Projects/telemetry-tools/*"
 			]
 		},
 		"rootDirs": ["../", "../../Developper/Projects"],

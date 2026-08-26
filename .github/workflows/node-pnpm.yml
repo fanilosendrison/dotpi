@@ -1,0 +1,75 @@
+name: Node and pnpm migration gates
+
+on:
+  push:
+    branches:
+      - migration/node-pnpm
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-pnpm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  event-sink-runtime:
+    name: Event sink on ${{ matrix.os }} / Node ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        node-version:
+          - 22.19.0
+          - 24.x
+
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install exact pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+          run_install: false
+
+      - name: Install locked dependencies without lifecycle scripts
+        shell: bash
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install Bun failure sentinel
+        shell: bash
+        run: |
+          set -euo pipefail
+          sentinel_dir="$RUNNER_TEMP/bun-failure-sentinel"
+          mkdir -p "$sentinel_dir"
+          cat > "$sentinel_dir/bun" <<'EOF'
+          #!/usr/bin/env bash
+          printf 'unexpected Bun invocation: %s\n' "$*" >> "${BUN_SENTINEL_LOG:?}"
+          exit 97
+          EOF
+          chmod +x "$sentinel_dir/bun"
+          printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
+          printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
+
+      - name: Typecheck and run the direct TypeScript smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(pnpm --version)" = "11.24.0"
+          pnpm run typecheck:node
+          pnpm run test:node
+          test ! -s "$BUN_SENTINEL_LOG"

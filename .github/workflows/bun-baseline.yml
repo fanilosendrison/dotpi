@@ -41,14 +41,6 @@ jobs:
           path: dotagents
           persist-credentials: false
 
-      - name: Check out exact event-sink source
-        uses: actions/checkout@v4
-        with:
-          repository: fanilosendrison/event-sink
-          ref: e75692f34ef212c9ad173a37a73539f35f54c6ff
-          path: telemetry-tools/event-sink
-          persist-credentials: false
-
       - name: Install exact Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -74,7 +66,6 @@ jobs:
           test "$(pnpm --version)" = "11.24.0"
           test "$(git -C dotpi rev-parse HEAD)" = "${{ github.sha }}"
           test "$(git -C dotagents rev-parse HEAD)" = "3516a87e52b51e607fad387703a0b47c99751adf"
-          test "$(git -C telemetry-tools/event-sink rev-parse HEAD)" = "e75692f34ef212c9ad173a37a73539f35f54c6ff"
 
       - name: Install baseline dependencies without lifecycle scripts
         shell: bash
@@ -103,7 +94,6 @@ jobs:
           set -euo pipefail
           dotagents="$GITHUB_WORKSPACE/dotagents"
           dotpi="$GITHUB_WORKSPACE/dotpi"
-          event_sink="$GITHUB_WORKSPACE/telemetry-tools/event-sink"
           baseline_home="$RUNNER_TEMP/dotpi-baseline-home"
 
           rm -rf "$baseline_home"
@@ -112,21 +102,16 @@ jobs:
           ln -s "$dotpi" "$baseline_home/.pi/agent"
           ln -s "$dotpi/node_modules/jiti" "$baseline_home/node_modules/jiti"
 
-          # Baseline-only aliases preserve historical absolute imports. The
-          # portability phase removes those imports instead of retaining these.
-          sudo mkdir -p \
-            /Users/famillesendrison/.pi \
-            /Users/famillesendrison/Developper/Projects/telemetry-tools
+          # Remaining baseline-only aliases preserve historical dotagents and
+          # dotpi imports until their dedicated portability batches migrate.
+          sudo mkdir -p /Users/famillesendrison/.pi
           sudo ln -s "$dotagents" /Users/famillesendrison/.agents
           sudo ln -s "$dotpi" /Users/famillesendrison/.pi/agent
-          sudo ln -s "$event_sink" \
-            /Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink
 
           test "$(readlink "$baseline_home/.agents")" = "$dotagents"
           test "$(readlink "$baseline_home/.pi/agent")" = "$dotpi"
           test -f /Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts
           test -f /Users/famillesendrison/.pi/agent/extensions/__tests__/pi-extension-loader.ts
-          test -f /Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts
 
           jiti_static_path=$(HOME="$baseline_home" bun --eval \
             'import { homedir } from "node:os"; process.stdout.write(Bun.resolveSync("jiti/static", homedir()));')
