@@ -636,7 +636,7 @@
     },
     {
       "sourceFile": "extensions/read-deduplicator-internals/read-tracker.test.ts",
-      "targetFile": "extensions/read-deduplicator-internals/read-tracker.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/read-tracker.node.ts",
       "role": "test",
       "testCaseNames": [
         "returns undefined for untracked path",

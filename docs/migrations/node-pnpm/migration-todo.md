@@ -37,6 +37,7 @@ step_id: 0
 - [x] Map `read-deduplicator.test.ts` to a separate Node parity target with the same eleven test identities and no normative change; Node run `32999890715` and retained Bun run `32999890719` pass on Linux/macOS.
 - [x] Map `enhanced-model-selector.test.ts` to a separate Node parity target with the same five test identities, twenty-seven assertions, and no normative change; Node run `33001418971` and retained Bun run `33001419030` pass on Linux/macOS.
 - [x] Map `extended-global-context.test.ts` to a separate Node parity target with the same six test identities, twenty assertions, and no normative change; Node run `33002649005` and retained Bun run `33002648976` pass on Linux/macOS.
+- [!] Map `read-deduplicator-internals/read-tracker.test.ts` to a separate Node parity target with the same seventeen test identities, thirty-five assertions, and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
