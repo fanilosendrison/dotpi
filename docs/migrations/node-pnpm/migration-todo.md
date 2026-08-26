@@ -40,6 +40,7 @@ step_id: 0
 - [x] Map `read-deduplicator-internals/read-tracker.test.ts` to a separate Node parity target with the same seventeen test identities, thirty-five assertions, and no normative change; Node run `33003537512` and retained Bun run `33003537491` pass on Linux/macOS.
 - [x] Map `cwd-browser.test.ts` to a separate Node parity target with the same nine test identities, twenty assertions, and no normative change; the equivalent erasable class property and workspace hoist pass Node run `33004764181` and retained Bun run `33004764194` on Linux/macOS.
 - [x] Map `cwd-handler.test.ts` to a separate Node parity target with the same five test identities, twelve assertions, explicit `.ts` runtime imports, and no normative change; Node run `33005784624` and retained Bun run `33005784598` pass on Linux/macOS.
+- [!] Map `cwd-interactive.test.ts` to a separate Node parity target with the same three test identities, seven assertions, and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
