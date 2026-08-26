@@ -41,7 +41,7 @@ step_id: 0
 - [x] Map `cwd-browser.test.ts` to a separate Node parity target with the same nine test identities, twenty assertions, and no normative change; the equivalent erasable class property and workspace hoist pass Node run `33004764181` and retained Bun run `33004764194` on Linux/macOS.
 - [x] Map `cwd-handler.test.ts` to a separate Node parity target with the same five test identities, twelve assertions, explicit `.ts` runtime imports, and no normative change; Node run `33005784624` and retained Bun run `33005784598` pass on Linux/macOS.
 - [x] Map `cwd-interactive.test.ts` to a separate Node parity target with the same three test identities, seven assertions, and no normative change; Node run `33007058682` and retained Bun run `33007058690` pass on Linux/macOS.
-- [!] Map `cwd-extension.test.ts` to a separate Node parity target with its single test identity, four assertions, explicit `.ts` entrypoint exports, and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
+- [x] Map `cwd-extension.test.ts` to a separate Node parity target with its single test identity, four assertions, explicit `.ts` entrypoint exports, and no normative change; Node run `33008062284` and retained Bun run `33008062299` pass on Linux/macOS.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
