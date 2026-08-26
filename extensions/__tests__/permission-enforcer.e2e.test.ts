@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -140,7 +140,15 @@ describe("permission-enforcer and command-validator E2E", () => {
 			},
 		});
 
-		expect(result.status).toBe(0);
+		if (result.status !== 0) {
+			throw new Error(
+				[
+					`probe failed with status ${result.status} and signal ${result.signal ?? "none"}`,
+					`stdout:\n${result.stdout || "<empty>"}`,
+					`stderr:\n${result.stderr || "<empty>"}`,
+				].join("\n"),
+			);
+		}
 		expect(result.stderr).toBe("");
 
 		const output = JSON.parse(result.stdout) as {

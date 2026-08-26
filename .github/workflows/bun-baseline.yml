@@ -124,6 +124,14 @@ jobs:
 
           test "$(readlink "$baseline_home/.agents")" = "$dotagents"
           test "$(readlink "$baseline_home/.pi/agent")" = "$dotpi"
+          test -f /Users/famillesendrison/.agents/agent-enforcers/permission-enforcer/src/core/state.ts
+          test -f /Users/famillesendrison/.pi/agent/extensions/__tests__/pi-extension-loader.ts
+          test -f /Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts
+
+          jiti_static_path=$(HOME="$baseline_home" bun --eval \
+            'import { homedir } from "node:os"; process.stdout.write(Bun.resolveSync("jiti/static", homedir()));')
+          test -f "$jiti_static_path"
+          printf 'Resolved Jiti baseline path: %s\n' "$jiti_static_path"
           printf 'HOME=%s\n' "$baseline_home" >> "$GITHUB_ENV"
 
       - name: Run all 25 historical test surfaces

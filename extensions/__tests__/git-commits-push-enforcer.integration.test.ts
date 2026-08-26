@@ -118,7 +118,11 @@ describe("git-commits-push-enforcer Pi extension integration", () => {
 
 		if (result.status !== 0) {
 			throw new Error(
-				`probe failed with status ${result.status}\n${result.stderr}`,
+				[
+					`probe failed with status ${result.status} and signal ${result.signal ?? "none"}`,
+					`stdout:\n${result.stdout || "<empty>"}`,
+					`stderr:\n${result.stderr || "<empty>"}`,
+				].join("\n"),
 			);
 		}
 
