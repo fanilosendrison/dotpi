@@ -498,7 +498,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/read-deduplicator.contract.test.ts",
-      "targetFile": "extensions/__tests__/read-deduplicator.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/read-deduplicator.contract.node.ts",
       "role": "test",
       "testCaseNames": [
         "writes file_access with all fields for cache_served action",
