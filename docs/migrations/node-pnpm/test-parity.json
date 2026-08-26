@@ -219,7 +219,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/extended-global-context.test.ts",
-      "targetFile": "extensions/__tests__/extended-global-context.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/extended-global-context.node.ts",
       "role": "test",
       "testCaseNames": [
         "injects into existing project_context tag",
