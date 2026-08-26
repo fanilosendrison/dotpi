@@ -35,6 +35,7 @@ step_id: 0
 - [x] Map `zero-timeout-filter.contract.test.ts` to a separate Node parity target with its single test identity and no normative change; Node run `32971051645` and retained Bun run `32971051840` pass on Linux/macOS.
 - [x] Map `cwd-args.test.ts` to a separate Node parity target with the same eleven declared identities, fifteen runtime cases, and no normative change; Node run `32972014124` and retained Bun run `32972014134` pass on Linux/macOS.
 - [x] Map `read-deduplicator.test.ts` to a separate Node parity target with the same eleven test identities and no normative change; Node run `32999890715` and retained Bun run `32999890719` pass on Linux/macOS.
+- [!] Map `enhanced-model-selector.test.ts` to a separate Node parity target with the same five test identities, twenty-seven assertions, and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.

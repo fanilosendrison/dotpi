@@ -8,7 +8,7 @@
     "pnpm": "11.24.0"
   },
   "scripts": {
-    "test:node": "node --preserve-symlinks --preserve-symlinks-main --test --test-concurrency=1 extensions/__tests__/node-smoke/pi-telemetry-event-sink.node.ts extensions/__tests__/node-parity/command-validator.contract.node.ts extensions/__tests__/node-parity/cwd-args.node.ts extensions/__tests__/node-parity/git-commits-push-enforcer.contract.node.ts extensions/__tests__/node-parity/path-guard.contract.node.ts extensions/__tests__/node-parity/permission-enforcer.contract.node.ts extensions/__tests__/node-parity/read-deduplicator.contract.node.ts extensions/__tests__/node-parity/read-deduplicator.node.ts extensions/__tests__/node-parity/zero-timeout-filter.contract.node.ts",
+    "test:node": "node --preserve-symlinks --preserve-symlinks-main --test --test-concurrency=1 extensions/__tests__/node-smoke/pi-telemetry-event-sink.node.ts extensions/__tests__/node-parity/command-validator.contract.node.ts extensions/__tests__/node-parity/cwd-args.node.ts extensions/__tests__/node-parity/enhanced-model-selector.node.ts extensions/__tests__/node-parity/git-commits-push-enforcer.contract.node.ts extensions/__tests__/node-parity/path-guard.contract.node.ts extensions/__tests__/node-parity/permission-enforcer.contract.node.ts extensions/__tests__/node-parity/read-deduplicator.contract.node.ts extensions/__tests__/node-parity/read-deduplicator.node.ts extensions/__tests__/node-parity/zero-timeout-filter.contract.node.ts",
     "typecheck:node": "tsc -p extensions/__tests__/node-smoke/tsconfig.json"
   },
   "dependencies": {
