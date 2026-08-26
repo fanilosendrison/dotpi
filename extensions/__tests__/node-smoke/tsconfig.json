@@ -14,6 +14,7 @@
   "include": [
     "../../shared/pi-telemetry.ts",
     "../node-parity/command-validator.contract.node.ts",
+    "../node-parity/cwd-args.node.ts",
     "../node-parity/git-commits-push-enforcer.contract.node.ts",
     "../node-parity/path-guard.contract.node.ts",
     "../node-parity/permission-enforcer.contract.node.ts",
