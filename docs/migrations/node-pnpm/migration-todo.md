@@ -38,7 +38,7 @@ step_id: 0
 - [x] Map `enhanced-model-selector.test.ts` to a separate Node parity target with the same five test identities, twenty-seven assertions, and no normative change; Node run `33001418971` and retained Bun run `33001419030` pass on Linux/macOS.
 - [x] Map `extended-global-context.test.ts` to a separate Node parity target with the same six test identities, twenty assertions, and no normative change; Node run `33002649005` and retained Bun run `33002648976` pass on Linux/macOS.
 - [x] Map `read-deduplicator-internals/read-tracker.test.ts` to a separate Node parity target with the same seventeen test identities, thirty-five assertions, and no normative change; Node run `33003537512` and retained Bun run `33003537491` pass on Linux/macOS.
-- [!] Map `cwd-browser.test.ts` to a separate Node parity target with the same nine test identities, twenty assertions, and no normative change; the equivalent erasable class property and workspace hoist make local Node 22.19.0 pass while cross-platform evidence remains pending.
+- [x] Map `cwd-browser.test.ts` to a separate Node parity target with the same nine test identities, twenty assertions, and no normative change; the equivalent erasable class property and workspace hoist pass Node run `33004764181` and retained Bun run `33004764194` on Linux/macOS.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
