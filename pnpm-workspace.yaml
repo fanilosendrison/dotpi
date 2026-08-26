@@ -2,6 +2,9 @@ packages:
   - .
   - '!extensions/pi-subagents-4-turnlock/**'
 
+# Preserved gateway symlinks require transitive packages to be root-resolvable.
+shamefullyHoist: true
+
 overrides:
   '@earendil-works/pi-agent-core': 0.84.2
   '@earendil-works/pi-ai': 0.84.2

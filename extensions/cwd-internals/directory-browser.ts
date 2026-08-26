@@ -1,7 +1,7 @@
+import { type Dirent, readdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { DynamicBorder, type Theme } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
-import { readdirSync, type Dirent } from "node:fs";
-import { dirname, join, resolve } from "node:path";
 
 const BROWSER_HELP_LINE = "↑↓ navigate · ↵ enter · ⌫ back · esc cancel";
 
@@ -15,11 +15,13 @@ export class DirectoryBrowser {
 	private selectedIndex = 0;
 	private cachedWidth?: number;
 	private cachedLines?: string[];
+	private readonly theme: Theme;
 
 	public onSelect?: (path: string) => void;
 	public onCancel?: () => void;
 
-	constructor(startPath: string, private readonly theme: Theme) {
+	constructor(startPath: string, theme: Theme) {
+		this.theme = theme;
 		this.currentPath = resolve(startPath);
 		this.refreshEntries();
 	}
@@ -73,7 +75,12 @@ export class DirectoryBrowser {
 		this.refreshEntries();
 	}
 
-	private renderItem(text: string, index: number, width: number, style?: (line: string) => string): string {
+	private renderItem(
+		text: string,
+		index: number,
+		width: number,
+		style?: (line: string) => string,
+	): string {
 		const prefix = index === this.selectedIndex ? "> " : "  ";
 		const line = truncateToWidth(`${prefix}${text}`, width);
 		return style ? style(line) : line;
@@ -96,7 +103,11 @@ export class DirectoryBrowser {
 		index += 1;
 
 		if (!isRootPath(this.currentPath)) {
-			lines.push(this.renderItem("..", index, width, (line) => this.theme.fg("muted", line)));
+			lines.push(
+				this.renderItem("..", index, width, (line) =>
+					this.theme.fg("muted", line),
+				),
+			);
 			index += 1;
 		}
 
@@ -113,12 +124,21 @@ export class DirectoryBrowser {
 			return this.cachedLines;
 		}
 
-		const border = new DynamicBorder((s: string) => this.theme.fg("border", s)).render(width)[0] ?? "";
+		const border =
+			new DynamicBorder((s: string) => this.theme.fg("border", s)).render(
+				width,
+			)[0] ?? "";
 		const lines = [
 			border,
-			truncateToWidth(`  ${this.theme.fg("accent", this.theme.bold("Navigate to directory"))}`, width),
+			truncateToWidth(
+				`  ${this.theme.fg("accent", this.theme.bold("Navigate to directory"))}`,
+				width,
+			),
 			"",
-			truncateToWidth(`  ${this.theme.fg("muted", `📁 ${this.currentPath}`)}`, width),
+			truncateToWidth(
+				`  ${this.theme.fg("muted", `📁 ${this.currentPath}`)}`,
+				width,
+			),
 			border,
 			...this.renderEntryLines(width),
 			border,
