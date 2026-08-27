@@ -33,6 +33,7 @@
     "../node-parity/permission-enforcer.node.ts",
     "../node-parity/pi-telemetry.node.ts",
     "../node-parity/read-deduplicator.contract.node.ts",
+    "../node-parity/read-deduplicator.integration.node.ts",
     "../node-parity/read-deduplicator.node.ts",
     "../node-parity/read-tracker.node.ts",
     "../node-parity/zero-timeout-filter.contract.node.ts",
