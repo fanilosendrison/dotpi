@@ -54,6 +54,18 @@ jobs:
           version: 11.24.0
           run_install: false
 
+      - name: Verify exact package-manager policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').packageManager")" = "pnpm@11.24.0"
+          test "$(node -p "require('./package.json').engines.node")" = ">=22.19.0"
+          test "$(node -p "require('./package.json').engines.pnpm")" = "11.24.0"
+          test "$(npm config get engine-strict)" = "true"
+          test "$(npm config get auto-install-peers)" = "false"
+          test "$(pnpm config get engineStrict)" = "true"
+          test "$(pnpm config get autoInstallPeers)" = "false"
+
       - name: Install locked dependencies without lifecycle scripts
         shell: bash
         run: pnpm install --frozen-lockfile --ignore-scripts

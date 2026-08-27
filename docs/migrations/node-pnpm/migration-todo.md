@@ -23,6 +23,7 @@ step_id: 0
 - [x] Run all 25 historical surfaces on Linux and macOS; run `32941844069` passes with the unchanged enforced security message.
 - [x] Publish `pre-node-pnpm-raw` and `pre-node-pnpm-green`; the green tag targets `49f90083421e4ce40057807ec41d671184166d82`.
 - [x] Add the independent root-only pnpm 11.24.0 lockfile, exclude the upstream package, and pass two clean frozen installations.
+- [x] Enforce strict engines and disabled automatic peer installation through `.npmrc` plus effective pnpm workspace settings; two clean frozen installs preserve the updated lockfile.
 - [x] Pin Pi Coding Agent 0.84.2 and Jiti 2.7.0 in the local manifest.
 - [x] Override Pi Agent Core, AI, Client, Protocol, Telemetry, and TUI to exact 0.84.2 so pnpm cannot drift to 0.84.3.
 - [x] Replace active event-sink source imports and mock keys with the exact public package, and remove its source checkout and compatibility alias from Bun CI.

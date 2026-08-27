@@ -4,6 +4,8 @@ packages:
 
 # Preserved gateway symlinks require transitive packages to be root-resolvable.
 shamefullyHoist: true
+engineStrict: true
+autoInstallPeers: false
 
 overrides:
   '@earendil-works/pi-agent-core': 0.84.2
