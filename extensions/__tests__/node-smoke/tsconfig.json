@@ -31,6 +31,7 @@
     "../node-parity/permission-enforcer.e2e.node.ts",
     "../node-parity/permission-enforcer.integration.node.ts",
     "../node-parity/permission-enforcer.node.ts",
+    "../node-parity/pi-telemetry.node.ts",
     "../node-parity/read-deduplicator.contract.node.ts",
     "../node-parity/read-deduplicator.node.ts",
     "../node-parity/read-tracker.node.ts",

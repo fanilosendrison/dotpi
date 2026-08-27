@@ -465,7 +465,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/pi-telemetry.test.ts",
-      "targetFile": "extensions/__tests__/pi-telemetry.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/pi-telemetry.node.ts",
       "role": "test",
       "testCaseNames": [
         "registers before_provider_request and thinking_level_select hooks",
