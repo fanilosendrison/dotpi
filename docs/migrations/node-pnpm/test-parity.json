@@ -3,7 +3,7 @@
   "repository": "dotpi",
   "sourceCommit": "d01a04daadcb840f8bc29831701fba6b3d28b539",
   "expectedSurfaceCount": 25,
-  "migratedSurfaceCount": 22,
+  "migratedSurfaceCount": 23,
   "surfaces": [
     {
       "sourceFile": "extensions/__tests__/command-validator.contract.test.ts",
@@ -294,7 +294,7 @@
         "toThrow": "assert.throws",
         "rejects": "assert.rejects"
       },
-      "parityStatus": "pending",
+      "parityStatus": "green",
       "normativeChangeJustification": null
     },
     {
