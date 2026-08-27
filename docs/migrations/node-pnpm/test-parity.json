@@ -602,7 +602,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/zero-timeout-filter.test.ts",
-      "targetFile": "extensions/__tests__/zero-timeout-filter.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/zero-timeout-filter.node.ts",
       "role": "test",
       "testCaseNames": [
         "registers tool_call handler",
