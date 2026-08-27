@@ -48,6 +48,7 @@ step_id: 0
 - [x] Map `permission-enforcer.integration.test.ts` to a separate Node parity target with its single test identity, fourteen assertions, an isolated Node subprocess, real state and real telemetry, and no normative change; Node run `33051148966` and retained Bun run `33051149059` pass on Linux/macOS.
 - [x] Map `permission-enforcer.test.ts` to a separate Node parity target with the same four test identities, five assertions, Jiti cache isolation, real state and no normative change; Node run `33052380562` and retained Bun run `33052380601` pass on Linux/macOS.
 - [x] Map `permission-enforcer.e2e.test.ts` to a separate Node parity target with its single test identity, fourteen assertions, two real Pi sessions, an isolated Node subprocess, real state and real telemetry, and no normative change; Node run `33057732503` and retained Bun run `33057732483` pass on Linux/macOS.
+- [!] Map `command-validator.test.ts` to a separate Node parity target with its single test identity, nine assertions, Jiti cache isolation, real permission state and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
