@@ -23,6 +23,7 @@
     "../node-parity/enhanced-model-selector.node.ts",
     "../node-parity/extended-global-context.node.ts",
     "../node-parity/git-commits-push-enforcer.contract.node.ts",
+    "../node-parity/git-commits-push-enforcer.integration.node.ts",
     "../node-parity/git-commits-push-enforcer.node.ts",
     "../node-parity/path-guard.contract.node.ts",
     "../node-parity/path-guard.node.ts",
