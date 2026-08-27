@@ -51,11 +51,11 @@ step_id: 0
 - [x] Map `command-validator.test.ts` to a separate Node parity target with its single test identity, nine assertions, Jiti cache isolation, real permission state and no normative change; Node run `33068934808` and retained Bun run `33068934762` pass on Linux/macOS.
 - [x] Map `git-commits-push-enforcer.integration.test.ts` to a separate Node parity target with the same five test identities, twenty-three static assertions, isolated Node probes, real telemetry and no normative change; Node run `33070579416` and retained Bun run `33070579408` pass on Linux/macOS.
 - [x] Map `pi-telemetry.test.ts` to a separate Node parity target with the same eleven test identities, twenty-one assertions, the real published event sink and no normative change; Node run `33073924388` and retained Bun run `33073924384` pass on Linux/macOS.
-- [!] Map `read-deduplicator.integration.test.ts` to a separate Node parity target with the same three test identities, twenty-two assertions, real telemetry and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
-- [ ] Run tests directly through Node TypeScript stripping.
-- [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
-- [ ] Preserve production extension hooks, events, and telemetry schemas.
-- [ ] Complete all 25 parity rows.
-- [ ] Validate physical and gateway execution on Node 22 and Node 24.
+- [x] Map `read-deduplicator.integration.test.ts` to a separate Node parity target with the same three test identities, twenty-two assertions, real telemetry and no normative change; Node run `33075804709` and retained Bun run `33075804789` pass on Linux/macOS.
+- [x] Run all 25 migrated test surfaces directly through Node TypeScript stripping.
+- [x] Replace Bun resolver, `?real`, module mocks, and absolute imports in the Node parity targets while retaining the sealed historical sources.
+- [x] Preserve production extension hooks, events, and telemetry schemas.
+- [x] Complete all 25 parity rows.
+- [x] Validate physical and gateway execution on Node 22 and Node 24.
 - [ ] Delete the dotpi Bun lockfile only after double validation.
 - [ ] Complete final documentation and Bun-allowlist sweeps.
