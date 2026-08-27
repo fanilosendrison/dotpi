@@ -35,6 +35,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check out exact dotagents baseline
+        uses: actions/checkout@v4
+        with:
+          repository: fanilosendrison/dotagents
+          ref: 3516a87e52b51e607fad387703a0b47c99751adf
+          path: node-dotagents
+          persist-credentials: false
+
       - name: Install Node
         uses: actions/setup-node@v4
         with:
@@ -65,11 +73,26 @@ jobs:
           printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
           printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
 
+      - name: Build Node extension gateways
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_home="$RUNNER_TEMP/dotpi-node-home"
+          rm -rf "$node_home"
+          mkdir -p "$node_home/.pi"
+          ln -s "$GITHUB_WORKSPACE/node-dotagents" "$node_home/.agents"
+          ln -s "$GITHUB_WORKSPACE" "$node_home/.pi/agent"
+          test "$(git -C "$node_home/.agents" rev-parse HEAD)" = "3516a87e52b51e607fad387703a0b47c99751adf"
+          test "$(git -C "$node_home/.pi/agent" rev-parse HEAD)" = "${{ github.sha }}"
+          printf 'HOME=%s\n' "$node_home" >> "$GITHUB_ENV"
+
       - name: Typecheck and run migrated TypeScript tests
         shell: bash
         run: |
           set -euo pipefail
           test "$(pnpm --version)" = "11.24.0"
+          test -f "$HOME/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts"
+          test -f "$HOME/.pi/agent/extensions/git-commits-push-enforcer.ts"
           pnpm run typecheck:node
           pnpm run test:node
           test ! -s "$BUN_SENTINEL_LOG"
