@@ -26,6 +26,12 @@ export function gatewayExtensionPath(fileName: string): string {
 	return join(homedir(), ".pi", "agent", "extensions", fileName);
 }
 
+export async function importAgentModule<T>(
+	...pathSegments: string[]
+): Promise<T> {
+	return (await jiti.import(join(homedir(), ".agents", ...pathSegments))) as T;
+}
+
 export async function importPiExtension<T>(fileName: string): Promise<T> {
 	return (await jiti.import(gatewayExtensionPath(fileName), {
 		default: true,

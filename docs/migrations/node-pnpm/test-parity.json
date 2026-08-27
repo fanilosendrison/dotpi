@@ -417,7 +417,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/permission-enforcer.integration.test.ts",
-      "targetFile": "extensions/__tests__/permission-enforcer.integration.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/permission-enforcer.integration.node.ts",
       "role": "test",
       "testCaseNames": [
         "writes real state and real telemetry for prompt lifecycle"

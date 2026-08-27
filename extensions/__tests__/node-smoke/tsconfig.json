@@ -26,6 +26,7 @@
     "../node-parity/path-guard.contract.node.ts",
     "../node-parity/path-guard.node.ts",
     "../node-parity/permission-enforcer.contract.node.ts",
+    "../node-parity/permission-enforcer.integration.node.ts",
     "../node-parity/read-deduplicator.contract.node.ts",
     "../node-parity/read-deduplicator.node.ts",
     "../node-parity/read-tracker.node.ts",
