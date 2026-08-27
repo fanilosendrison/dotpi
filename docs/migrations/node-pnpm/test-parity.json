@@ -348,7 +348,7 @@
     },
     {
       "sourceFile": "extensions/__tests__/path-guard.test.ts",
-      "targetFile": "extensions/__tests__/path-guard.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/path-guard.node.ts",
       "role": "test",
       "testCaseNames": [
         "registers tool_call handlers and rewrites paths silently with telemetry"

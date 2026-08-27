@@ -44,6 +44,7 @@ step_id: 0
 - [x] Map `cwd-extension.test.ts` to a separate Node parity target with its single test identity, four assertions, explicit `.ts` entrypoint exports, and no normative change; Node run `33008062284` and retained Bun run `33008062299` pass on Linux/macOS.
 - [x] Map `git-commits-push-enforcer.test.ts` to a separate Node parity target with the same three test identities, sixteen assertions, a shared Node/Jiti Pi extension loader, and no normative change; Node run `33047401971` and retained Bun run `33047401959` pass on Linux/macOS after explicit CI gateways.
 - [x] Map `zero-timeout-filter.test.ts` to a separate Node parity target with the same twelve test identities, twenty-six assertions, real telemetry, and no normative change; Node run `33048642717` and retained Bun run `33048642721` pass on Linux/macOS.
+- [!] Map `path-guard.test.ts` to a separate Node parity target with its single test identity, seventeen assertions, real path rewrites and telemetry, and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
