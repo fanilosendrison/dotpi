@@ -45,7 +45,7 @@ step_id: 0
 - [x] Map `git-commits-push-enforcer.test.ts` to a separate Node parity target with the same three test identities, sixteen assertions, a shared Node/Jiti Pi extension loader, and no normative change; Node run `33047401971` and retained Bun run `33047401959` pass on Linux/macOS after explicit CI gateways.
 - [x] Map `zero-timeout-filter.test.ts` to a separate Node parity target with the same twelve test identities, twenty-six assertions, real telemetry, and no normative change; Node run `33048642717` and retained Bun run `33048642721` pass on Linux/macOS.
 - [x] Map `path-guard.test.ts` to a separate Node parity target with its single test identity, seventeen assertions, real path rewrites and telemetry, and no normative change; Node run `33049961825` and retained Bun run `33049961826` pass on Linux/macOS.
-- [!] Map `permission-enforcer.integration.test.ts` to a separate Node parity target with its single test identity, fourteen assertions, an isolated Node subprocess, real state and real telemetry, and no normative change; local Node 22.19.0 passes while cross-platform evidence remains pending.
+- [x] Map `permission-enforcer.integration.test.ts` to a separate Node parity target with its single test identity, fourteen assertions, an isolated Node subprocess, real state and real telemetry, and no normative change; Node run `33051148966` and retained Bun run `33051149059` pass on Linux/macOS.
 - [ ] Run tests directly through Node TypeScript stripping.
 - [ ] Replace Bun resolver, `?real`, module mocks, and absolute imports.
 - [ ] Preserve production extension hooks, events, and telemetry schemas.
