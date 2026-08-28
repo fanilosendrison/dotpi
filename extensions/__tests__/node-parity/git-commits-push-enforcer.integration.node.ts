@@ -227,7 +227,8 @@ describe("git-commits-push-enforcer Pi extension integration", () => {
 	});
 
 	test("allows skill launch and writes real enforcer_triggered telemetry", () => {
-		const command = "cd ~/.agents/skills/git-commits-push && bun run start";
+		const command =
+			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
 		const output = runProbe(command, { toolCallId: "call-real-skill" });
 
 		assert.strictEqual(output.result, undefined);

@@ -10,14 +10,13 @@
  * for computing the ratio: stripped / git-commits-push invocations.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { recognizeGitCommitsPushCommand } from "../../../.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
 import { createPiTelemetry } from "./shared/pi-telemetry";
 import { onBashToolCall } from "./shared/pi-tool-events";
-import { isGitCommitsPushSkillCommand } from "../../../.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator";
 
 function isGitCommitsPushShellLaunch(command: string): boolean {
-	return (
-		isGitCommitsPushSkillCommand(command) && command.includes("bun run start")
-	);
+	const recognition = recognizeGitCommitsPushCommand(command);
+	return recognition === "bun-launch" || recognition === "pnpm-launch";
 }
 
 export default function (pi: ExtensionAPI) {
@@ -37,12 +36,9 @@ export default function (pi: ExtensionAPI) {
 		// Log only if there was actually a timeout to strip
 		if (originalTimeout === undefined) return;
 
-		telemetry.append(
-			"timeout_stripped",
-			{
-				originalTimeout,
-				toolCallId: event.toolCallId,
-			},
-		);
+		telemetry.append("timeout_stripped", {
+			originalTimeout,
+			toolCallId: event.toolCallId,
+		});
 	});
 }

@@ -67,6 +67,12 @@ describe("git-commits-push-enforcer detection helpers", () => {
 			true,
 		);
 		assert.strictEqual(
+			isSkillCmd(
+				'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start',
+			),
+			true,
+		);
+		assert.strictEqual(
 			isSkillCmd("cat ~/.agents/skills/git-commits-push-enforcer/README.md"),
 			false,
 		);

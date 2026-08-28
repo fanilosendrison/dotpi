@@ -611,6 +611,8 @@
         "ignores git commit commands",
         "ignores /git-commits-push command",
         "deletes timeout for the exact skill command and logs telemetry",
+        "deletes timeout for canonical pnpm launch",
+        "ignores incomplete and unsafe launch commands",
         "works without timeout set and does not log telemetry",
         "works with zero timeout and logs telemetry",
         "matches when command starts with cd ~/",

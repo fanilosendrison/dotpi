@@ -7,6 +7,8 @@ import { importPiExtension } from "./pi-extension-loader.node.ts";
 
 const SKILL_CMD =
 	"cd /Users/famillesendrison/.agents/skills/git-commits-push && bun run start";
+const PNPM_SKILL_CMD =
+	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
 
 interface ToolCallEvent {
 	toolName: string;
@@ -120,6 +122,37 @@ describe("zero-timeout-filter", () => {
 			originalTimeout: 60,
 			toolCallId: "tc-1",
 		});
+	});
+
+	test("deletes timeout for canonical pnpm launch", async () => {
+		const input: Record<string, unknown> = {
+			command: PNPM_SKILL_CMD,
+			timeout: 45,
+		};
+		await handlers.tool_call(
+			{ toolName: "bash", input, toolCallId: "tc-pnpm" },
+			{},
+		);
+
+		const events = readEvents();
+		assert.strictEqual(input.timeout, undefined);
+		assert.strictEqual(events.length, 1);
+		assert.partialDeepStrictEqual(events[0].details, {
+			originalTimeout: 45,
+			toolCallId: "tc-pnpm",
+		});
+	});
+
+	test("ignores incomplete and unsafe launch commands", async () => {
+		for (const command of [
+			"cd ~/.agents/skills/git-commits-push && pnpm run start",
+			`${PNPM_SKILL_CMD} && git push`,
+		]) {
+			const input: Record<string, unknown> = { command, timeout: 30 };
+			await handlers.tool_call({ toolName: "bash", input }, {});
+			assert.strictEqual(input.timeout, 30);
+		}
+		assert.strictEqual(readEvents().length, 0);
 	});
 
 	test("works without timeout set and does not log telemetry", async () => {

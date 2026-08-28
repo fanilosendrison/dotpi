@@ -14,22 +14,17 @@ Logs every stripped timeout to `~/neelopedia/stats/pi/zero-timeout-filter/events
 
 ## How It Works
 
-Listens to `tool_call` → `bash`. If the command contains both `bun run start`
-and `.agents/skills/git-commits-push`, it deletes `event.input.timeout` before
-the tool executes. Logs a `timeout_stripped` event only when a timeout was
-actually present.
+Listens to `tool_call` → `bash` and consumes
+`recognizeGitCommitsPushCommand()` from the shared dotagents enforcement core.
+It strips `event.input.timeout` only when the result is `pnpm-launch` or
+`bun-launch`; slash invocations, incomplete commands, lookalike paths, unsafe
+separators, and appended commands are ignored. A `timeout_stripped` event is
+written only when a timeout was actually present.
 
 ```typescript
-pi.on("tool_call", async (event) => {
-  if (!isToolCallEventType("bash", event)) return;
-  const cmd = event.input.command;
-  if (!cmd || typeof cmd !== "string") return;
-  if (!cmd.includes("bun run start")) return;
-  if (!cmd.includes(".agents/skills/git-commits-push")) return;
-  delete event.input.timeout;
-  if (event.input.timeout !== undefined) return;
-  statsLog.logTimeoutStripped({ ... });
-});
+const recognition = recognizeGitCommitsPushCommand(command);
+if (recognition !== "pnpm-launch" && recognition !== "bun-launch") return;
+delete event.input.timeout;
 ```
 
 ## Stats

@@ -27,14 +27,19 @@ The normal allowed path is:
 The direct skill launch path is also allowed:
 
 ```bash
-cd ~/.agents/skills/git-commits-push && bun run start
+cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 ```
 
 ## How It Works
 
 The extension listens to `tool_call` events and only inspects Bash commands.
 
-When it detects a `/git-commits-push` invocation, it sets:
+The shared dotagents recognizer accepts the slash invocation, the canonical pnpm
+launch, and the historical Bun launch during compatibility deployment. It
+rejects incomplete commands, lookalike paths, unsafe separators, and appended
+commands.
+
+When it detects a recognized `/git-commits-push` invocation, it sets:
 
 - `PI_PARENT_MODEL`
 - `PI_SESSION_ID`
