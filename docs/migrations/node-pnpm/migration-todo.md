@@ -19,7 +19,7 @@ step_id: 0
 - [x] Verify Node-compatible turnlock 0.9.1 registry publication, byte-identical pnpm pack reproduction, and clean runtime plus TypeScript installation.
 - [x] Declare exact event-sink 0.1.0 locally and exact Turnlock 0.9.1 in its dotagents consumer before replacing runtime imports.
 - [x] Materialize and verify both exact packages in independent pnpm lockfiles; defer runtime import replacement until green baseline gates pass.
-- [x] Add Bun 1.3.14 baseline CI on Linux/macOS with exact dotagents commit `3516a87e52b51e607fad387703a0b47c99751adf` and all 25 inventoried surfaces.
+- [x] Add Bun 1.3.14 baseline CI on Linux/macOS with an exact dotagents commit and all 25 inventoried surfaces; the compatibility deployment now pins `0d0d068e7806066c8f6a1f98648e9fe13b5c443d`.
 - [x] Run all 25 historical surfaces on Linux and macOS; run `32941844069` passes with the unchanged enforced security message.
 - [x] Publish `pre-node-pnpm-raw` and `pre-node-pnpm-green`; the green tag targets `49f90083421e4ce40057807ec41d671184166d82`.
 - [x] Add the independent root-only pnpm 11.24.0 lockfile, exclude the upstream package, and pass two clean frozen installations.
@@ -58,5 +58,6 @@ step_id: 0
 - [x] Preserve production extension hooks, events, and telemetry schemas.
 - [x] Complete all 25 parity rows.
 - [x] Validate physical and gateway execution on Node 22 and Node 24.
+- [x] Consume the strict shared git-commits-push recognition result in both the Pi enforcer and zero-timeout filter; preserve historical Bun and canonical pnpm launches, reject incomplete or appended forms, extend the zero-timeout parity surface from twelve to fourteen names, and keep all 25 surfaces green. Two frozen installs preserve lock SHA-256 `3d2b2843ab78decbaa69f0f68546aec906f11fb34937f50b117b28128f855269`; Node run `33175005631` and retained Bun run `33175005680` pass on Linux/macOS.
 - [ ] Delete the dotpi Bun lockfile only after double validation.
 - [ ] Complete final documentation and Bun-allowlist sweeps.
