@@ -58,6 +58,7 @@ step_id: 0
 - [x] Preserve production extension hooks, events, and telemetry schemas.
 - [x] Complete all 25 parity rows.
 - [x] Validate physical and gateway execution on Node 22 and Node 24.
-- [x] Consume the strict shared git-commits-push recognition result in both the Pi enforcer and zero-timeout filter; preserve historical Bun and canonical pnpm launches, reject incomplete or appended forms, extend the zero-timeout parity surface from twelve to fourteen names, and keep all 25 surfaces green. Two frozen installs preserve lock SHA-256 `3d2b2843ab78decbaa69f0f68546aec906f11fb34937f50b117b28128f855269`; Node run `33175005631` and retained Bun run `33175005680` pass on Linux/macOS.
-- [ ] Delete the dotpi Bun lockfile only after double validation.
-- [ ] Complete final documentation and Bun-allowlist sweeps.
+- [x] Consume the strict shared git-commits-push recognition result in both the Pi enforcer and zero-timeout filter; preserve historical Bun and canonical pnpm launches during differential deployment, reject incomplete or appended forms, extend the zero-timeout parity surface from twelve to fourteen names, and keep all 25 surfaces green. Two frozen installs preserve lock SHA-256 `3d2b2843ab78decbaa69f0f68546aec906f11fb34937f50b117b28128f855269`; Node run `33175005631` and retained Bun run `33175005680` pass on Linux/macOS.
+- [x] After differential validation, retire the historical launch, archive all 25 Bun test sources plus loader declarations byte-for-byte, remove the root Bun lock and types, and retire the Bun workflow.
+- [x] Activate the exact `25/25` allowlist with one CI policy-enforcement exception, pin dotagents `3772ec4a135884953ff956479998acdfd5cad7c2`, and preserve final pnpm lock SHA-256 `52a8a344fdae9c987667456f238d2492b6020d8567609c6d52b107f644f0d42f` across two frozen installs.
+- [x] Complete final documentation, physical/gateway typechecks, isolated-HOME reproduction, 136 Node tests, and the Bun sentinel gate. Final Node 22.19/24 Linux/macOS run `33422658335` passes at dotpi `5ae546b7c9cefb34b25e4a5302672780441a7d95`.
