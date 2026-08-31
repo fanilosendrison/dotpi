@@ -17,3 +17,7 @@ overrides:
 
 minimumReleaseAgeExclude:
   - '@fanilosendrison/event-sink@0.1.0'
+
+allowBuilds:
+  '@google/genai': false
+  protobufjs: false
