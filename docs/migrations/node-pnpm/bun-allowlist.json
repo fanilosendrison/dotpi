@@ -1,15 +1,28 @@
 {
-  "schemaVersion": 1,
-  "repository": "dotpi",
-  "policy": "bun-allowlist-policy-v0.1.0",
-  "defaultDecision": "deny",
-  "enforcementStatus": "planned",
-  "entries": [],
+  "version": 1,
+  "status": "active",
+  "default": "deny",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "testParityManifest": "docs/migrations/node-pnpm/test-parity.json",
+  "expectedGreenSurfaces": 25,
   "excludedPathRules": [
+    ".git/**",
+    "node_modules/**",
+    "docs/migrations/node-pnpm/archive/**",
+    "extensions/pi-subagents-4-turnlock/**"
+  ],
+  "permanentExceptions": [
     {
-      "pattern": "extensions/pi-subagents-4-turnlock/**",
-      "category": "upstream-exclusion",
-      "reason": "The upstream extension remains outside the migration scope and retains its upstream runtime behavior."
+      "path": ".github/workflows/node-pnpm.yml",
+      "category": "policy-enforcement",
+      "owner": "node-pnpm-platform",
+      "removalCondition": "Replace only with an equivalent CI gate that proves the retired runtime is never invoked.",
+      "requiredLiterals": [
+        "bun-failure-sentinel",
+        "unexpected Bun invocation",
+        "validate-bun-policy.mjs"
+      ],
+      "rationale": "The Node CI runs the shared fail-closed policy validator and proves that no gate invokes the retired runtime."
     }
   ]
 }

@@ -35,11 +35,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check out exact dotagents baseline
+      - name: Check out exact dotagents platform
         uses: actions/checkout@v4
         with:
           repository: fanilosendrison/dotagents
-          ref: 0d0d068e7806066c8f6a1f98648e9fe13b5c443d
+          ref: 3772ec4a135884953ff956479998acdfd5cad7c2
           path: node-dotagents
           persist-credentials: false
 
@@ -94,7 +94,7 @@ jobs:
           mkdir -p "$node_home/.pi"
           ln -s "$GITHUB_WORKSPACE/node-dotagents" "$node_home/.agents"
           ln -s "$GITHUB_WORKSPACE" "$node_home/.pi/agent"
-          test "$(git -C "$node_home/.agents" rev-parse HEAD)" = "0d0d068e7806066c8f6a1f98648e9fe13b5c443d"
+          test "$(git -C "$node_home/.agents" rev-parse HEAD)" = "3772ec4a135884953ff956479998acdfd5cad7c2"
           test "$(git -C "$node_home/.pi/agent" rev-parse HEAD)" = "${{ github.sha }}"
           printf 'HOME=%s\n' "$node_home" >> "$GITHUB_ENV"
 
@@ -104,7 +104,9 @@ jobs:
           set -euo pipefail
           test "$(pnpm --version)" = "11.24.0"
           test -f "$HOME/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts"
+          test -f "$HOME/.agents/scripts/validate-bun-policy.mjs"
           test -f "$HOME/.pi/agent/extensions/git-commits-push-enforcer.ts"
+          node --input-type=module -e 'const { validateBunPolicy } = await import(process.env.HOME + "/.agents/scripts/validate-bun-policy.mjs"); const result = validateBunPolicy(process.cwd()); process.stdout.write(`Bun policy valid: ${result.greenSurfaceCount} green surfaces, ${result.exceptionCount} permanent exceptions\\n`);'
           pnpm run typecheck:node
           pnpm run test:node
           test ! -s "$BUN_SENTINEL_LOG"
