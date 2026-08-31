@@ -32,12 +32,12 @@ jobs:
 
     steps:
       - name: Check out candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Check out exact dotagents platform
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: fanilosendrison/dotagents
           ref: 3772ec4a135884953ff956479998acdfd5cad7c2
@@ -45,12 +45,12 @@ jobs:
           persist-credentials: false
 
       - name: Install Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Install exact pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 11.24.0
           run_install: false
