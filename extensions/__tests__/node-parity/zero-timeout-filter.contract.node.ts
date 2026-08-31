@@ -1,7 +1,7 @@
 /**
  * Node parity target for zero-timeout-filter telemetry contracts.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/__tests__/zero-timeout-filter.contract.test.ts.
  */
 

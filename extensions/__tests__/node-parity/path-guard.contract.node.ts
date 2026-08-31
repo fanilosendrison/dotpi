@@ -1,7 +1,7 @@
 /**
  * Node parity target for path-guard telemetry contracts.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/__tests__/path-guard.contract.test.ts.
  */
 

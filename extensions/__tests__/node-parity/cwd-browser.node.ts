@@ -1,7 +1,7 @@
 /**
  * Node parity target for the cwd directory browser.
  *
- * The historical Bun source remains at extensions/__tests__/cwd-browser.test.ts.
+ * The retired source path was extensions/__tests__/cwd-browser.test.ts.
  */
 
 import assert from "node:assert/strict";

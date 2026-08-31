@@ -1,7 +1,7 @@
 /**
  * Node parity target for git-commits-push-enforcer telemetry contracts.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/__tests__/git-commits-push-enforcer.contract.test.ts.
  */
 

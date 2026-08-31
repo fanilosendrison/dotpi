@@ -1,7 +1,7 @@
 /**
  * Node parity target for the cwd command handler.
  *
- * The historical Bun source remains at extensions/__tests__/cwd-handler.test.ts.
+ * The retired source path was extensions/__tests__/cwd-handler.test.ts.
  */
 
 import assert from "node:assert/strict";

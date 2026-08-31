@@ -1,7 +1,7 @@
 /**
  * Node parity target for extended global context injection helpers.
  *
- * The historical Bun source remains at extensions/__tests__/extended-global-context.test.ts.
+ * The retired source path was extensions/__tests__/extended-global-context.test.ts.
  */
 
 import assert from "node:assert/strict";

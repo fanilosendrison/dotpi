@@ -1,7 +1,7 @@
 /**
  * Node parity target for interactive cwd selection.
  *
- * The historical Bun source remains at extensions/__tests__/cwd-interactive.test.ts.
+ * The retired source path was extensions/__tests__/cwd-interactive.test.ts.
  */
 
 import assert from "node:assert/strict";

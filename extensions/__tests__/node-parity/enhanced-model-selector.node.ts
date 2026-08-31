@@ -1,7 +1,7 @@
 /**
  * Node parity target for enhanced model selector formatting helpers.
  *
- * The historical Bun source remains at extensions/__tests__/enhanced-model-selector.test.ts.
+ * The retired source path was extensions/__tests__/enhanced-model-selector.test.ts.
  */
 
 import assert from "node:assert/strict";

@@ -1,7 +1,7 @@
 /**
  * Node parity target for read-deduplicator telemetry contracts.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/__tests__/read-deduplicator.contract.test.ts.
  */
 

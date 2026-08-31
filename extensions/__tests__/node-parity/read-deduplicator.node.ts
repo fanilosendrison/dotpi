@@ -1,7 +1,7 @@
 /**
  * Node parity target for the read deduplicator tracker.
  *
- * The historical Bun source remains at extensions/__tests__/read-deduplicator.test.ts.
+ * The retired source path was extensions/__tests__/read-deduplicator.test.ts.
  */
 
 import assert from "node:assert/strict";

@@ -1,7 +1,7 @@
 /**
  * Node parity target for the read tracker module's direct tests.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/read-deduplicator-internals/read-tracker.test.ts.
  */
 

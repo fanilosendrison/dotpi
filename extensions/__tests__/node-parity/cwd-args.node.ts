@@ -1,7 +1,7 @@
 /**
  * Node parity target for cwd argument and WezTerm argument helpers.
  *
- * The historical Bun source remains at extensions/__tests__/cwd-args.test.ts.
+ * The retired source path was extensions/__tests__/cwd-args.test.ts.
  */
 
 import assert from "node:assert/strict";

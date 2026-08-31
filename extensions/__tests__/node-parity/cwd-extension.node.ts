@@ -1,7 +1,7 @@
 /**
  * Node parity target for the public cwd extension registration.
  *
- * The historical Bun source remains at extensions/__tests__/cwd-extension.test.ts.
+ * The retired source path was extensions/__tests__/cwd-extension.test.ts.
  */
 
 import assert from "node:assert/strict";

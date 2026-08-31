@@ -1,7 +1,7 @@
 /**
  * Node parity target for command-validator telemetry contract events.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/__tests__/command-validator.contract.test.ts.
  */
 
