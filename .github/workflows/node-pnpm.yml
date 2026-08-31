@@ -90,11 +90,13 @@ jobs:
         run: |
           set -euo pipefail
           node_home="$RUNNER_TEMP/dotpi-node-home"
-          rm -rf "$node_home"
+          dotagents_root="$RUNNER_TEMP/node-dotagents"
+          rm -rf "$node_home" "$dotagents_root"
+          mv "$GITHUB_WORKSPACE/node-dotagents" "$dotagents_root"
           mkdir -p "$node_home/.pi"
-          ln -s "$GITHUB_WORKSPACE/node-dotagents" "$node_home/.agents"
+          ln -s "$dotagents_root" "$node_home/.agents"
           ln -s "$GITHUB_WORKSPACE" "$node_home/.pi/agent"
-          test "$(git -C "$node_home/.agents" rev-parse HEAD)" = "3772ec4a135884953ff956479998acdfd5cad7c2"
+          test "$(git -C "$dotagents_root" rev-parse HEAD)" = "3772ec4a135884953ff956479998acdfd5cad7c2"
           test "$(git -C "$node_home/.pi/agent" rev-parse HEAD)" = "${{ github.sha }}"
           printf 'HOME=%s\n' "$node_home" >> "$GITHUB_ENV"
 
