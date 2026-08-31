@@ -1,7 +1,7 @@
 /**
  * Node parity target for git-commits-push enforcer detection helpers.
  *
- * The historical Bun source remains at
+ * The retired source path was
  * extensions/__tests__/git-commits-push-enforcer.test.ts.
  */
 
@@ -62,9 +62,9 @@ describe("git-commits-push-enforcer detection helpers", () => {
 		assert.strictEqual(isSkillCmd("/git-commits-push"), true);
 		assert.strictEqual(
 			isSkillCmd(
-				"cd /Users/famillesendrison/.agents/skills/git-commits-push && bun run start",
+				"cd /Users/example/.agents/skills/git-commits-push && bun run start",
 			),
-			true,
+			false,
 		);
 		assert.strictEqual(
 			isSkillCmd(

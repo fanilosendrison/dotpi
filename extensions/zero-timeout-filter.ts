@@ -16,7 +16,7 @@ import { onBashToolCall } from "./shared/pi-tool-events";
 
 function isGitCommitsPushShellLaunch(command: string): boolean {
 	const recognition = recognizeGitCommitsPushCommand(command);
-	return recognition === "bun-launch" || recognition === "pnpm-launch";
+	return recognition === "pnpm-launch";
 }
 
 export default function (pi: ExtensionAPI) {

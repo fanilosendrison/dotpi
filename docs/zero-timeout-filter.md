@@ -16,14 +16,14 @@ Logs every stripped timeout to `~/neelopedia/stats/pi/zero-timeout-filter/events
 
 Listens to `tool_call` → `bash` and consumes
 `recognizeGitCommitsPushCommand()` from the shared dotagents enforcement core.
-It strips `event.input.timeout` only when the result is `pnpm-launch` or
-`bun-launch`; slash invocations, incomplete commands, lookalike paths, unsafe
-separators, and appended commands are ignored. A `timeout_stripped` event is
+It strips `event.input.timeout` only when the result is `pnpm-launch`;
+retired launch syntax, slash invocations, incomplete commands, lookalike paths,
+unsafe separators, and appended commands are ignored. A `timeout_stripped` event is
 written only when a timeout was actually present.
 
 ```typescript
 const recognition = recognizeGitCommitsPushCommand(command);
-if (recognition !== "pnpm-launch" && recognition !== "bun-launch") return;
+if (recognition !== "pnpm-launch") return;
 delete event.input.timeout;
 ```
 
@@ -49,7 +49,7 @@ tool invocation. Join on it to compute the ratio.
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/zero-timeout-filter.ts` | Pi extension | ✅ |
-| `dotpi/extensions/__tests__/zero-timeout-filter.test.ts` | Extension tests | ✅ |
+| `dotpi/extensions/__tests__/node-parity/zero-timeout-filter.node.ts` | Node extension tests | ✅ |
 
 ## Background
 

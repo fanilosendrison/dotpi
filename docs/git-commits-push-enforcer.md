@@ -34,10 +34,9 @@ cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 
 The extension listens to `tool_call` events and only inspects Bash commands.
 
-The shared dotagents recognizer accepts the slash invocation, the canonical pnpm
-launch, and the historical Bun launch during compatibility deployment. It
-rejects incomplete commands, lookalike paths, unsafe separators, and appended
-commands.
+The shared dotagents recognizer accepts the slash invocation and the canonical
+pnpm launch. Retired launch syntax, incomplete commands, lookalike paths, unsafe
+separators, and appended commands are rejected.
 
 When it detects a recognized `/git-commits-push` invocation, it sets:
 
