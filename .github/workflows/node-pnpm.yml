@@ -3,6 +3,7 @@ name: Node and pnpm migration gates
 on:
   push:
     branches:
+      - main
       - migration/node-pnpm
   pull_request:
   workflow_dispatch:
