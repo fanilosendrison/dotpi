@@ -1,4 +1,9 @@
-import { INVALID_SPLIT_TYPE_MESSAGE, SPLIT_TYPES, type ParsedCwdArgs, type SplitType } from "./types";
+import {
+	INVALID_SPLIT_TYPE_MESSAGE,
+	type ParsedCwdArgs,
+	SPLIT_TYPES,
+	type SplitType,
+} from "./types.ts";
 
 export function isSplitType(value: string): value is SplitType {
 	return SPLIT_TYPES.includes(value as SplitType);

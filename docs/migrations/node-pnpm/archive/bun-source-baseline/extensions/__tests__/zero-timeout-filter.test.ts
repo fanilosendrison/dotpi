@@ -6,6 +6,8 @@ import { importPiExtension } from "./pi-extension-loader";
 
 const SKILL_CMD =
 	"cd /Users/famillesendrison/.agents/skills/git-commits-push && bun run start";
+const PNPM_SKILL_CMD =
+	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
 
 type ExtensionFactory = (pi: {
 	on: (event: string, cb: Function) => void;
@@ -107,6 +109,34 @@ describe("zero-timeout-filter", () => {
 			originalTimeout: 60,
 			toolCallId: "tc-1",
 		});
+	});
+
+	test("deletes timeout for canonical pnpm launch", async () => {
+		const input = { command: PNPM_SKILL_CMD, timeout: 45 };
+		await handlers["tool_call"](
+			{ toolName: "bash", input, toolCallId: "tc-pnpm" },
+			{},
+		);
+
+		const events = readEvents();
+		expect(input.timeout).toBeUndefined();
+		expect(events).toHaveLength(1);
+		expect(events[0].details).toMatchObject({
+			originalTimeout: 45,
+			toolCallId: "tc-pnpm",
+		});
+	});
+
+	test("ignores incomplete and unsafe launch commands", async () => {
+		for (const command of [
+			"cd ~/.agents/skills/git-commits-push && pnpm run start",
+			`${PNPM_SKILL_CMD} && git push`,
+		]) {
+			const input = { command, timeout: 30 };
+			await handlers["tool_call"]({ toolName: "bash", input }, {});
+			expect(input.timeout).toBe(30);
+		}
+		expect(readEvents()).toHaveLength(0);
 	});
 
 	test("works without timeout set and does not log telemetry", async () => {

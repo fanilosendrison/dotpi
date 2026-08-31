@@ -1,32 +1,29 @@
 /**
- * Contract tests for git-commits-push-enforcer events (via event-sink).
+ * Node parity target for git-commits-push-enforcer telemetry contracts.
  *
- * Tests the DATA CONTRACT only:
- *   - namespace, eventType, details shape
- *   - one event per append
- *
- * Infrastructure (file creation, mkdir, ordering, schema compliance)
- * is covered by event-sink's own tests.
+ * The retired source path was
+ * extensions/__tests__/git-commits-push-enforcer.contract.test.ts.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createEventSink } from "/Users/famillesendrison/Developper/Projects/telemetry-tools/event-sink/src/index.ts";
-
-let tmpDir: string;
+import { afterEach, beforeEach, describe, test } from "node:test";
+import { createEventSink } from "@fanilosendrison/event-sink";
 
 interface TelemetryEvent {
-	eventType: string;
-	namespace: string;
-	agent: string;
-	sessionId: string;
-	workspace: string;
-	timestamp: string;
-	eventId: string;
-	details: Record<string, unknown>;
+	readonly eventType: string;
+	readonly namespace: string;
+	readonly agent: string;
+	readonly sessionId: string;
+	readonly workspace: string;
+	readonly timestamp: string;
+	readonly eventId: string;
+	readonly details: Readonly<Record<string, unknown>>;
 }
+
+let tmpDir: string;
 
 beforeEach(() => {
 	tmpDir = mkdtempSync(join(tmpdir(), "gcpe-contract-"));
@@ -36,15 +33,13 @@ afterEach(() => {
 	rmSync(tmpDir, { recursive: true, force: true });
 });
 
-function readEvents(filePath: string): TelemetryEvent[] {
+function readEvents(filePath: string): readonly TelemetryEvent[] {
 	return readFileSync(filePath, "utf-8")
 		.trim()
 		.split("\n")
 		.filter(Boolean)
-		.map((l) => JSON.parse(l) as TelemetryEvent);
+		.map((line) => JSON.parse(line) as TelemetryEvent);
 }
-
-// ── logTriggered → enforcer_triggered ────────────────────────────────────
 
 describe("enforcer_triggered contract", () => {
 	test("writes enforcer_triggered with all fields", () => {
@@ -68,20 +63,21 @@ describe("enforcer_triggered contract", () => {
 			{ timestamp: "2026-07-04T12:00:00.000Z" },
 		);
 
-		const ev = readEvents(join(tmpDir, "events.jsonl"))[0];
-		expect(ev.eventType).toBe("enforcer_triggered");
-		expect(ev.namespace).toBe("git-commits-push-enforcer");
-		expect(ev.agent).toBe("pi");
-		expect(ev.sessionId).toBe("s1");
-		expect(ev.workspace).toBe("/cwd");
-		expect(ev.details.rawCommand).toBe("/git-commits-push");
-		expect(ev.details.detectedBy).toBe("git-commits-push");
-		expect(ev.details.toolCallId).toBe("tcid-abc");
-		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
-		expect(ev.details.thinkingLevel).toBe("xhigh");
-		expect(ev.details.mutation).toBeUndefined();
-		expect(ev.timestamp).toBe("2026-07-04T12:00:00.000Z");
-		expect(ev.eventId).toBeDefined();
+		const event = readEvents(join(tmpDir, "events.jsonl"))[0];
+		assert.ok(event);
+		assert.strictEqual(event.eventType, "enforcer_triggered");
+		assert.strictEqual(event.namespace, "git-commits-push-enforcer");
+		assert.strictEqual(event.agent, "pi");
+		assert.strictEqual(event.sessionId, "s1");
+		assert.strictEqual(event.workspace, "/cwd");
+		assert.strictEqual(event.details.rawCommand, "/git-commits-push");
+		assert.strictEqual(event.details.detectedBy, "git-commits-push");
+		assert.strictEqual(event.details.toolCallId, "tcid-abc");
+		assert.strictEqual(event.details.parentModel, "deepseek-v4-pro");
+		assert.strictEqual(event.details.thinkingLevel, "xhigh");
+		assert.strictEqual(event.details.mutation, undefined);
+		assert.strictEqual(event.timestamp, "2026-07-04T12:00:00.000Z");
+		assert.notStrictEqual(event.eventId, undefined);
 	});
 
 	test("detectedBy can be git-commits-push", () => {
@@ -105,12 +101,11 @@ describe("enforcer_triggered contract", () => {
 			{ timestamp: "t1" },
 		);
 
-		const ev = readEvents(join(tmpDir, "events.jsonl"))[0];
-		expect(ev.details.detectedBy).toBe("git-commits-push");
+		const event = readEvents(join(tmpDir, "events.jsonl"))[0];
+		assert.ok(event);
+		assert.strictEqual(event.details.detectedBy, "git-commits-push");
 	});
 });
-
-// ── raw git mutation decisions ───────────────────────────────────────────
 
 describe("raw git mutation decision contracts", () => {
 	test("writes blocked with mutation details", () => {
@@ -135,16 +130,17 @@ describe("raw git mutation decision contracts", () => {
 			{ timestamp: "2026-07-10T12:00:00.000Z" },
 		);
 
-		const ev = readEvents(join(tmpDir, "events.jsonl"))[0];
-		expect(ev.eventType).toBe("blocked");
-		expect(ev.namespace).toBe("git-commits-push-enforcer");
-		expect(ev.agent).toBe("pi");
-		expect(ev.details.rawCommand).toBe("git push origin main");
-		expect(ev.details.detectedBy).toBe("git-commit");
-		expect(ev.details.toolCallId).toBe("tcid-push");
-		expect(ev.details.parentModel).toBe("deepseek-v4-pro");
-		expect(ev.details.thinkingLevel).toBe("xhigh");
-		expect(ev.details.mutation).toBe("push");
+		const event = readEvents(join(tmpDir, "events.jsonl"))[0];
+		assert.ok(event);
+		assert.strictEqual(event.eventType, "blocked");
+		assert.strictEqual(event.namespace, "git-commits-push-enforcer");
+		assert.strictEqual(event.agent, "pi");
+		assert.strictEqual(event.details.rawCommand, "git push origin main");
+		assert.strictEqual(event.details.detectedBy, "git-commit");
+		assert.strictEqual(event.details.toolCallId, "tcid-push");
+		assert.strictEqual(event.details.parentModel, "deepseek-v4-pro");
+		assert.strictEqual(event.details.thinkingLevel, "xhigh");
+		assert.strictEqual(event.details.mutation, "push");
 	});
 
 	test("writes skipped when bypass is active", () => {
@@ -170,14 +166,13 @@ describe("raw git mutation decision contracts", () => {
 			{ timestamp: "2026-07-10T12:00:00.000Z" },
 		);
 
-		const ev = readEvents(join(tmpDir, "events.jsonl"))[0];
-		expect(ev.eventType).toBe("skipped");
-		expect(ev.details.reason).toBe("bypass-enforcer");
-		expect(ev.details.mutation).toBe("commit");
+		const event = readEvents(join(tmpDir, "events.jsonl"))[0];
+		assert.ok(event);
+		assert.strictEqual(event.eventType, "skipped");
+		assert.strictEqual(event.details.reason, "bypass-enforcer");
+		assert.strictEqual(event.details.mutation, "commit");
 	});
 });
-
-// ── Single event per trigger ─────────────────────────────────────────────
 
 describe("single event per trigger", () => {
 	test("one append call produces one event", () => {
@@ -201,8 +196,9 @@ describe("single event per trigger", () => {
 			{ timestamp: "t1" },
 		);
 
-		const ev = readEvents(join(tmpDir, "events.jsonl"));
-		expect(ev.length).toBe(1);
-		expect(ev[0].eventType).toBe("enforcer_triggered");
+		const events = readEvents(join(tmpDir, "events.jsonl"));
+		assert.strictEqual(events.length, 1);
+		assert.ok(events[0]);
+		assert.strictEqual(events[0].eventType, "enforcer_triggered");
 	});
 });

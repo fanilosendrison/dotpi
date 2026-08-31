@@ -1,0 +1,678 @@
+{
+  "schemaVersion": 1,
+  "repository": "dotpi",
+  "sourceCommit": "d01a04daadcb840f8bc29831701fba6b3d28b539",
+  "expectedSurfaceCount": 25,
+  "migratedSurfaceCount": 25,
+  "surfaces": [
+    {
+      "sourceFile": "extensions/__tests__/command-validator.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/command-validator.contract.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes validation_result for an allowed command",
+        "writes validation_result for a denied command",
+        "writes validation_result for an ask_approved command",
+        "truncates rawCommand to 500 characters"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/command-validator.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/command-validator.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "registers tool_call handler and handles safe/unsafe/dangerous commands"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/cwd-args.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/cwd-args.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "defaults to bottom split in the current directory",
+        "accepts the split flag before the directory",
+        "accepts the split flag after the directory",
+        "keeps unquoted paths with spaces as a single directory argument",
+        "keeps quoted paths with spaces as a single directory argument",
+        "rejects invalid split flags",
+        "builds split-pane args for ${splitType}",
+        "translates vertical to bottom for the current WezTerm CLI",
+        "builds spawn args for tabs",
+        "prefers the projects directory when it exists",
+        "falls back to the current cwd when the projects directory is missing"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/cwd-browser.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/cwd-browser.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "initializes at an absolute path and lists sorted visible directories only",
+        "moves selection with up and down keys",
+        "home and end jump to first and last selectable items",
+        "enter on use-this-directory selects the current path",
+        "enter on a subdirectory updates the current path",
+        "backspace and left go to the parent directory",
+        "escape cancels the browser",
+        "does not render a parent entry at filesystem root",
+        "caches render output and invalidates on state changes"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/cwd-extension.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/cwd-extension.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "registers the /cwd command"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/cwd-handler.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/cwd-handler.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "opens interactive mode when no args are provided",
+        "executes WezTerm with the resolved directory and reports success",
+        "reports missing directories before executing WezTerm",
+        "reports invalid flags before resolving the directory",
+        "reports WezTerm execution failures"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/cwd-interactive.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/cwd-interactive.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "runs WezTerm after directory and split type overlays complete",
+        "does not run WezTerm when directory selection is cancelled",
+        "does not run WezTerm when split type selection is cancelled"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/enhanced-model-selector.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/enhanced-model-selector.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "formats numbers",
+        "formats costs",
+        "formats thinking levels",
+        "pads strings to minimum width",
+        "padR edge cases"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/extended-global-context.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/extended-global-context.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "injects into existing project_context tag",
+        "creates project_context if absent",
+        "handles empty agents content",
+        "path is hardcoded to ~/.agents/AGENTS.md",
+        "handles multiple project_context tags (uses first match)",
+        "preserves original prompt content"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/git-commits-push-enforcer.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/git-commits-push-enforcer.contract.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes enforcer_triggered with all fields",
+        "detectedBy can be git-commits-push",
+        "writes blocked with mutation details",
+        "writes skipped when bypass is active",
+        "one append call produces one event"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/git-commits-push-enforcer.integration.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/git-commits-push-enforcer.integration.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "blocks raw git push and writes real blocked telemetry",
+        "blocks git -C commit, commit-tree, and push commands",
+        "allows raw git mutations only with process-level bypass",
+        "allows skill launch and writes real enforcer_triggered telemetry",
+        "ignores quoted raw git text without writing telemetry"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toMatchObject"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/git-commits-push-enforcer.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/git-commits-push-enforcer.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "detects raw git mutation commands",
+        "ignores quoted git text that is not a git command",
+        "detects commit intent without matching enforcer paths"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/path-guard.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/path-guard.contract.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes path_access with all fields (redirected, write, with rewrittenTo, without originalCmd)",
+        "writes path_access for correct actions without rewrittenTo/originalCmd",
+        "truncates originalCmd to 200 chars",
+        "no cycleId field present"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/path-guard.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/path-guard.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "registers tool_call handlers and rewrites paths silently with telemetry"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toMatchObject"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/permission-enforcer.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/permission-enforcer.contract.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes permission_state_change with all contract fields",
+        "matchSource supports skill-tag and none"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/permission-enforcer.e2e.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/permission-enforcer.e2e.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "prompt state is isolated across active Pi sessions"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/permission-enforcer.integration.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/permission-enforcer.integration.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes real state and real telemetry for prompt lifecycle"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/permission-enforcer.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/permission-enforcer.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "registers a before_agent_start handler",
+        "grants permission for slash /go prompts",
+        "grants permission for expanded skill prompts",
+        "revokes permission for prompts without /go"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/pi-telemetry.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/pi-telemetry.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "registers before_provider_request and thinking_level_select hooks",
+        "model and thinking default to 'unknown' before any hook fires",
+        "model updates after before_provider_request fires",
+        "thinking updates after thinking_level_select fires",
+        "sessionId is a valid UUID",
+        "sink is created with correct namespace and agent",
+        "statsDir override is respected",
+        "PI_TELEMETRY_BASE_DIR override is respected",
+        "sink.append works through the telemetry object",
+        "append adds current model and thinking details",
+        "ignores non-string model payloads"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/read-deduplicator.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/read-deduplicator.contract.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes file_access with all fields for cache_served action",
+        "writes file_access with all fields for read action, no blockedReason",
+        "no cycleId field present"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/read-deduplicator.integration.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/read-deduplicator.integration.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "full cycle: read -> cache serve same range -> miss on different range",
+        "re-read after file is modified re-tracks before later cache serving",
+        "pending cache serve falls through if the file changes before tool_result"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toEqual",
+        "toMatchObject"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/read-deduplicator.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/read-deduplicator.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns undefined for never-tracked path",
+        "tracks and retrieves fingerprint, turn, and injectedText",
+        "overwrites on second track of same path",
+        "stillInContext defaults to true after track",
+        "setStillInContext updates the flag",
+        "setStillInContext is a no-op for untracked paths",
+        "entries iterates all tracked paths",
+        "entries reflects stillInContext changes",
+        "tracks different paths independently",
+        "returns cached text when fingerprint and line range match",
+        "misses cache for untracked path, fingerprint mismatch, or line range mismatch"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/zero-timeout-filter.contract.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/zero-timeout-filter.contract.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "writes valid JSON with all fields"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/__tests__/zero-timeout-filter.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/zero-timeout-filter.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "registers tool_call handler",
+        "ignores non-bash tools",
+        "ignores bash commands that are not the skill",
+        "ignores git commit commands",
+        "ignores /git-commits-push command",
+        "deletes timeout for the exact skill command and logs telemetry",
+        "deletes timeout for canonical pnpm launch",
+        "ignores incomplete and unsafe launch commands",
+        "works without timeout set and does not log telemetry",
+        "works with zero timeout and logs telemetry",
+        "matches when command starts with cd ~/",
+        "does not mutate other input fields",
+        "handles undefined command gracefully",
+        "handles null command gracefully"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe",
+        "toMatchObject"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    },
+    {
+      "sourceFile": "extensions/read-deduplicator-internals/read-tracker.test.ts",
+      "targetFile": "extensions/__tests__/node-parity/read-tracker.node.ts",
+      "role": "test",
+      "testCaseNames": [
+        "returns undefined for untracked path",
+        "stores and retrieves a track entry",
+        "overwrites existing entry on re-track",
+        "tracks multiple paths independently",
+        "returns injected text when path, fingerprint, offset, and limit match",
+        "returns injected text for matching full-file reads",
+        "misses when path, fingerprint, offset, or limit differ",
+        "marks an entry as still in context",
+        "marks an entry as no longer in context",
+        "is no-op for untracked path",
+        "flips stillInContext back and forth",
+        "returns empty iterator when nothing tracked",
+        "yields all tracked paths and entries",
+        "reflects stillInContext updates during iteration",
+        "handles empty string path",
+        "handles very long path",
+        "handles empty injectedText"
+      ],
+      "tableDrivenDeclarations": 0,
+      "assertionsDetected": [
+        "other-expect-matchers",
+        "toBe"
+      ],
+      "assertionReplacements": {
+        "toBe": "assert.strictEqual",
+        "toEqual": "assert.deepStrictEqual",
+        "toMatchObject": "assert.partialDeepStrictEqual",
+        "toThrow": "assert.throws",
+        "rejects": "assert.rejects"
+      },
+      "parityStatus": "green",
+      "normativeChangeJustification": null
+    }
+  ]
+}

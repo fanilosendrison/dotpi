@@ -52,6 +52,11 @@ describe("git-commits-push-enforcer detection helpers", () => {
 			),
 		).toBe(true);
 		expect(
+			isSkillCmd(
+				'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start',
+			),
+		).toBe(true);
+		expect(
 			isSkillCmd("cat ~/.agents/skills/git-commits-push-enforcer/README.md"),
 		).toBe(false);
 		expect(detectCommitIntent("git push")).toBe("git-commit");

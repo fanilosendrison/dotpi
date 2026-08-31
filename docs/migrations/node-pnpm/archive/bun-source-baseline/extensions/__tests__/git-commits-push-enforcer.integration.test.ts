@@ -118,7 +118,11 @@ describe("git-commits-push-enforcer Pi extension integration", () => {
 
 		if (result.status !== 0) {
 			throw new Error(
-				`probe failed with status ${result.status}\n${result.stderr}`,
+				[
+					`probe failed with status ${result.status} and signal ${result.signal ?? "none"}`,
+					`stdout:\n${result.stdout || "<empty>"}`,
+					`stderr:\n${result.stderr || "<empty>"}`,
+				].join("\n"),
 			);
 		}
 
@@ -207,7 +211,8 @@ describe("git-commits-push-enforcer Pi extension integration", () => {
 	});
 
 	test("allows skill launch and writes real enforcer_triggered telemetry", () => {
-		const command = "cd ~/.agents/skills/git-commits-push && bun run start";
+		const command =
+			'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
 		const output = runProbe(command, { toolCallId: "call-real-skill" });
 
 		expect(output.result).toBeUndefined();

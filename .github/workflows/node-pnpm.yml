@@ -1,0 +1,115 @@
+name: Node and pnpm migration gates
+
+on:
+  push:
+    branches:
+      - main
+      - migration/node-pnpm
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-pnpm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  event-sink-runtime:
+    name: Event sink on ${{ matrix.os }} / Node ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        node-version:
+          - 22.19.0
+          - 24.x
+
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check out exact dotagents platform
+        uses: actions/checkout@v4
+        with:
+          repository: fanilosendrison/dotagents
+          ref: 3772ec4a135884953ff956479998acdfd5cad7c2
+          path: node-dotagents
+          persist-credentials: false
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install exact pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+          run_install: false
+
+      - name: Verify exact package-manager policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').packageManager")" = "pnpm@11.24.0"
+          test "$(node -p "require('./package.json').engines.node")" = ">=22.19.0"
+          test "$(node -p "require('./package.json').engines.pnpm")" = "11.24.0"
+          test "$(npm config get engine-strict)" = "true"
+          test "$(npm config get auto-install-peers)" = "false"
+          test "$(pnpm config get engineStrict)" = "true"
+          test "$(pnpm config get autoInstallPeers)" = "false"
+
+      - name: Install locked dependencies without lifecycle scripts
+        shell: bash
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install Bun failure sentinel
+        shell: bash
+        run: |
+          set -euo pipefail
+          sentinel_dir="$RUNNER_TEMP/bun-failure-sentinel"
+          mkdir -p "$sentinel_dir"
+          cat > "$sentinel_dir/bun" <<'EOF'
+          #!/usr/bin/env bash
+          printf 'unexpected Bun invocation: %s\n' "$*" >> "${BUN_SENTINEL_LOG:?}"
+          exit 97
+          EOF
+          chmod +x "$sentinel_dir/bun"
+          printf '%s\n' "$sentinel_dir" >> "$GITHUB_PATH"
+          printf 'BUN_SENTINEL_LOG=%s\n' "$RUNNER_TEMP/bun-invocations.log" >> "$GITHUB_ENV"
+
+      - name: Build Node extension gateways
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_home="$RUNNER_TEMP/dotpi-node-home"
+          dotagents_root="$RUNNER_TEMP/node-dotagents"
+          rm -rf "$node_home" "$dotagents_root"
+          mv "$GITHUB_WORKSPACE/node-dotagents" "$dotagents_root"
+          mkdir -p "$node_home/.pi"
+          ln -s "$dotagents_root" "$node_home/.agents"
+          ln -s "$GITHUB_WORKSPACE" "$node_home/.pi/agent"
+          test "$(git -C "$dotagents_root" rev-parse HEAD)" = "3772ec4a135884953ff956479998acdfd5cad7c2"
+          test "$(git -C "$node_home/.pi/agent" rev-parse HEAD)" = "${{ github.sha }}"
+          printf 'HOME=%s\n' "$node_home" >> "$GITHUB_ENV"
+
+      - name: Typecheck and run migrated TypeScript tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(pnpm --version)" = "11.24.0"
+          test -f "$HOME/.agents/agent-enforcers/git-commits-push-enforcer/src/core/validator.ts"
+          test -f "$HOME/.agents/scripts/validate-bun-policy.mjs"
+          test -f "$HOME/.pi/agent/extensions/git-commits-push-enforcer.ts"
+          node --input-type=module -e 'const { validateBunPolicy } = await import(process.env.HOME + "/.agents/scripts/validate-bun-policy.mjs"); const result = validateBunPolicy(process.cwd()); process.stdout.write(`Bun policy valid: ${result.greenSurfaceCount} green surfaces, ${result.exceptionCount} permanent exceptions\\n`);'
+          pnpm run typecheck:node
+          pnpm run test:node
+          test ! -s "$BUN_SENTINEL_LOG"

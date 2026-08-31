@@ -14,22 +14,17 @@ Logs every stripped timeout to `~/neelopedia/stats/pi/zero-timeout-filter/events
 
 ## How It Works
 
-Listens to `tool_call` → `bash`. If the command contains both `bun run start`
-and `.agents/skills/git-commits-push`, it deletes `event.input.timeout` before
-the tool executes. Logs a `timeout_stripped` event only when a timeout was
-actually present.
+Listens to `tool_call` → `bash` and consumes
+`recognizeGitCommitsPushCommand()` from the shared dotagents enforcement core.
+It strips `event.input.timeout` only when the result is `pnpm-launch`;
+retired launch syntax, slash invocations, incomplete commands, lookalike paths,
+unsafe separators, and appended commands are ignored. A `timeout_stripped` event is
+written only when a timeout was actually present.
 
 ```typescript
-pi.on("tool_call", async (event) => {
-  if (!isToolCallEventType("bash", event)) return;
-  const cmd = event.input.command;
-  if (!cmd || typeof cmd !== "string") return;
-  if (!cmd.includes("bun run start")) return;
-  if (!cmd.includes(".agents/skills/git-commits-push")) return;
-  delete event.input.timeout;
-  if (event.input.timeout !== undefined) return;
-  statsLog.logTimeoutStripped({ ... });
-});
+const recognition = recognizeGitCommitsPushCommand(command);
+if (recognition !== "pnpm-launch") return;
+delete event.input.timeout;
 ```
 
 ## Stats
@@ -54,7 +49,7 @@ tool invocation. Join on it to compute the ratio.
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/zero-timeout-filter.ts` | Pi extension | ✅ |
-| `dotpi/extensions/__tests__/zero-timeout-filter.test.ts` | Extension tests | ✅ |
+| `dotpi/extensions/__tests__/node-parity/zero-timeout-filter.node.ts` | Node extension tests | ✅ |
 
 ## Background
 

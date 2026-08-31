@@ -2,37 +2,45 @@
 
 ## Overview
 
-Pi natively expects its authentication configuration to be located at `~/.pi/agent/auth.json`. 
-However, as part of the global `.agents` governance strategy, the actual source of truth for all API keys (and their associated Doppler retrieval commands) has been centralized into an agnostic registry: `~/.agents/agent-credentials.json`.
+Pi natively expects its authentication configuration at `~/.pi/agent/auth.json`. The global `.agents` governance strategy centralizes API key retrieval commands in `~/.agents/agent-credentials.json`.
 
-This document explains how Pi's internal configuration is bridged to read from this global registry.
+The central registry groups commands by provider and agent identity. Pi's local authentication file selects the identity that Pi uses for each provider without duplicating the Doppler command.
 
 ## The `jq` Bridge
 
-Pi has a built-in feature where it can dynamically execute a command to retrieve an API key if the value in `auth.json` starts with an exclamation mark (`!`).
-
-To avoid duplicating Doppler commands and to maintain a single source of truth, Pi's `auth.json` leverages this `!command` feature alongside a subshell `$(...)` and `jq` to parse the central registry:
+Pi executes the value of an API key entry as a shell command when that value starts with an exclamation mark (`!`). The `auth.json` bridge uses this behavior with command substitution and `jq`:
 
 ```json
 {
   "<provider-slug>": {
     "type": "api_key",
-    "key": "!$(jq -r '.<provider-slug>.key' ~/.agents/agent-credentials.json)"
+    "key": "!$(jq -r '.[\"<provider-slug>\"][\"<agent-id>\"].key' ~/.agents/agent-credentials.json)"
   }
 }
 ```
 
+Bracket notation keeps provider and agent identifiers valid when they contain characters such as hyphens.
+
 ### How It Executes
+
 1. Pi reads `auth.json`.
-2. It sees the `!` prefix, strips it, and passes the remainder to the system shell.
-3. The shell evaluates the `$(jq ...)` subshell.
-4. `jq` parses `~/.agents/agent-credentials.json` and extracts the raw Doppler command for that specific provider.
-5. The subshell output (the Doppler command) replaces the `$()` block, and the shell executes it.
-6. Doppler fetches the token securely and outputs it to stdout, which Pi captures and uses.
+2. Pi detects the `!` prefix, removes it, and passes the remaining value to the system shell.
+3. The shell evaluates the `$(jq ...)` command substitution.
+4. `jq` reads `~/.agents/agent-credentials.json` and selects the command at the configured provider and agent path.
+5. The shell executes the selected Doppler command.
+6. Doppler writes the API key to standard output, which Pi captures and caches for the process lifetime.
+
+## Agent Selection
+
+Pi has one authentication entry per provider, so every bridge must select one explicit `<agent-id>`. Other tools can select different identities under the same provider without changing Pi's configuration.
+
+OAuth entries are independent of this bridge. Pi creates and refreshes them automatically after `/login`; bridge updates must preserve those entries. Keep both local authentication files at permission mode `0600`.
+
+The legacy flat path `.<provider>.key` remains usable only with a flat central registry. New configurations use the nested provider-and-agent path.
 
 ## Relevant Files
 
-- `~/.pi/agent/auth.json`: Pi's native configuration (contains the `jq` bridge, gitignored).
+- `~/.pi/agent/auth.json`: Pi's local native configuration (contains the `jq` bridge and is not versioned).
 - `~/.pi/agent/auth.json.template`: Template for Pi's native configuration (committed).
 - `~/.agents/agent-credentials.json`: The global, agnostic source of truth (contains raw Doppler commands).
 - `~/.agents/operational-rules/managing-api-keys.md`: The primary documentation for the credential governance architecture.
