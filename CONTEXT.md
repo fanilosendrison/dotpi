@@ -52,7 +52,7 @@ cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 │   │   ├── read-tracker.ts
 │   │   └── read-tracker.test.ts
 │   ├── zero-timeout-filter.ts
-│   └── __tests__/          ← tests d'intégration (bun test extensions/__tests__/)
+│   └── __tests__/          ← closed Node parity and integration suites
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
@@ -99,8 +99,8 @@ cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 | Understand the global context extension | `docs/extended-global-context.md` (How global context has been extended) |
 | Understand the zero-timeout filter | `docs/zero-timeout-filter.md` (Strips external timeout from git-commits-push skill) |
 | Know about the cwd Pi command | `docs/cwd-wezterm-split.md` (Open Pi in another directory via a WezTerm pane or tab) |
-| Run extension integration tests | `extensions/__tests__/` (`bun test extensions/__tests__/`) |
-| Run internals unit tests | `extensions/*-internals/__tests__/` (`bun test extensions/*-internals/__tests__/`) |
+| Run extension integration tests | `pnpm run typecheck:node && pnpm run test:node` |
+| Run internals unit tests | Included in the closed `pnpm run test:node` suite |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Reapply the cross-harness agent frontmatter patch | `docs/pi-subagents-cross-harness-agent-frontmatter.md` (Pi override patch for shared agents) |
 | Conventions for new extensions | `docs/creating-extensions.md` (Conventions for new extensions) |
