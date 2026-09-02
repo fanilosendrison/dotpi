@@ -56,6 +56,7 @@ cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 ├── sessions/               ← Pi's session history
 ├── docs/                   ← All harness documentation
 │   ├── CONTEXT.md          ← Index of all modifications
+│   ├── codex-subscription-usage-footer.md               ← Codex quota bars in footer
 │   ├── command-validator.md                             ← Bash security rules
 │   ├── context-section-color.md                         ← Rose Pine yellow [Context] header
 │   ├── creating-extensions.md                           ← Conventions for new extensions
@@ -106,6 +107,7 @@ cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
 | Conventions for new extensions | `docs/creating-extensions.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
 | Inspect Pi subagent artifact storage | `docs/pi-subagents-global-artifacts.md` (Global project artifact storage) |
+| Monitor Codex subscription quota | `docs/codex-subscription-usage-footer.md` (Codex quota bars in footer) |
 
 ## Transversal Skills
 

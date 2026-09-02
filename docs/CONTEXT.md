@@ -69,3 +69,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 14. Pi Subagents Global Artifacts
 - **Date** : 2026-08-02
 - **Doc** : [`pi-subagents-global-artifacts.md`](pi-subagents-global-artifacts.md)
+
+### 15. Codex Subscription Usage Footer
+- **Date** : 2026-09-01
+- **Doc** : [`codex-subscription-usage-footer.md`](codex-subscription-usage-footer.md)
