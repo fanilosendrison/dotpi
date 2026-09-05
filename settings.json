@@ -1,8 +1,10 @@
 {
-  "lastChangelogVersion": "0.80.10",
+  "lastChangelogVersion": "0.84.2",
   "theme": "dark",
-  "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-pro",
-  "defaultThinkingLevel": "max",
-  "packages": []
+  "defaultProvider": "openai-codex-2",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "xhigh",
+  "packages": [
+    "npm:@hank-warren/pi-multi-login@0.3.2"
+  ]
 }

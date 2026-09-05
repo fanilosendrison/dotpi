@@ -1,0 +1,8 @@
+{
+  "aliases": [
+    {
+      "base": "openai-codex",
+      "suffix": "2"
+    }
+  ]
+}
