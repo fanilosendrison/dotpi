@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, test } from "node:test";
 import { importPiExtension } from "./pi-extension-loader.node.ts";
 
 const RETIRED_SKILL_CMD =
-	"cd /Users/example/.agents/skills/git-commits-push && bun run start";
-const SKILL_CMD =
 	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
+const SKILL_CMD =
+	'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
 const PNPM_SKILL_CMD = SKILL_CMD;
 
 interface ToolCallEvent {
@@ -147,7 +147,7 @@ describe("zero-timeout-filter", () => {
 	test("ignores incomplete and unsafe launch commands", async () => {
 		for (const command of [
 			RETIRED_SKILL_CMD,
-			"cd ~/.agents/skills/git-commits-push && pnpm run start",
+			"cd ~/Developper/Projects/git-commits-push && pnpm run start",
 			`${PNPM_SKILL_CMD} && git push`,
 		]) {
 			const input: Record<string, unknown> = { command, timeout: 30 };
@@ -180,7 +180,7 @@ describe("zero-timeout-filter", () => {
 	test("matches when command starts with cd ~/", async () => {
 		const input: Record<string, unknown> = {
 			command:
-				"cd ~/.agents/skills/git-commits-push && pnpm --silent run start",
+				"cd ~/Developper/Projects/git-commits-push && pnpm --silent run start",
 			timeout: 30,
 		};
 		await handlers.tool_call({ toolName: "bash", input }, {});
