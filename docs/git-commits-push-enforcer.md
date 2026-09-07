@@ -27,7 +27,7 @@ The normal allowed path is:
 The direct skill launch path is also allowed:
 
 ```bash
-cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start
+cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
 ```
 
 ## How It Works
@@ -87,5 +87,5 @@ For skill invocations, `detectedBy` is `git-commits-push` and no `mutation` fiel
 | File | Purpose | Versioned |
 |------|---------|-----------|
 | `dotpi/extensions/git-commits-push-enforcer.ts` | Pi extension | ✅ |
-| `dotpi/extensions/__tests__/git-commits-push-enforcer.test.ts` | Extension regression tests | ✅ |
-| `dotpi/extensions/__tests__/git-commits-push-enforcer.integration.test.ts` | Real handler and telemetry integration tests | ✅ |
+| `dotpi/extensions/__tests__/node-parity/git-commits-push-enforcer.node.ts` | Extension regression tests | ✅ |
+| `dotpi/extensions/__tests__/node-parity/git-commits-push-enforcer.integration.node.ts` | Real handler and telemetry integration tests | ✅ |

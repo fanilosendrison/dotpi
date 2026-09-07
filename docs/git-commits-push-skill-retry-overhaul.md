@@ -2,7 +2,10 @@
 
 ## Where / What
 
-The `git-commits-push` skill lives at `~/.agents/skills/git-commits-push/`. The plan that drove this work is at `docs/plans/unified-retry-on-all-catches.md` inside the skill repo.
+The `git-commits-push` runtime lives in the dedicated
+`~/Developper/Projects/git-commits-push/` repository. Its harness manifest is
+`~/.agents/skills/git-commits-push/SKILL.md`. The dedicated repository's source,
+tests, and current documentation are the maintained references for this runtime.
 
 ## How It Works
 
@@ -23,12 +26,12 @@ The skill now classifies every error into one of 5 kinds (`validation`, `structu
 
 | File | Purpose | Versioned |
 |------|---------|-----------|
-| `src/modules/errors.ts` | Typed error hierarchy (CommitPlanError, DiffHashMismatchError, etc.) | ✅ |
-| `src/modules/error-classifier.ts` | classifyError, getResolutionHint, classifyLLMFailure | ✅ |
-| `src/modules/queue-retry.ts` | queueRetry, retryJobs, logRetry, reconstructRemainingDiff | ✅ |
-| `src/modules/feedback-formatter.ts` | Pure function to render feedback blocks for LLM | ✅ |
-| `src/modules/git-publisher.ts` | executeMultiCommitAndPush with typed errors, path normalization, mid-loop handling | ✅ |
-| `src/modules/reporter.ts` | buildReport + generateReport with committedShas, attempts, loopDetected | ✅ |
+| `src/modules/core/errors.ts` | Typed error hierarchy (CommitPlanError, DiffHashMismatchError, etc.) | ✅ |
+| `src/modules/core/error-classifier.ts` | classifyError, getResolutionHint, classifyLLMFailure | ✅ |
+| `src/modules/core/queue-retry.ts` | queueRetry, retryJobs, logRetry, reconstructRemainingDiff | ✅ |
+| `src/modules/core/feedback-formatter.ts` | Pure function to render feedback blocks for LLM | ✅ |
+| `src/modules/git/publisher.ts` | executeMultiCommitAndPush with typed errors, path normalization, mid-loop handling | ✅ |
+| `src/modules/core/reporter.ts` | buildReport + generateReport with committedShas, attempts, loopDetected | ✅ |
 | `src/entrypoints/turnlock-orchestrator.ts` | Orchestrator with retry classification, queueRetry integration | ✅ |
 | `src/entrypoints/turnlock-to-llm-bridge.ts` | Bridge using formatFeedbackBlock, shared types, no diff duplication | ✅ |
 | `system-prompt.md` | Instructions for LLM (Interpreting Feedback section removed as redundant) | ✅ |
