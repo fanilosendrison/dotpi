@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: fanilosendrison/dotagents
-          ref: 3772ec4a135884953ff956479998acdfd5cad7c2
+          ref: 71dbaaed8b9403ccc043987c28c7dca2eef7224b
           path: node-dotagents
           persist-credentials: false
 
@@ -97,7 +97,7 @@ jobs:
           mkdir -p "$node_home/.pi"
           ln -s "$dotagents_root" "$node_home/.agents"
           ln -s "$GITHUB_WORKSPACE" "$node_home/.pi/agent"
-          test "$(git -C "$dotagents_root" rev-parse HEAD)" = "3772ec4a135884953ff956479998acdfd5cad7c2"
+          test "$(git -C "$dotagents_root" rev-parse HEAD)" = "71dbaaed8b9403ccc043987c28c7dca2eef7224b"
           test "$(git -C "$node_home/.pi/agent" rev-parse HEAD)" = "${{ github.sha }}"
           printf 'HOME=%s\n' "$node_home" >> "$GITHUB_ENV"
 
