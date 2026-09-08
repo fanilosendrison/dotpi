@@ -12,8 +12,8 @@ import {
 	requestCodexUsage,
 	type CodexUsageSnapshot,
 } from "./codex-usage-footer-internals/protocol.ts";
+import { resolveCodexProviderIdentity } from "./codex-usage-footer-internals/provider.ts";
 
-const CODEX_BASE_PROVIDER_ID = "openai-codex";
 const STATUS_KEY = "codex-usage";
 const REFRESH_INTERVAL_MS = 5 * 60 * 1_000;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -29,66 +29,75 @@ interface InFlightRefresh {
 	promise: Promise<void>;
 }
 
-/**
- * Check if a provider ID represents a Codex provider (base or alias).
- * Pi multi-login creates aliases with the pattern: `${base}-${suffix}`
- * So openai-codex aliases will be "openai-codex-2", "openai-codex-work", etc.
- */
-function isCodexProvider(providerId: string): boolean {
-	return (
-		providerId === CODEX_BASE_PROVIDER_ID ||
-		providerId.startsWith(`${CODEX_BASE_PROVIDER_ID}-`)
-	);
-}
-
-/**
- * Get the actual provider ID to use for auth/provider lookups.
- * For Codex providers, this is the exact provider ID (including aliases).
- */
-function getCodexProviderId(providerId: string): string | undefined {
-	if (!isCodexProvider(providerId)) return undefined;
-	return providerId;
+interface TrailingRefresh {
+	generation: number;
+	providerId: string;
 }
 
 export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 	let activeContext: ExtensionContext | undefined;
-	// Cache keyed by provider ID
+	let activeProviderId: string | undefined;
 	let cachedUsage: Map<string, CachedUsage> | undefined;
 	let generation = 0;
 	let inFlight: Map<string, InFlightRefresh> | undefined;
+	let trailingRefresh: TrailingRefresh | undefined;
 	let requestController: AbortController | undefined;
 	let refreshInterval: ReturnType<typeof setInterval> | undefined;
 	let shutdown = false;
 
-	function isCodexContext(ctx: ExtensionContext): boolean {
-		return (
-			ctx.mode === "tui" &&
-			ctx.model?.provider !== undefined &&
-			getCodexProviderId(ctx.model.provider) !== undefined
+	function getContextProviderId(ctx: ExtensionContext): string | undefined {
+		if (!ctx.model?.provider) return undefined;
+		return resolveCodexProviderIdentity(ctx.model.provider)?.providerId;
+	}
+
+	function setProviderStatus(
+		ctx: ExtensionContext,
+		providerId: string,
+		color: "dim" | "warning",
+		message: string,
+	): void {
+		const identity = resolveCodexProviderIdentity(providerId);
+		if (!identity) {
+			ctx.ui.setStatus(STATUS_KEY, undefined);
+			return;
+		}
+		ctx.ui.setStatus(
+			STATUS_KEY,
+			ctx.ui.theme.fg(color, `${identity.label} ${message}`),
 		);
 	}
 
-	function getActiveProviderId(ctx: ExtensionContext): string | undefined {
-		if (!ctx.model?.provider) return undefined;
-		return getCodexProviderId(ctx.model.provider);
+	function setLoadingStatus(ctx: ExtensionContext, providerId: string): void {
+		setProviderStatus(ctx, providerId, "dim", "quota…");
 	}
 
 	function setUnavailableStatus(
 		ctx: ExtensionContext,
-		message = "Codex quota indisponible",
+		providerId: string,
+		message = "quota indisponible",
 	): void {
-		ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("warning", message));
+		setProviderStatus(ctx, providerId, "warning", message);
 	}
 
 	function renderUsageStatus(
 		ctx: ExtensionContext,
+		providerId: string,
 		snapshot: CodexUsageSnapshot,
 		stale: boolean,
 	): void {
+		const identity = resolveCodexProviderIdentity(providerId);
+		if (!identity) {
+			ctx.ui.setStatus(STATUS_KEY, undefined);
+			return;
+		}
+
 		const usedPercent = highestCodexUsagePercent(snapshot);
 		const color =
 			usedPercent >= 90 ? "error" : usedPercent >= 70 ? "warning" : "accent";
-		const status = formatCodexUsageStatus(snapshot, { stale });
+		const status = formatCodexUsageStatus(snapshot, {
+			label: identity.label,
+			stale,
+		});
 		ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg(color, status));
 	}
 
@@ -102,15 +111,13 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 		requestController?.abort();
 		requestController = undefined;
 		inFlight = undefined;
+		trailingRefresh = undefined;
 	}
 
 	function isCurrentRefresh(
 		providerId: string,
 		refreshGeneration: number,
 	): boolean {
-		const activeProviderId = activeContext
-			? getActiveProviderId(activeContext)
-			: undefined;
 		return (
 			!shutdown &&
 			generation === refreshGeneration &&
@@ -121,6 +128,7 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 	function deactivate(ctx: ExtensionContext, clearCache: boolean): void {
 		generation += 1;
 		activeContext = undefined;
+		activeProviderId = undefined;
 		abortCurrentRefresh();
 		stopRefreshInterval();
 		if (clearCache) cachedUsage = undefined;
@@ -131,10 +139,8 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 		if (refreshInterval !== undefined) return;
 		refreshInterval = setInterval(() => {
 			const ctx = activeContext;
-			if (ctx && isCodexContext(ctx)) {
-				const providerId = getActiveProviderId(ctx);
-				if (providerId) void refreshUsage(ctx, providerId);
-			}
+			const providerId = activeProviderId;
+			if (ctx && providerId) void refreshUsage(ctx, providerId);
 		}, REFRESH_INTERVAL_MS);
 		refreshInterval.unref?.();
 	}
@@ -155,17 +161,17 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 			const existing = cachedUsage.get(providerId);
 			if (existing) {
 				cachedUsage.set(providerId, { ...existing, stale: true });
-				renderUsageStatus(ctx, existing.snapshot, true);
+				renderUsageStatus(ctx, providerId, existing.snapshot, true);
 			}
 			return;
 		}
 
 		cachedUsage?.delete(providerId);
 		if (error instanceof CodexUsageError && error.kind === "authentication") {
-			setUnavailableStatus(ctx, "Codex connexion requise");
+			setUnavailableStatus(ctx, providerId, "connexion requise");
 			return;
 		}
-		setUnavailableStatus(ctx);
+		setUnavailableStatus(ctx, providerId);
 	}
 
 	async function performRefresh(
@@ -192,11 +198,12 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 			accountId = extractCodexAccountId(accessToken);
 			if (!isCurrentRefresh(providerId, refreshGeneration)) return;
 
-			// Invalidate cache if account ID changed for this provider
 			const existing = cachedUsage?.get(providerId);
-			if (existing && existing.accountId !== accountId) {
+			if (existing?.accountId === accountId) {
+				renderUsageStatus(ctx, providerId, existing.snapshot, existing.stale);
+			} else if (existing) {
 				cachedUsage?.delete(providerId);
-				ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", "Codex quota…"));
+				setLoadingStatus(ctx, providerId);
 			}
 
 			const provider = ctx.modelRegistry.getProvider(providerId);
@@ -208,11 +215,9 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 			});
 			if (!isCurrentRefresh(providerId, refreshGeneration)) return;
 
-			if (!cachedUsage) {
-				cachedUsage = new Map();
-			}
+			if (!cachedUsage) cachedUsage = new Map();
 			cachedUsage.set(providerId, { accountId, snapshot, stale: false });
-			renderUsageStatus(ctx, snapshot, false);
+			renderUsageStatus(ctx, providerId, snapshot, false);
 		} catch (error) {
 			if (!isCurrentRefresh(providerId, refreshGeneration)) return;
 			handleRefreshFailure(ctx, error, providerId, accountId);
@@ -224,13 +229,22 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 	function refreshUsage(
 		ctx: ExtensionContext,
 		providerId: string,
+		queueAfterCurrent = false,
 	): Promise<void> {
-		if (!isCodexContext(ctx) || shutdown) return Promise.resolve();
+		if (
+			ctx.mode !== "tui" ||
+			activeProviderId !== providerId ||
+			shutdown
+		) {
+			return Promise.resolve();
+		}
 		const refreshGeneration = generation;
 
-		// Check if there's already an in-flight refresh for this provider
 		const existingRefresh = inFlight?.get(providerId);
 		if (existingRefresh?.generation === refreshGeneration) {
+			if (queueAfterCurrent) {
+				trailingRefresh = { generation: refreshGeneration, providerId };
+			}
 			return existingRefresh.promise;
 		}
 
@@ -242,68 +256,68 @@ export default function codexUsageFooterExtension(pi: ExtensionAPI): void {
 			refreshGeneration,
 			controller,
 		).finally(() => {
+			const runTrailingRefresh =
+				trailingRefresh?.providerId === providerId &&
+				trailingRefresh.generation === refreshGeneration &&
+				isCurrentRefresh(providerId, refreshGeneration);
+			if (
+				trailingRefresh?.providerId === providerId &&
+				trailingRefresh.generation === refreshGeneration
+			) {
+				trailingRefresh = undefined;
+			}
 			if (inFlight?.get(providerId)?.generation === refreshGeneration) {
 				inFlight.delete(providerId);
 			}
 			if (requestController === controller) requestController = undefined;
+
+			const ctxForTrailingRefresh = activeContext;
+			if (runTrailingRefresh && ctxForTrailingRefresh) {
+				void refreshUsage(ctxForTrailingRefresh, providerId);
+			}
 		});
 
-		if (!inFlight) {
-			inFlight = new Map();
-		}
+		if (!inFlight) inFlight = new Map();
 		inFlight.set(providerId, { generation: refreshGeneration, promise });
 		return promise;
 	}
 
-	function activate(ctx: ExtensionContext): void {
-		generation += 1;
-		abortCurrentRefresh();
-		activeContext = ctx;
-		ensureRefreshInterval();
-
-		const providerId = getActiveProviderId(ctx);
-		if (!providerId) {
-			ctx.ui.setStatus(STATUS_KEY, undefined);
+	function activate(ctx: ExtensionContext, providerId: string): void {
+		if (!resolveCodexProviderIdentity(providerId)) {
+			deactivate(ctx, true);
 			return;
 		}
 
-		const existing = cachedUsage?.get(providerId);
-		if (existing) {
-			renderUsageStatus(ctx, existing.snapshot, existing.stale);
-		} else {
-			ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", "Codex quota…"));
-		}
+		generation += 1;
+		abortCurrentRefresh();
+		activeContext = ctx;
+		activeProviderId = providerId;
+		ensureRefreshInterval();
+		setLoadingStatus(ctx, providerId);
 		void refreshUsage(ctx, providerId);
 	}
 
 	pi.on("session_start", (_event, ctx) => {
 		shutdown = false;
-		if (isCodexContext(ctx)) {
-			const providerId = getActiveProviderId(ctx);
-			if (providerId) activate(ctx);
-			else deactivate(ctx, true);
-		} else {
-			deactivate(ctx, true);
-		}
+		const providerId = ctx.mode === "tui" ? getContextProviderId(ctx) : undefined;
+		if (providerId) activate(ctx, providerId);
+		else deactivate(ctx, true);
 	});
 
 	pi.on("model_select", (event, ctx) => {
-		if (ctx.mode === "tui") {
-			const providerId = getActiveProviderId(ctx);
-			if (providerId && event.model.provider === ctx.model?.provider) {
-				activate(ctx);
-			} else {
-				deactivate(ctx, true);
-			}
-		} else {
-			deactivate(ctx, true);
-		}
+		const providerId =
+			ctx.mode === "tui"
+				? resolveCodexProviderIdentity(event.model.provider)?.providerId
+				: undefined;
+		if (providerId) activate(ctx, providerId);
+		else deactivate(ctx, true);
 	});
 
 	pi.on("agent_settled", (_event, ctx) => {
-		if (isCodexContext(ctx)) {
-			const providerId = getActiveProviderId(ctx);
-			if (providerId) void refreshUsage(ctx, providerId);
+		const providerId = activeProviderId;
+		if (ctx.mode === "tui" && providerId) {
+			activeContext = ctx;
+			void refreshUsage(ctx, providerId, true);
 		}
 	});
 

@@ -22,6 +22,7 @@ interface TestRuntime {
 	setProvider(provider: string): void;
 	setMode(mode: "tui" | "json"): void;
 	setAccessToken(token: string | undefined): void;
+	setProviderAccessToken(provider: string, token: string | undefined): void;
 	setModel(provider: string, id: string): void;
 }
 
@@ -58,7 +59,10 @@ function createRuntime(
 	const statuses: Array<string | undefined> = [];
 	let activeProvider = provider;
 	let activeMode: "tui" | "json" = "tui";
-	let accessToken: string | undefined = createToken("account-a");
+	const accessTokens = new Map<string, string | undefined>([
+		["openai-codex", createToken("account-a")],
+		["openai-codex-2", createToken("account-b")],
+	]);
 	let activeModelId = modelId;
 
 	const context = {
@@ -78,10 +82,12 @@ function createRuntime(
 			},
 		},
 		modelRegistry: {
-			getProviderAuth: async (providerId: string) =>
-				accessToken
+			getProviderAuth: async (providerId: string) => {
+				const accessToken = accessTokens.get(providerId);
+				return accessToken
 					? { auth: { apiKey: accessToken }, source: "OAuth" }
-					: undefined,
+					: undefined;
+			},
 			getProvider: (providerId: string) => ({
 				baseUrl: "https://chatgpt.com/backend-api",
 			}),
@@ -106,7 +112,10 @@ function createRuntime(
 			activeMode = nextMode;
 		},
 		setAccessToken: (token) => {
-			accessToken = token;
+			accessTokens.set(activeProvider, token);
+		},
+		setProviderAccessToken: (providerId, token) => {
+			accessTokens.set(providerId, token);
 		},
 		setModel: (provider: string, id: string) => {
 			activeProvider = provider;
@@ -120,8 +129,9 @@ async function trigger(
 	eventName: string,
 	event: Record<string, unknown> = {},
 ): Promise<void> {
+	const eventContext = Object.create(runtime.context) as ExtensionContext;
 	for (const handler of runtime.handlers[eventName] ?? []) {
-		await handler(event, runtime.context);
+		await handler(event, eventContext);
 	}
 }
 
@@ -135,6 +145,16 @@ async function waitFor(predicate: () => boolean): Promise<void> {
 
 function latestStatus(runtime: TestRuntime): string | undefined {
 	return runtime.statuses.at(-1);
+}
+
+function lastStatusIndexMatching(
+	runtime: TestRuntime,
+	predicate: (status: string | undefined) => boolean,
+): number {
+	for (let index = runtime.statuses.length - 1; index >= 0; index -= 1) {
+		if (predicate(runtime.statuses[index])) return index;
+	}
+	return -1;
 }
 
 describe("Codex usage footer extension", () => {
@@ -169,9 +189,10 @@ describe("Codex usage footer extension", () => {
 		runtime = createRuntime();
 
 		await trigger(runtime, "session_start");
-		assert.match(runtime.statuses[0] ?? "", /Codex quota…/);
+		assert.match(runtime.statuses[0] ?? "", /Codex 1 quota…/);
 		await waitFor(() => latestStatus(runtime!)?.includes("42%") === true);
 		assert.strictEqual(fetchCalls, 1);
+		assert.match(latestStatus(runtime) ?? "", /^accent:Codex 1 /);
 		assert.match(latestStatus(runtime) ?? "", /\[████░░░░░░\]/);
 	});
 
@@ -196,6 +217,7 @@ describe("Codex usage footer extension", () => {
 		await waitFor(() => latestStatus(runtime!)?.includes("65%") === true);
 		assert.strictEqual(fetchCalls, 1);
 		assert.strictEqual(capturedProviderId, "openai-codex-2");
+		assert.match(latestStatus(runtime) ?? "", /^accent:Codex 2 /);
 	});
 
 	test("stays inactive for API-key OpenAI and non-TUI modes", async () => {
@@ -245,13 +267,13 @@ describe("Codex usage footer extension", () => {
 		assert.strictEqual(latestStatus(runtime), undefined);
 	});
 
-	test("deduplicates concurrent refresh requests for same provider", async () => {
-		let resolveResponse: ((response: Response) => void) | undefined;
+	test("coalesces concurrent work and runs one trailing settled refresh", async () => {
+		const resolvers: Array<(response: Response) => void> = [];
 		let fetchCalls = 0;
 		globalThis.fetch = async () => {
 			fetchCalls += 1;
 			return new Promise<Response>((resolve) => {
-				resolveResponse = resolve;
+				resolvers.push(resolve);
 			});
 		};
 		runtime = createRuntime();
@@ -260,9 +282,11 @@ describe("Codex usage footer extension", () => {
 		await trigger(runtime, "agent_settled");
 		await trigger(runtime, "agent_settled");
 		await waitFor(() => fetchCalls === 1);
-		resolveResponse?.(usageResponse());
+		resolvers[0]?.(usageResponse(20));
+		await waitFor(() => fetchCalls === 2);
+		resolvers[1]?.(usageResponse(42));
 		await waitFor(() => latestStatus(runtime!)?.includes("42%") === true);
-		assert.strictEqual(fetchCalls, 1);
+		assert.strictEqual(fetchCalls, 2);
 	});
 
 	test("a stale refresh cannot remove a newer in-flight refresh", async () => {
@@ -344,7 +368,7 @@ describe("Codex usage footer extension", () => {
 		await waitFor(() => latestStatus(runtime!)?.includes("80%") === true);
 
 		const secondLoadingIndex = runtime.statuses.findIndex(
-			(status, index) => index > 0 && status?.includes("Codex quota…") === true,
+			(status, index) => index > 0 && status?.includes("Codex 1 quota…") === true,
 		);
 		assert.notStrictEqual(secondLoadingIndex, -1);
 	});
@@ -358,6 +382,7 @@ describe("Codex usage footer extension", () => {
 		await waitFor(
 			() => latestStatus(runtime!)?.includes("connexion requise") === true,
 		);
+		assert.match(latestStatus(runtime) ?? "", /^warning:Codex 1 connexion requise$/);
 		await trigger(runtime, "session_shutdown");
 		assert.strictEqual(latestStatus(runtime), undefined);
 		runtime = undefined;
@@ -381,8 +406,8 @@ describe("Codex usage footer extension", () => {
 			model: { provider: "openai-codex-2", id: "gpt-5.4" },
 		});
 
-		// Should show loading state, not the cached 25% from openai-codex
-		assert.match(latestStatus(runtime) ?? "", /Codex quota…/);
+		// Should show a labeled loading state, not the cached 25% from openai-codex
+		assert.match(latestStatus(runtime) ?? "", /Codex 2 quota…/);
 
 		// Wait for the new quota to load
 		await waitFor(() => latestStatus(runtime!)?.includes("75%") === true);
@@ -417,9 +442,18 @@ describe("Codex usage footer extension", () => {
 			model: { provider: "openai-codex", id: "gpt-5.4" },
 		});
 
-		// Should show the cached 30% for openai-codex, not the 80% from openai-codex-2
+		// Clear first, then reuse only after the current OAuth account is validated.
 		await waitFor(() => latestStatus(runtime!)?.includes("30%") === true);
-		assert.match(latestStatus(runtime) ?? "", /30%/);
+		const lastLoadingIndex = lastStatusIndexMatching(
+			runtime,
+			(status) => status?.includes("Codex 1 quota…") === true,
+		);
+		const lastCachedIndex = lastStatusIndexMatching(
+			runtime,
+			(status) => status?.includes("30%") === true,
+		);
+		assert.ok(lastLoadingIndex >= 0 && lastLoadingIndex < lastCachedIndex);
+		assert.match(latestStatus(runtime) ?? "", /^accent:Codex 1 .*30%/);
 	});
 
 	test("account change invalidates cache for that provider", async () => {
@@ -438,9 +472,114 @@ describe("Codex usage footer extension", () => {
 		await trigger(runtime, "agent_settled");
 
 		// Should show loading state because account changed
-		assert.match(latestStatus(runtime) ?? "", /Codex quota…/);
+		assert.match(latestStatus(runtime) ?? "", /Codex 1 quota…/);
 
 		// Wait for new quota
 		await waitFor(() => latestStatus(runtime!)?.includes("90%") === true);
+	});
+
+	test("uses the model_select event provider while context still reports the previous model", async () => {
+		let capturedProviderId: string | undefined;
+		globalThis.fetch = async () => usageResponse(72);
+		runtime = createRuntime("openai-codex");
+		const originalGetProviderAuth = runtime.context.modelRegistry.getProviderAuth;
+		runtime.context.modelRegistry.getProviderAuth = async (providerId: string) => {
+			capturedProviderId = providerId;
+			return originalGetProviderAuth.call(runtime!.context.modelRegistry, providerId);
+		};
+
+		await trigger(runtime, "model_select", {
+			model: { provider: "openai-codex-2", id: "gpt-5.4" },
+		});
+
+		assert.match(latestStatus(runtime) ?? "", /^dim:Codex 2 quota…$/);
+		await waitFor(() => latestStatus(runtime!)?.includes("72%") === true);
+		assert.strictEqual(capturedProviderId, "openai-codex-2");
+		assert.match(latestStatus(runtime) ?? "", /^warning:Codex 2 .*72%/);
+	});
+
+	test("uses the base event provider while context still reports the alias model", async () => {
+		let capturedProviderId: string | undefined;
+		globalThis.fetch = async () => usageResponse(32);
+		runtime = createRuntime("openai-codex-2");
+		const originalGetProviderAuth = runtime.context.modelRegistry.getProviderAuth;
+		runtime.context.modelRegistry.getProviderAuth = async (providerId: string) => {
+			capturedProviderId = providerId;
+			return originalGetProviderAuth.call(runtime!.context.modelRegistry, providerId);
+		};
+
+		await trigger(runtime, "model_select", {
+			model: { provider: "openai-codex", id: "gpt-5.4" },
+		});
+
+		assert.match(latestStatus(runtime) ?? "", /^dim:Codex 1 quota…$/);
+		await waitFor(() => latestStatus(runtime!)?.includes("32%") === true);
+		assert.strictEqual(capturedProviderId, "openai-codex");
+		assert.match(latestStatus(runtime) ?? "", /^accent:Codex 1 .*32%/);
+	});
+
+	test("does not show cached quota until the current provider account is validated", async () => {
+		const responses = [usageResponse(30), usageResponse(80), usageResponse(35)];
+		globalThis.fetch = async () => responses.shift() ?? usageResponse(50);
+		runtime = createRuntime("openai-codex");
+
+		await trigger(runtime, "session_start");
+		await waitFor(() => latestStatus(runtime!)?.includes("30%") === true);
+
+		runtime.setModel("openai-codex-2", "gpt-5.4");
+		await trigger(runtime, "model_select", {
+			model: { provider: "openai-codex-2", id: "gpt-5.4" },
+		});
+		await waitFor(() => latestStatus(runtime!)?.includes("80%") === true);
+
+		let resolveAuth: ((value: Awaited<ReturnType<ExtensionContext["modelRegistry"]["getProviderAuth"]>>) => void) | undefined;
+		const originalGetProviderAuth = runtime.context.modelRegistry.getProviderAuth;
+		runtime.context.modelRegistry.getProviderAuth = (providerId: string) => {
+			if (providerId !== "openai-codex") {
+				return originalGetProviderAuth.call(runtime!.context.modelRegistry, providerId);
+			}
+			return new Promise((resolve) => {
+				resolveAuth = resolve;
+			});
+		};
+
+		runtime.setModel("openai-codex", "gpt-5.4");
+		await trigger(runtime, "model_select", {
+			model: { provider: "openai-codex", id: "gpt-5.4" },
+		});
+
+		assert.match(latestStatus(runtime) ?? "", /^dim:Codex 1 quota…$/);
+		assert.doesNotMatch(latestStatus(runtime) ?? "", /30%/);
+		resolveAuth?.({
+			auth: { apiKey: createToken("account-a") },
+			source: "OAuth",
+		});
+		await waitFor(() => latestStatus(runtime!)?.includes("35%") === true);
+	});
+
+	test("never restores a pending base-provider result after switching to an alias", async () => {
+		const resolvers: Array<(response: Response) => void> = [];
+		globalThis.fetch = async () =>
+			new Promise<Response>((resolve) => {
+				resolvers.push(resolve);
+			});
+		runtime = createRuntime("openai-codex");
+
+		await trigger(runtime, "session_start");
+		await waitFor(() => resolvers.length === 1);
+		runtime.setModel("openai-codex-2", "gpt-5.4");
+		await trigger(runtime, "model_select", {
+			model: { provider: "openai-codex-2", id: "gpt-5.4" },
+		});
+		await waitFor(() => resolvers.length === 2);
+
+		resolvers[0]?.(usageResponse(15));
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		assert.doesNotMatch(latestStatus(runtime) ?? "", /Codex 1|15%/);
+
+		resolvers[1]?.(usageResponse(70));
+		await waitFor(() => latestStatus(runtime!)?.includes("70%") === true);
+		assert.match(latestStatus(runtime) ?? "", /^warning:Codex 2 .*70%/);
+		assert.doesNotMatch(runtime.statuses.join("\n"), /account-a|account-b|header\./);
 	});
 });

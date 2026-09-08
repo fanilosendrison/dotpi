@@ -49,15 +49,15 @@ function formatStaleAge(capturedAt: number, now: number): string {
 
 export function formatCodexUsageStatus(
 	snapshot: CodexUsageSnapshot,
-	options: { now?: number; stale?: boolean } = {},
+	options: { label: string; now?: number; stale?: boolean },
 ): string {
 	const now = options.now ?? Date.now();
 	const windows = [snapshot.primary, snapshot.secondary].filter(
 		(window): window is CodexUsageWindow => window !== undefined,
 	);
-	if (windows.length === 0) return "Codex quota indisponible";
+	if (windows.length === 0) return `${options.label} quota indisponible`;
 
-	const status = `Codex ${windows.map((window) => formatWindow(window, now)).join(" · ")}`;
+	const status = `${options.label} ${windows.map((window) => formatWindow(window, now)).join(" · ")}`;
 	return options.stale
 		? `${status} · ancien ${formatStaleAge(snapshot.capturedAt, now)}`
 		: status;

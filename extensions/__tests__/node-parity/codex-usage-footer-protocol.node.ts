@@ -5,6 +5,7 @@ import {
 	formatProgressBar,
 	highestCodexUsagePercent,
 } from "../../codex-usage-footer-internals/display.ts";
+import { resolveCodexProviderIdentity } from "../../codex-usage-footer-internals/provider.ts";
 import {
 	CodexUsageError,
 	extractCodexAccountId,
@@ -181,6 +182,42 @@ describe("Codex usage protocol", () => {
 	});
 });
 
+describe("Codex provider identity", () => {
+	test("labels the base login as 1 and aliases with their configured suffix", () => {
+		assert.deepStrictEqual(resolveCodexProviderIdentity("openai-codex"), {
+			providerId: "openai-codex",
+			label: "Codex 1",
+		});
+		assert.deepStrictEqual(resolveCodexProviderIdentity("openai-codex-2"), {
+			providerId: "openai-codex-2",
+			label: "Codex 2",
+		});
+		assert.deepStrictEqual(resolveCodexProviderIdentity("openai-codex-work-main"), {
+			providerId: "openai-codex-work-main",
+			label: "Codex work-main",
+		});
+		assert.deepStrictEqual(
+			resolveCodexProviderIdentity("openai-codex-an-excessively-long-account-name"),
+			{
+				providerId: "openai-codex-an-excessively-long-account-name",
+				label: "Codex an-excessively-long-acc…",
+			},
+		);
+	});
+
+	test("rejects malformed provider aliases", () => {
+		for (const providerId of [
+			"openai",
+			"openai-codexish",
+			"openai-codex-",
+			"openai-codex-Work",
+			"openai-codex-2\nforged",
+		]) {
+			assert.strictEqual(resolveCodexProviderIdentity(providerId), undefined);
+		}
+	});
+});
+
 describe("Codex usage footer formatting", () => {
 	test("renders fixed-width progress bars", () => {
 		assert.strictEqual(formatProgressBar(0), "[░░░░░░░░░░]");
@@ -191,8 +228,8 @@ describe("Codex usage footer formatting", () => {
 	test("formats both windows and reset countdowns on one line", () => {
 		const snapshot = parseCodexUsagePayload(validPayload(), NOW);
 		assert.strictEqual(
-			formatCodexUsageStatus(snapshot, { now: NOW }),
-			"Codex 5h [███████░░░] 68% ↻2h14 · 1sem [███░░░░░░░] 31% ↻3j",
+			formatCodexUsageStatus(snapshot, { label: "Codex 2", now: NOW }),
+			"Codex 2 5h [███████░░░] 68% ↻2h14 · 1sem [███░░░░░░░] 31% ↻3j",
 		);
 		assert.strictEqual(highestCodexUsagePercent(snapshot), 68);
 	});
@@ -200,8 +237,20 @@ describe("Codex usage footer formatting", () => {
 	test("marks retained results as stale", () => {
 		const snapshot = parseCodexUsagePayload(validPayload(), NOW - 11 * 60_000);
 		assert.match(
-			formatCodexUsageStatus(snapshot, { now: NOW, stale: true }),
-			/ancien 11m$/,
+			formatCodexUsageStatus(snapshot, {
+				label: "Codex 1",
+				now: NOW,
+				stale: true,
+			}),
+			/^Codex 1 .*ancien 11m$/,
+		);
+	});
+
+	test("keeps the provider label when no usage window is available", () => {
+		const snapshot = parseCodexUsagePayload({ plan_type: "pro", rate_limit: null }, NOW);
+		assert.strictEqual(
+			formatCodexUsageStatus(snapshot, { label: "Codex 2", now: NOW }),
+			"Codex 2 quota indisponible",
 		);
 	});
 });
