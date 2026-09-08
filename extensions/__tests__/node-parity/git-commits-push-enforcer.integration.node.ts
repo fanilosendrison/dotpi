@@ -226,9 +226,8 @@ describe("git-commits-push-enforcer Pi extension integration", () => {
 		});
 	});
 
-	test("allows skill launch and writes real enforcer_triggered telemetry", () => {
-		const command =
-			'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
+	test("allows installed binary launch and writes real telemetry", () => {
+		const command = '"$HOME/.local/bin/git-commits-push"';
 		const output = runProbe(command, { toolCallId: "call-real-skill" });
 
 		assert.strictEqual(output.result, undefined);

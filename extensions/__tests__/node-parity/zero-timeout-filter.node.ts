@@ -7,9 +7,10 @@ import { importPiExtension } from "./pi-extension-loader.node.ts";
 
 const RETIRED_SKILL_CMD =
 	'cd "$HOME/.agents/skills/git-commits-push" && pnpm --silent run start';
-const SKILL_CMD =
+const RETIRED_PROJECT_CMD =
 	'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start';
-const PNPM_SKILL_CMD = SKILL_CMD;
+const SKILL_CMD = '"$HOME/.local/bin/git-commits-push"';
+const BARE_BINARY_CMD = "git-commits-push";
 
 interface ToolCallEvent {
 	toolName: string;
@@ -125,13 +126,13 @@ describe("zero-timeout-filter", () => {
 		});
 	});
 
-	test("deletes timeout for canonical pnpm launch", async () => {
+	test("deletes timeout for the bare installed binary", async () => {
 		const input: Record<string, unknown> = {
-			command: PNPM_SKILL_CMD,
+			command: BARE_BINARY_CMD,
 			timeout: 45,
 		};
 		await handlers.tool_call(
-			{ toolName: "bash", input, toolCallId: "tc-pnpm" },
+			{ toolName: "bash", input, toolCallId: "tc-binary" },
 			{},
 		);
 
@@ -140,15 +141,16 @@ describe("zero-timeout-filter", () => {
 		assert.strictEqual(events.length, 1);
 		assert.partialDeepStrictEqual(events[0].details, {
 			originalTimeout: 45,
-			toolCallId: "tc-pnpm",
+			toolCallId: "tc-binary",
 		});
 	});
 
 	test("ignores incomplete and unsafe launch commands", async () => {
 		for (const command of [
 			RETIRED_SKILL_CMD,
-			"cd ~/Developper/Projects/git-commits-push && pnpm run start",
-			`${PNPM_SKILL_CMD} && git push`,
+			RETIRED_PROJECT_CMD,
+			"git-commits-push --force",
+			`${SKILL_CMD} && git push`,
 		]) {
 			const input: Record<string, unknown> = { command, timeout: 30 };
 			await handlers.tool_call({ toolName: "bash", input }, {});
@@ -177,10 +179,9 @@ describe("zero-timeout-filter", () => {
 		assert.strictEqual(events[0].details.originalTimeout, 0);
 	});
 
-	test("matches when command starts with cd ~/", async () => {
+	test("matches the unquoted home-local binary path", async () => {
 		const input: Record<string, unknown> = {
-			command:
-				"cd ~/Developper/Projects/git-commits-push && pnpm --silent run start",
+			command: "$HOME/.local/bin/git-commits-push",
 			timeout: 30,
 		};
 		await handlers.tool_call({ toolName: "bash", input }, {});

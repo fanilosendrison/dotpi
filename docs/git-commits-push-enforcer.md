@@ -27,16 +27,16 @@ The normal allowed path is:
 The direct skill launch path is also allowed:
 
 ```bash
-cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
+"$HOME/.local/bin/git-commits-push"
 ```
 
 ## How It Works
 
 The extension listens to `tool_call` events and only inspects Bash commands.
 
-The shared dotagents recognizer accepts the slash invocation and the canonical
-pnpm launch. Retired launch syntax, incomplete commands, lookalike paths, unsafe
-separators, and appended commands are rejected.
+The shared dotagents recognizer accepts the slash invocation and the installed
+binary launch. Retired checkout syntax, incomplete commands, lookalike paths,
+unsafe separators, binary arguments, and appended commands are rejected.
 
 When it detects a recognized `/git-commits-push` invocation, it sets:
 

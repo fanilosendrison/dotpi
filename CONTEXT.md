@@ -16,7 +16,7 @@ Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/
 **To commit your changes**, simply run the commit orchestrator which will auto-discover modified repos:
 
 ```bash
-cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start
+"$HOME/.local/bin/git-commits-push"
 ```
 
 ## Folder Structure

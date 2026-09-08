@@ -70,6 +70,10 @@ describe("git-commits-push-enforcer detection helpers", () => {
 			isSkillCmd(
 				'cd "$HOME/Developper/Projects/git-commits-push" && pnpm --silent run start',
 			),
+			false,
+		);
+		assert.strictEqual(
+			isSkillCmd('"$HOME/.local/bin/git-commits-push"'),
 			true,
 		);
 		assert.strictEqual(
