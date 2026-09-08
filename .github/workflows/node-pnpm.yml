@@ -69,7 +69,10 @@ jobs:
 
       - name: Install locked dependencies without lifecycle scripts
         shell: bash
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm --dir node-dotagents install --frozen-lockfile --ignore-scripts
 
       - name: Install Bun failure sentinel
         shell: bash
