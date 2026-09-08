@@ -69,9 +69,9 @@ A main architectural objective is that **Turnlock, not the main LLM, owns the im
 
 ---
 
-## 3. The three conceptual execution paths
+## 3. Logical targets and physical execution paths
 
-Historically, the Turnlock design distinguished three different kinds of semantic execution.
+Current Turnlock separates logical ownership from the physical mechanism used to satisfy it. `host` and `worker(name)` are logical targets. A Pi child session or direct model call is a consumer-owned execution choice, not another Turnlock target.
 
 ### Host
 
@@ -137,14 +137,14 @@ They are independent **agent/session contexts**, although filesystem or workspac
 
 ---
 
-### Direct model call
+### Direct model call as a runtime resolution
 
-Some semantic work does not require a full coding-agent session.
-
-A bounded task may instead be performed by a direct model/API call:
+Some semantic work does not require a full coding-agent session. A consumer may map a named worker capability to a direct model/API call:
 
 ```text id="pklbvz"
-Turnlock
+Turnlock worker("bounded-synthesis")
+   ↓
+consumer target resolver
    ↓
 model API
    ↓
@@ -153,10 +153,7 @@ structured result
 Turnlock continues
 ```
 
-This is conceptually distinct from both:
-
-* `host`: use the existing main coding agent;
-* `worker`: create a separate coding-agent/worker session.
+This remains physically distinct from using the current host context or a Pi child session, but it does not expand Turnlock's logical target taxonomy. The Pi worker provider described here resolves workers to Pi child sessions; a direct-model bridge belongs to a different consumer implementation.
 
 ---
 
@@ -239,6 +236,10 @@ or:
 
 ```text id="ba3ldw"
 A/B/C
+  ↓
+target=worker("bounded-synthesis")
+  ↓
+consumer target resolver
   ↓
 direct model call
   ↓
@@ -582,18 +583,42 @@ Before implementation:
 
 ---
 
-## 14. The shortest possible mental model
+## 14. Turnlock 0.11 compatibility contract
+
+No live Turnlock manifest parser, Turnlock package dependency, or exported Turnlock provider exists in this fork today. The integration remains design intent; it must not be presented as an already-deployed consumer.
+
+A future implementation must adopt the following release gate:
+
+1. Depend on an immutable, CI-verified Turnlock release rather than a branch name.
+2. Accept newly-authored delegation manifest v3 only; there are no deployed Pi-provider v2 runs requiring implicit compatibility.
+3. Require an explicit `target` and route only `target.kind === "worker"` through this worker backend. A host target belongs to separate host-continuation integration and must fail closed here.
+4. Resolve `target.name` through a Pi-owned allowlist or worker registry. The mapping to an agent profile, model, tools, session, and process is physical runtime state and must never be written back into Turnlock's logical target.
+5. Accept `targetCompatibility` only when absent or exactly `"legacy-v2"`; reject unknown markers. The marker does not authorize execution and must not bypass the worker registry.
+6. Preserve the target name byte-for-byte in the durable request and recovery. Launch identity must derive from the stable Turnlock delegation/request identity and immutable manifest evidence, not from `target.name` alone. Never normalize a marked historical name or infer compatibility from its syntax.
+7. Return JSON results through the manifest paths and resume contract only after durable worker completion.
+
+If implementation discovers actual persisted requests from a pre-v3 prototype, their migration must be designed explicitly before enabling the provider. Absence of such evidence must not be replaced by a guessed v2 default.
+
+Required compatibility tests must prove:
+
+* valid allowlisted worker v3 manifests launch the expected Pi child execution plan;
+* host, unknown worker, malformed target, extra target fields, and unknown compatibility markers fail before child launch;
+* `targetCompatibility: "legacy-v2"` preserves target bytes but grants no additional authorization;
+* retrying the same stable delegation/request identity reuses the same logical launch identity, while distinct delegations may share one target name;
+* provider recovery consumes the previously resolved execution-plan snapshot rather than mutable ambient agent configuration.
+
+## 15. The shortest possible mental model
 
 If only one thing from this document is remembered, remember this:
 
 ```text id="g3ik0y"
 Turnlock is the orchestrator.
 
-The main Pi agent is one possible explicit execution target.
+The main Pi agent is the physical executor for the explicit host target.
 
-Pi child agents are another explicit execution target.
+A named worker is another explicit logical target.
 
-Direct LLM calls are another possible execution target.
+Pi child sessions and direct LLM calls are consumer-owned physical resolutions of worker capabilities, not additional target kinds.
 
 pi-subagents-4-turnlock exists to implement the Pi-child/worker path,
 not to become another workflow orchestrator.
