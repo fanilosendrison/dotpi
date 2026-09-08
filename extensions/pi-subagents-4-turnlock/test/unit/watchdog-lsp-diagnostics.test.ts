@@ -97,13 +97,17 @@ describe("watchdog LSP diagnostics", () => {
 			fs.mkdirSync(path.join(temp, "src"), { recursive: true });
 			fs.mkdirSync(binDir, { recursive: true });
 			fs.writeFileSync(path.join(temp, "src", "file.ts"), "export const value = 1;\n", "utf-8");
-			const scriptPath = path.join(binDir, "tls-malformed.js");
-			fs.writeFileSync(scriptPath, "process.stdout.write('Content-Length: 8\\r\\n\\r\\nnot-json'); setTimeout(() => process.exit(0), 50);\n", "utf-8");
 			if (process.platform === "win32") {
+				const scriptPath = path.join(binDir, "tls-malformed.js");
+				fs.writeFileSync(scriptPath, "process.stdout.write('Content-Length: 8\\r\\n\\r\\nnot-json'); setTimeout(() => process.exit(0), 50);\n", "utf-8");
 				fs.writeFileSync(path.join(binDir, "typescript-language-server.cmd"), `@echo off\r\n"${process.execPath}" "%~dp0\\tls-malformed.js" %*\r\n`, "utf-8");
 			} else {
 				const commandPath = path.join(binDir, "typescript-language-server");
-				fs.writeFileSync(commandPath, `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/tls-malformed.js" "$@"\n`, { encoding: "utf-8", mode: 0o755 });
+				fs.writeFileSync(
+					commandPath,
+					"#!/bin/sh\nprintf 'Content-Length: 8\\r\\n\\r\\nnot-json'\nsleep 1\n",
+					{ encoding: "utf-8", mode: 0o755 },
+				);
 			}
 
 			const diagnostics = await collectWatchdogLspDiagnostics({
