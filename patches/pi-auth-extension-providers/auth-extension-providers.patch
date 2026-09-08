@@ -1,0 +1,195 @@
+--- a/dist/main.js
++++ b/dist/main.js
+@@ -26,7 +26,7 @@
+ import { applyHttpProxySettings, configureHttpDispatcher } from "./core/http-dispatcher.js";
+ import { resolveCliModel, resolveModelScope } from "./core/model-resolver.js";
+ import { ModelRuntime } from "./core/model-runtime.js";
+-import { restoreStdout, takeOverStdout } from "./core/output-guard.js";
++import { restoreStdout, takeOverStdout, waitForRawStdoutBackpressure, writeRawStdout } from "./core/output-guard.js";
+ import { resolveProjectTrusted } from "./core/project-trust.js";
+ import { formatMissingSessionCwdPrompt, getMissingSessionCwdIssue, MissingSessionCwdError, } from "./core/session-cwd.js";
+ import { assertValidSessionId, SessionManager } from "./core/session-manager.js";
+@@ -38,6 +38,7 @@
+ import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.js";
+ import { initTheme, stopThemeWatcher } from "./modes/interactive/theme/theme.js";
+ import { handleConfigCommand, handlePackageCommand } from "./package-manager-cli.js";
++import { raceWithAbortSignal } from "./utils/abort.js";
+ import { isLocalPath, normalizePath, resolvePath } from "./utils/paths.js";
+ import { cleanupWindowsSelfUpdateQuarantine } from "./utils/windows-self-update.js";
+ const EXTENSION_LOAD_FAILURE_HINT = `Hint: Start without extensions using "${APP_NAME} -ne".`;
+@@ -98,7 +99,51 @@
+ function isPlainRuntimeMetadataCommand(parsed) {
+     return !parsed.print && parsed.mode === undefined && (parsed.help === true || parsed.listModels !== undefined);
+ }
+-async function runAuthCommand(args) {
++async function createAuthCommandRuntime(modelRuntime, options) {
++    const settingsManager = SettingsManager.create(options.cwd, options.agentDir, { projectTrusted: false });
++    const servicesPromise = createAgentSessionServices({
++        cwd: options.cwd,
++        agentDir: options.agentDir,
++        settingsManager,
++        modelRuntime,
++        refreshModelAvailability: false,
++        resourceLoaderOptions: {
++            noSkills: true,
++            noPromptTemplates: true,
++            noThemes: true,
++            noContextFiles: true,
++            systemPrompt: "",
++            appendSystemPrompt: [],
++            extensionFactories: options.extensionFactories,
++        },
++    });
++    let services;
++    try {
++        services = await raceWithAbortSignal(servicesPromise, options.signal);
++    }
++    catch (error) {
++        void servicesPromise.then((lateServices) => {
++            lateServices.resourceLoader
++                .getExtensions()
++                .runtime.invalidate("Abandoned auth command provider runtime disposed.");
++        }, () => { });
++        throw error;
++    }
++    const extensionsResult = services.resourceLoader.getExtensions();
++    reportDiagnostics([
++        ...services.diagnostics,
++        ...collectSettingsDiagnostics(settingsManager, "auth command runtime creation"),
++        ...extensionsResult.errors.map(({ path, error }) => ({
++            type: "error",
++            message: `Failed to load extension "${path}": ${error}`,
++        })),
++    ]);
++    return {
++        modelRuntime: services.modelRuntime,
++        dispose: () => extensionsResult.runtime.invalidate("Auth command provider runtime disposed."),
++    };
++}
++async function runAuthCommand(args, createRuntime) {
+     if (isAuthCommandHelp(args)) {
+         printAuthCommandHelp();
+         return true;
+@@ -127,41 +172,53 @@
+         if (parsed.diagnostics.length > 0) {
+             throw new AuthCommandError(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+         }
+-        if (command.kind !== "check") {
+-            const signal = AbortSignal.timeout(15_000);
+-            const modelRuntime = await ModelRuntime.create({ allowModelNetwork: false, signal });
+-            const credential = await resolveCredentialForPrint(parsed, modelRuntime, command.kind, command.minExpiryMs, signal);
+-            process.stdout.write(`${credential}\n`);
+-            return true;
+-        }
+         const requestedAuth = validateAuthCommandArgs(parsed, command.kind);
+-        let result;
+-        let credential;
++        const signal = AbortSignal.timeout(15_000);
++        let authRuntime;
++        takeOverStdout();
+         try {
+-            const credentials = command.noRefresh ? new ReadOnlyAuthStorage() : AuthStorage.create();
+-            const modelRuntime = await createAuthCheckModelRuntime(credentials);
+-            result = await checkProviderAuth(parsed, modelRuntime, { refresh: !command.noRefresh });
+-            if (command.credentials && result.status === "ready") {
+-                credential = await getProviderCredential(result.provider, modelRuntime, credentials, {
+-                    refresh: !command.noRefresh,
+-                });
+-                if (!credential) {
+-                    result = { status: "not_ready", provider: result.provider, reason: "credential_not_available" };
++            if (command.kind !== "check") {
++                const modelRuntime = await ModelRuntime.create({ allowModelNetwork: false, signal });
++                authRuntime = await createRuntime(modelRuntime, signal);
++                const credential = await resolveCredentialForPrint(parsed, authRuntime.modelRuntime, command.kind, command.minExpiryMs, signal);
++                writeRawStdout(`${credential}\n`);
++                return true;
++            }
++            let result;
++            let credential;
++            try {
++                const credentials = command.noRefresh ? new ReadOnlyAuthStorage() : AuthStorage.create();
++                const modelRuntime = await createAuthCheckModelRuntime(credentials);
++                authRuntime = await createRuntime(modelRuntime, signal);
++                result = await checkProviderAuth(parsed, authRuntime.modelRuntime, { refresh: !command.noRefresh });
++                if (command.credentials && result.status === "ready") {
++                    credential = await getProviderCredential(result.provider, authRuntime.modelRuntime, credentials, {
++                        refresh: !command.noRefresh,
++                    });
++                    if (!credential) {
++                        result = { status: "not_ready", provider: result.provider, reason: "credential_not_available" };
++                    }
+                 }
+             }
++            catch {
++                result = {
++                    status: "invalid",
++                    provider: requestedAuth.provider ?? requestedAuth.model,
++                    reason: "invalid_state",
++                };
++            }
++            const output = command.json
++                ? JSON.stringify({ ...result, ...(credential ? { credentials: credential } : {}) })
++                : (credential ?? result.status);
++            writeRawStdout(`${output}\n`);
++            process.exitCode = result.status === "ready" ? 0 : result.status === "not_ready" ? 1 : 2;
++        }
++        finally {
++            authRuntime?.dispose();
++            await waitForRawStdoutBackpressure();
++            // Auth is a one-shot CLI path. Keep stdout guarded until process exit so
++            // deferred output from a loaded extension cannot corrupt machine output.
+         }
+-        catch {
+-            result = {
+-                status: "invalid",
+-                provider: requestedAuth.provider ?? requestedAuth.model,
+-                reason: "invalid_state",
+-            };
+-        }
+-        const output = command.json
+-            ? JSON.stringify({ ...result, ...(credential ? { credentials: credential } : {}) })
+-            : (credential ?? result.status);
+-        process.stdout.write(`${output}\n`);
+-        process.exitCode = result.status === "ready" ? 0 : result.status === "not_ready" ? 1 : 2;
+     }
+     catch (error) {
+         const message = error instanceof AuthCommandError ? error.message : "Failed to resolve credential";
+@@ -445,7 +502,13 @@
+         process.env.PI_OFFLINE = "1";
+         process.env.PI_SKIP_VERSION_CHECK = "1";
+     }
+-    if (await runAuthCommand(args)) {
++    const createAuthRuntime = (modelRuntime, signal) => createAuthCommandRuntime(modelRuntime, {
++        cwd: process.cwd(),
++        agentDir: getAgentDir(),
++        extensionFactories,
++        signal,
++    });
++    if (await runAuthCommand(args, createAuthRuntime)) {
+         return;
+     }
+     if (process.platform === "win32") {
+--- a/dist/core/agent-session-services.js
++++ b/dist/core/agent-session-services.js
+@@ -95,7 +95,9 @@
+         }
+     }
+     extensionsResult.runtime.pendingNativeProviderRegistrations = [];
+-    await modelRuntime.refresh({ allowNetwork: false });
++    if (options.refreshModelAvailability !== false) {
++        await modelRuntime.refresh({ allowNetwork: false });
++    }
+     diagnostics.push(...applyExtensionFlagValues(resourceLoader, options.extensionFlagValues));
+     return {
+         cwd,
+--- a/dist/core/agent-session-services.d.ts
++++ b/dist/core/agent-session-services.d.ts
+@@ -30,6 +30,8 @@
+     settingsManager?: SettingsManager;
+     modelRuntime?: ModelRuntime;
+     modelRuntimeSignal?: AbortSignal;
++    /** Refresh all provider availability after extension registration. Defaults to true. */
++    refreshModelAvailability?: boolean;
+     extensionFlagValues?: Map<string, boolean | string>;
+     resourceLoaderOptions?: Omit<DefaultResourceLoaderOptions, "cwd" | "agentDir" | "settingsManager">;
+     resourceLoaderReloadOptions?: ResourceLoaderReloadOptions;

@@ -77,6 +77,12 @@ Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/
 │   │   ├── interactive-mode.patch
 │   │   ├── apply.sh
 │   │   └── revert.sh
+│   ├── pi-auth-extension-providers/
+│   │   ├── auth-extension-providers.patch
+│   │   ├── apply.sh
+│   │   ├── revert.sh
+│   │   ├── verify-auth-extension-providers.test.mjs
+│   │   └── patch-lifecycle.test.mjs
 │   └── pi-subagents-cross-harness-agent-frontmatter/
 │       ├── cross-harness-agent-frontmatter.patch
 │       ├── apply.sh
@@ -104,6 +110,7 @@ Pi documentation lives at: `$(npm root -g)/@earendil-works/pi-coding-agent/docs/
 | Run internals unit tests | Included in the closed `pnpm run test:node` suite |
 | Reapply patches after pi update | `patches/enhanced-model-selector/apply.sh` |
 | Reapply the cross-harness agent frontmatter patch | `docs/pi-subagents-cross-harness-agent-frontmatter.md` (Pi override patch for shared agents) |
+| Reapply the auth extension-provider patch | `docs/pi-auth-extension-providers.md` (extension aliases in `pi auth`) |
 | Conventions for new extensions | `docs/creating-extensions.md` (Conventions for new extensions) |
 | See all harness modifications | `docs/CONTEXT.md` |
 | Inspect Pi subagent artifact storage | `docs/pi-subagents-global-artifacts.md` (Global project artifact storage) |

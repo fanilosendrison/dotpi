@@ -73,3 +73,7 @@ When the user asks to modify pi (the harness, the agent), look here first to und
 ### 15. Codex Subscription Usage Footer
 - **Date** : 2026-09-01
 - **Doc** : [`codex-subscription-usage-footer.md`](codex-subscription-usage-footer.md)
+
+### 16. Pi Auth Extension Providers
+- **Date** : 2026-09-06
+- **Doc** : [`pi-auth-extension-providers.md`](pi-auth-extension-providers.md)
