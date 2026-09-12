@@ -1,9 +1,9 @@
 {
   "lastChangelogVersion": "0.84.2",
   "theme": "dark",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-sol",
-  "defaultThinkingLevel": "xhigh",
+  "defaultProvider": "mistral",
+  "defaultModel": "mistral-medium-3.5",
+  "defaultThinkingLevel": "high",
   "packages": [
     "npm:@hank-warren/pi-multi-login@0.3.2"
   ]
